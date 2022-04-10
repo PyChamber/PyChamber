@@ -52,10 +52,44 @@ class PopUpMessage(QMessageBox):
         self.exec_()
 
 
+class ClearDataWarning(QMessageBox):
+    def __init__(self, msg: str) -> None:
+        super(ClearDataWarning, self).__init__(parent=None)
+        self.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        self.setDefaultButton(QMessageBox.Cancel)
+        self.setText(msg)
+
+    def warn(self) -> bool:
+        ret = self.exec_()
+        if ret == QMessageBox.Yes:
+            return True
+        else:
+            return False
+
+
+class WhichPol(QMessageBox):
+    def __init__(self) -> None:
+        super(WhichPol, self).__init__()
+        self.addButton("1", QMessageBox.NoRole)
+        self.addButton("2", QMessageBox.YesRole)
+        self.setText("Which Polarization?")
+
+    @classmethod
+    def ask(cls) -> int:
+        instance = WhichPol()
+        ret = instance.exec_()
+        if ret == QMessageBox.No:
+            return 0
+        else:
+            return 1
+
+
 class AppUI(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None) -> None:
         super(AppUI, self).__init__(parent)
+
         self.setupUi(self)
+
         log_handler = QPlainTextEditLogger(self.logTab)
         log_handler.setFormatter(logging.Formatter('[%(levelname)s] - %(message)s'))
         logging.getLogger('pychamber').addHandler(log_handler)
@@ -66,6 +100,8 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
         self.init_az_extent_plot()
         self.init_el_extent_plot()
+        self.cutProgressLabel.hide()
+        self.cutProgressBar.hide()
 
         self.azStartSpinBox.valueChanged.connect(self.update_az_extent_plot)
         self.azStopSpinBox.valueChanged.connect(self.update_az_extent_plot)
@@ -76,7 +112,10 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
     @property
     def start_freq(self) -> Optional[float]:
-        return self.extract_freq(self.startFreqLineEdit.text())
+        if (f := self.startFreqLineEdit.text()) != "":
+            return self.extract_freq(f)
+        else:
+            return None
 
     @start_freq.setter
     def start_freq(self, freq: float) -> None:
@@ -84,7 +123,10 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
     @property
     def stop_freq(self) -> Optional[float]:
-        return self.extract_freq(self.stopFreqLineEdit.text())
+        if (f := self.startFreqLineEdit.text()) != "":
+            return self.extract_freq(f)
+        else:
+            return None
 
     @stop_freq.setter
     def stop_freq(self, freq: float) -> None:
@@ -92,7 +134,10 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
     @property
     def step_freq(self) -> Optional[float]:
-        return self.extract_freq(self.stepFreqLineEdit.text())
+        if (f := self.startFreqLineEdit.text()) != "":
+            return self.extract_freq(f)
+        else:
+            return None
 
     @step_freq.setter
     def step_freq(self, freq: float) -> None:
@@ -100,15 +145,14 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
     @property
     def npoints(self) -> Optional[int]:
-        try:
-            n = self.nPointsLineEdit.text()
-            if n != "":
-                return int(self.nPointsLineEdit.text())
-            else:
+        if (n := self.nPointsLineEdit.text()) != "":
+            try:
+                return int(n)
+            except ValueError as e:
+                PopUpMessage("Invalid input. Must be an integer.")
+                log.info(f"{e}")
                 return None
-        except ValueError as e:
-            PopUpMessage("Invalid input. Must be an integer.")
-            log.info(f"{e}")
+        else:
             return None
 
     @npoints.setter
@@ -239,6 +283,15 @@ class AppUI(QMainWindow, Ui_MainWindow):
     def el_pos(self, pos: float) -> None:
         self.elPosLineEdit.setText(str(pos))
 
+    def closeEvent(self, event) -> None:
+        resp = ClearDataWarning(
+            ("Are you sure you want to quit?\n" "(Any unsaved data will be LOST)")
+        ).warn()
+        if resp:
+            event.accept()
+        else:
+            event.ignore()
+
     def enable_jog(self) -> None:
         self.jogGroupBox.setEnabled(True)
 
@@ -266,10 +319,10 @@ class AppUI(QMainWindow, Ui_MainWindow):
         self.elJogToSubmitButton.setEnabled(False)
 
     def enable_freq(self) -> None:
-        self.frequencyGroupBox.setEnable(True)
+        self.frequencyGroupBox.setEnabled(True)
 
     def disable_freq(self) -> None:
-        self.frequencyGroupBox.setEnable(False)
+        self.frequencyGroupBox.setEnabled(False)
 
     def enable_experiement(self) -> None:
         if self.frequencyGroupBox.isEnabled() and self.jogGroupBox.isEnabled():
@@ -283,9 +336,11 @@ class AppUI(QMainWindow, Ui_MainWindow):
             return utils.parse_freq_str(input)
         except ValueError as e:
             PopUpMessage(
-                """Invalid frequency string.
-                Valid format: #[.][#][ ][k|M|G][Hz].
-                (Bracketed items are optional)"""
+                (
+                    "Invalid frequency string.\n"
+                    "Valid format: #[.][#][ ][k|M|G][Hz].\n"
+                    "(Bracketed items are optional)"
+                )
             )
             log.warning(str(e))
             return None
@@ -355,18 +410,31 @@ class AppUI(QMainWindow, Ui_MainWindow):
     def reset_progress(self) -> None:
         self.progressBar.setValue(0)
 
-    def update_progress(self, current: int, total: int) -> None:
-        self.progressBar.setValue(current // total)
+    def update_progress(self, progress: int) -> None:
+        if progress == 100:
+            self.progressBar.setValue(100)
+            self.progressBar.setFormat("Done!")
+        else:
+            self.progressBar.setValue(progress)
+            self.progressBar.setFormat("%p%")
+
+    def reset_cut_progress(self) -> None:
+        self.cutProgressBar.setValue(0)
+
+    def update_cut_progress(self, progress: int) -> None:
+        self.cutProgressBar.setValue(progress)
 
     def reset_time_remaining(self) -> None:
         self.timeRemainingLineEdit.setText("")
 
-    def update_time_remaining(self, single_iter: float, remaining: int) -> None:
-        time_remaining = remaining * single_iter
-        time_str = time.strftime(
-            "%H hours %M minutes %S seconds", time.gmtime(time_remaining)
-        )
-        self.timeRemainingLineEdit.setText(time_str)
+    def update_time_remaining(self, time_remaining: float) -> None:
+        if np.isclose(time_remaining, 0):
+            self.timeRemainingLineEdit.setText("")
+        else:
+            time_str = time.strftime(
+                "%H hours %M minutes %S seconds", time.gmtime(time_remaining)
+            )
+            self.timeRemainingLineEdit.setText(time_str)
 
 
 def run():
