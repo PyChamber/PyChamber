@@ -1,0 +1,41 @@
+serial:
+  baudrate: 57600
+  timeout: 1
+hardware:
+  elevation: y
+  azimuth: x
+  initial_pos:
+    x: 2000000000
+    y: 2000000000
+  steps_per_degree:
+    x: 320
+    y: 800
+  run_current:
+    x: 200
+    y: 200
+  hold_current:
+    x: 150
+    y: 75
+  dwell:
+    x: 10
+    y: 10
+  stepping_mode:
+    x: 4 # 1/16th step mode
+    y: 4 # 1/16th step mode
+  encoder_mode:
+    x: C # Count-only
+    y: C # Count-only
+  axis_direction:
+    x: "-"
+    y: "-"
+  start_speed:
+    x: 1000
+    y: 1000
+  end_speed:
+    x: 10000
+    y: 10000
+  slope:
+    x: 8
+    y: 8
+  stepdelay: 0.1
+  delaymode: 1
