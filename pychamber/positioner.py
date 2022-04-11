@@ -154,9 +154,7 @@ class D6050(Positioner):
         buffer = self.serial.read_until(b'\r')
         if buffer:
             try:
-                log.info(f"buffer: {buffer}")
                 buffer = buffer.decode('ascii')
-                log.info(f"\tdecoded: {buffer}")
                 if (
                     buffer.startswith('x0') 
                     or buffer.startswith('y0')
@@ -300,12 +298,12 @@ class D6050(Positioner):
                 raise PositionerError('Max limit')
 
     def move_azimuth_relative(self, angle: float) -> None:
-        steps = int(self.az_steps_per_deg * angle)
+        steps = -int(self.az_steps_per_deg * angle)
         self.move(self.azimuth, f"{steps:+}")
         self.azimuth_deg += angle
 
     def move_elevation_relative(self, angle: float) -> None:
-        steps = int(self.el_steps_per_deg * angle)
+        steps = -int(self.el_steps_per_deg * angle)
         self.move(self.elevation, f"{steps:+}")
         self.elevation_deg += angle
 
