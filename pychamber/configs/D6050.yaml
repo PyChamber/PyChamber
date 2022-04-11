@@ -2,8 +2,8 @@ serial:
   baudrate: 57600
   timeout: 1
 hardware:
-  elevation: y
-  azimuth: x
+  elevation: x
+  azimuth: y
   initial_pos:
     x: 2000000000
     y: 2000000000

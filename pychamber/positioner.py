@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-import time
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
+from PyQt5.QtCore import QTimer
 
 import pkg_resources  # type: ignore
 import serial
 from omegaconf import OmegaConf
 
+log = logging.getLogger(__name__)
 
 @dataclass
 class BoardResponse:
@@ -131,10 +133,9 @@ class D6050(Positioner):
         self.reset()
 
     def write(self, cmd: str) -> Optional[BoardResponse]:
-        self.serial.flushInput()
+        self.serial.reset_input_buffer()
         self.serial.write(f"{cmd}\r".encode('ascii'))
-        self.serial.flush()
-        time.sleep(0.01)
+        QTimer.singleShot(500, lambda: None)
 
         resp = self.check_response()
 
@@ -150,15 +151,27 @@ class D6050(Positioner):
         self.write("Z0*")
 
     def check_response(self) -> Optional[BoardResponse]:
-        buffer = self.serial.read_all()
+        buffer = self.serial.read_until(b'\r')
         if buffer:
-            buffer = buffer.decode('ascii')
-            return BoardResponse(
-                buffer[0],
-                buffer[1],
-                buffer[2],
-                buffer[3:-2] if len(buffer) >= 4 else "",
-            )
+            try:
+                log.info(f"buffer: {buffer}")
+                buffer = buffer.decode('ascii')
+                log.info(f"\tdecoded: {buffer}")
+                if (
+                    buffer.startswith('x0') 
+                    or buffer.startswith('y0')
+                    or buffer.startswith('z0')
+                ):
+                    return BoardResponse(
+                        buffer[0],
+                        buffer[1],
+                        buffer[2],
+                        buffer[3:-2] if len(buffer) >= 4 else "",
+                    )
+                else:
+                    return None
+            except IndexError:
+                return None
         else:
             return None
 
@@ -285,7 +298,6 @@ class D6050(Positioner):
                 raise PositionerError('Home limit')
             elif resp.status == 'L':
                 raise PositionerError('Max limit')
-            time.sleep(0.05)
 
     def move_azimuth_relative(self, angle: float) -> None:
         steps = int(self.az_steps_per_deg * angle)

@@ -8,7 +8,7 @@ from enum import Enum, auto
 from typing import Optional, Tuple, Union
 
 import numpy as np
-from PyQt5.QtCore import QMutex, QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QMutex, QObject, QThread, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QFileDialog
 from pyvisa.errors import VisaIOError
 from serial.tools import list_ports
@@ -92,6 +92,28 @@ class JogWorker(QObject):
             pos = self.positioner_.current_elevation
             MUTEX.unlock()
         self.elMoveComplete.emit(pos)
+
+class JogZeroWorker(QObject):
+    finished = pyqtSignal()
+    azMoveComplete = pyqtSignal(float)
+    elMoveComplete = pyqtSignal(float)
+
+    positioner_: Optional[positioner.Positioner] = None
+
+    def run(self) -> None:
+        assert self.positioner_
+
+        MUTEX.lock()
+        self.positioner_.move_elevation_absolute(0.0)
+        MUTEX.unlock()
+        self.elMoveComplete.emit(0.0)
+
+        MUTEX.lock()
+        self.positioner_.move_azimuth_absolute(0.0)
+        MUTEX.unlock()
+        self.azMoveComplete.emit(0.0)
+
+        self.finished.emit()
 
 
 class ScanWorker(QObject):
@@ -177,6 +199,7 @@ class ScanWorker(QObject):
         # assert self.ntwk_models is not None
 
         for i, az in enumerate(self.azimuths):
+            log.info(f"Iteration: {i}/{len(self.azimuths)}")
             if self.abort:
                 MUTEX.lock()
                 self.positioner_.abort_all()
@@ -202,6 +225,7 @@ class ScanWorker(QObject):
             remaining = len(self.azimuths) - i
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
+            QTimer.singleShot(1000, lambda: None)
 
     def _run_el_scan(self) -> None:
         assert self.elevations is not None
@@ -245,7 +269,7 @@ class PyChamberCtrl:
         "D6050": positioner.D6050,
     }
 
-    worker: Optional[Union[JogWorker, ScanWorker]] = None
+    worker: Optional[Union[JogWorker, JogZeroWorker, ScanWorker]] = None
 
     def __init__(self, view: AppUI) -> None:
         self.view = view
@@ -355,6 +379,8 @@ class PyChamberCtrl:
 
         if dir:
             step = self.view.az_jog_step
+            if np.isclose(step, 0.0):
+                return
             diff = dir.value * step
             log.info(f"Jogging azimuth {diff}")
             try:
@@ -372,8 +398,6 @@ class PyChamberCtrl:
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
 
-        self.view.az_pos = self.positioner.current_azimuth
-
     def jog_el(
         self, dir: Optional[ElJogDir] = None, angle: Optional[float] = None
     ) -> None:
@@ -383,6 +407,8 @@ class PyChamberCtrl:
 
         if dir:
             step = self.view.el_jog_step
+            if np.isclose(step, 0.0):
+                return
             diff = dir.value * step
             log.info(f"Jogging elevation {diff}")
             try:
@@ -400,6 +426,18 @@ class PyChamberCtrl:
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
 
+    def jog_zero(self) -> None:
+        if not self.positioner:
+            PopUpMessage("Positioner not connected")
+            return
+        
+        try:
+            self.jog_zero_thread()
+        except PositionerError as e:
+            log.error(str(e))
+            PopUpMessage(str(e), MsgLevel.ERROR)
+            return
+
     def jog_az_to(self) -> None:
         if angle := self.view.az_jog_to:
             self.jog_az(angle=angle)
@@ -414,14 +452,28 @@ class PyChamberCtrl:
             return
         log.info("Setting current position as 0,0")
         self.positioner.zero()
+        self.view.az_pos = 0.0
+        self.view.el_pos = 0.0
 
     def return_to_zero(self) -> None:
         if not self.positioner:
             PopUpMessage("Not connected")
             return
+
         log.info("Jogging to 0,0")
-        self.jog_el(angle=0)
-        self.jog_az(angle=0)
+        az_not_at_zero = not np.isclose(self.positioner.current_azimuth, 0.0)
+        el_not_at_zero = not np.isclose(self.positioner.current_elevation, 0.0)
+
+        if az_not_at_zero and el_not_at_zero:
+            self.jog_zero_thread()
+        elif az_not_at_zero:
+            log.info("Elevation is fine")
+            self.jog_az(angle=0.0)
+        elif el_not_at_zero:
+            log.info("Azimuth is fine")
+            self.jog_el(angle=0.0)
+        else:
+            log.info("Already at 0")
 
     def full_scan(self) -> None:
         if not self.positioner:
@@ -783,4 +835,29 @@ class PyChamberCtrl:
         self.thread.start()
 
         self.view.disable_jog_buttons()
-        self.thread.finished.connect(lambda: self.view.enable_jog_buttons())
+        self.thread.finished.connect(self.view.enable_jog_buttons)
+
+    def jog_zero_thread(self) -> None:
+        self.thread = QThread()
+        self.worker = JogZeroWorker()
+
+        self.worker.positioner_ = self.positioner
+
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.worker.azMoveComplete.connect(
+            lambda p: self.view.azPosLineEdit.setText(str(p))
+        )
+        self.worker.elMoveComplete.connect(
+            lambda p: self.view.elPosLineEdit.setText(str(p))
+        )
+
+        self.thread.start()
+
+        self.view.disable_jog_buttons()
+        self.thread.finished.connect(self.view.enable_jog_buttons)
