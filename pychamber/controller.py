@@ -300,9 +300,9 @@ class PyChamberCtrl:
         self.view.stopFreqLineEdit.returnPressed.connect(
             functools.partial(self.set_freq, FreqSetting.STOP)
         )
-        self.view.stepFreqLineEdit.returnPressed.connect(
-            functools.partial(self.set_freq, FreqSetting.STEP)
-        )
+        # self.view.stepFreqLineEdit.returnPressed.connect(
+        #     functools.partial(self.set_freq, FreqSetting.STEP)
+        # )
         self.view.nPointsLineEdit.returnPressed.connect(self.set_npoints)
 
         # Spin Boxes
@@ -332,7 +332,7 @@ class PyChamberCtrl:
 
     def update_analyzer_ports(self) -> None:
         self.view.analyzerPortComboBox.clear()
-        ports = vna.VNA.available()
+        ports = vna.VNA.available(backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0')
         log.info("Available analyzers:")
         for p in ports:
             log.info(f"\t{p}")
@@ -478,7 +478,7 @@ class PyChamberCtrl:
         if self.analyzer:
             log.info("Already connected.")
             return
-        model = self.view.analyzer_model
+        model = self.view.analyzerComboBox.currentText()
         port = self.view.analyzer_port
 
         if model == "" or port == "":
@@ -487,7 +487,7 @@ class PyChamberCtrl:
 
         try:
             log.info("Connecting to analyzer...")
-            self.analyzer = self.analyzer_models[model](port)
+            self.analyzer = self.analyzer_models[model](port, backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0')
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
@@ -495,7 +495,7 @@ class PyChamberCtrl:
             self.view.start_freq = self.analyzer.start_freq
             self.view.stop_freq = self.analyzer.stop_freq
             self.view.npoints = self.analyzer.npoints
-            self.view.step_freq = self.analyzer.freq_step
+            # self.view.step_freq = self.analyzer.freq_step
             ports = self.analyzer.ports
         except VisaIOError as e:
             log.error(f"Error communicating with the analyzer: {e}")
@@ -510,7 +510,7 @@ class PyChamberCtrl:
         self.view.pol2ComboBox.addItems(ports)
         log.info("Connected")
         self.view.frequencyGroupBox.setEnabled(True)
-        if self.view.positionerGroupBox.enabled():
+        if self.view.positionerGroupBox.isEnabled():
             self.view.experimentGroupBox.setEnabled(True)
 
     def connect_to_positioner(self) -> None:

@@ -123,7 +123,7 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
     @property
     def stop_freq(self) -> Optional[float]:
-        if (f := self.startFreqLineEdit.text()) != "":
+        if (f := self.stopFreqLineEdit.text()) != "":
             return self.extract_freq(f)
         else:
             return None
