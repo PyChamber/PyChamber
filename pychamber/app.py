@@ -5,6 +5,7 @@ from enum import Enum, auto
 from typing import Optional, Tuple
 
 import numpy as np
+from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QPlainTextEdit
 
@@ -14,19 +15,19 @@ from pychamber.ui.mainWindow import Ui_MainWindow
 log = logging.getLogger(__name__)
 
 
-class QPlainTextEditLogger(logging.Handler):
-    def __init__(self, parent):
-        super(QPlainTextEditLogger, self).__init__()
+class QTextEditLogger(logging.Handler, QObject):
+    appendPlainText = pyqtSignal(str)
 
+    def __init__(self, parent):
+        super().__init__()
+        QObject.__init__(self)
         self.widget = QPlainTextEdit(parent)
         self.widget.setReadOnly(True)
+        self.appendPlainText.connect(self.widget.appendPlainText)
 
     def emit(self, record):
         msg = self.format(record)
-        self.widget.appendPlainText(msg)
-
-    def write(self, m):
-        pass
+        self.appendPlainText.emit(msg)
 
 
 class MsgLevel(Enum):
@@ -90,8 +91,12 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
         self.setupUi(self)
 
-        log_handler = QPlainTextEditLogger(self.logTab)
-        log_handler.setFormatter(logging.Formatter('[%(levelname)s] - %(message)s'))
+        log_handler = QTextEditLogger(self.logTab)
+        log_handler.setFormatter(
+            logging.Formatter(
+                '[%(levelname)s] - %(module)s %(funcName)s %(message)s'
+            )
+        )
         logging.getLogger('pychamber').addHandler(log_handler)
         logging.getLogger('pychamber').setLevel(logging.INFO)
         self.logGrid.addWidget(log_handler.widget)
@@ -307,6 +312,8 @@ class AppUI(QMainWindow, Ui_MainWindow):
         self.elJogZeroButton.setEnabled(True)
         self.elJogDownButton.setEnabled(True)
         self.elJogToSubmitButton.setEnabled(True)
+        self.setZeroButton.setEnabled(True)
+        self.returnToZeroButton.setEnabled(True)
 
     def disable_jog_buttons(self) -> None:
         self.azJogLeftButton.setEnabled(False)
@@ -317,6 +324,8 @@ class AppUI(QMainWindow, Ui_MainWindow):
         self.elJogZeroButton.setEnabled(False)
         self.elJogDownButton.setEnabled(False)
         self.elJogToSubmitButton.setEnabled(False)
+        self.setZeroButton.setEnabled(False)
+        self.returnToZeroButton.setEnabled(False)
 
     def enable_freq(self) -> None:
         self.frequencyGroupBox.setEnabled(True)
