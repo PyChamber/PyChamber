@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from enum import Enum, auto
-from typing import Optional, Tuple
+from typing import Optional, List
 
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -115,41 +115,34 @@ class AppUI(QMainWindow, Ui_MainWindow):
         self.elStopSpinBox.valueChanged.connect(self.update_el_extent_plot)
         self.elStepSpinBox.valueChanged.connect(self.update_el_extent_plot)
 
-    @property
-    def start_freq(self) -> Optional[float]:
+    def get_start_freq(self) -> Optional[float]:
         if (f := self.startFreqLineEdit.text()) != "":
             return self.extract_freq(f)
         else:
             return None
 
-    @start_freq.setter
-    def start_freq(self, freq: float) -> None:
+    def set_start_freq(self, freq: float) -> None:
         self.startFreqLineEdit.setText(str(freq))
 
-    @property
-    def stop_freq(self) -> Optional[float]:
+    def get_stop_freq(self) -> Optional[float]:
         if (f := self.stopFreqLineEdit.text()) != "":
             return self.extract_freq(f)
         else:
             return None
 
-    @stop_freq.setter
-    def stop_freq(self, freq: float) -> None:
+    def set_stop_freq(self, freq: float) -> None:
         self.stopFreqLineEdit.setText(str(freq))
 
-    @property
-    def step_freq(self) -> Optional[float]:
+    def get_step_freq(self) -> Optional[float]:
         if (f := self.startFreqLineEdit.text()) != "":
             return self.extract_freq(f)
         else:
             return None
 
-    @step_freq.setter
-    def step_freq(self, freq: float) -> None:
+    def set_step_freq(self, freq: float) -> None:
         self.stepFreqLineEdit.setText(str(freq))
 
-    @property
-    def npoints(self) -> Optional[int]:
+    def get_npoints(self) -> Optional[int]:
         if (n := self.nPointsLineEdit.text()) != "":
             try:
                 return int(n)
@@ -160,132 +153,102 @@ class AppUI(QMainWindow, Ui_MainWindow):
         else:
             return None
 
-    @npoints.setter
-    def npoints(self, n: int) -> None:
+    def set_npoints(self, n: int) -> None:
         self.nPointsLineEdit.setText(str(n))
 
-    @property
-    def over_freq_scale_min(self) -> float:
+    def get_over_freq_scale_min(self) -> float:
         return self.overFreqMinSpinBox.value()
 
-    @property
-    def over_freq_scale_max(self) -> float:
+    def get_over_freq_scale_max(self) -> float:
         return self.overFreqMaxSpinBox.value()
 
-    @property
-    def over_freq_scale_step(self) -> float:
+    def get_over_freq_scale_step(self) -> float:
         return self.overFreqDbPerSpinBox.value()
 
-    @property
-    def over_freq_pol(self) -> int:
+    def get_over_freq_pol(self) -> int:
         return self.overFreqPolComboBox.currentIndex()
 
-    @property
-    def polar_plot_scale_min(self) -> float:
+    def get_polar_plot_scale_min(self) -> float:
         return self.dataPolarMinSpinBox.value()
 
-    @property
-    def polar_plot_scale_max(self) -> float:
+    def get_polar_plot_scale_max(self) -> float:
         return self.dataPolarMaxSpinBox.value()
 
-    @property
-    def polar_plot_scale_step(self) -> float:
+    def get_polar_plot_scale_step(self) -> float:
         return self.dataPolarDbPerSpinBox.value()
 
-    @property
-    def polar_plot_freq(self) -> str:
+    def get_polar_plot_freq(self) -> str:
         return self.dataPolarFreqSpinBox.cleanText() + self.dataPolarFreqSpinBox.suffix()
 
-    @property
-    def polar_plot_pol(self) -> int:
+    def get_polar_plot_pol(self) -> int:
         return self.dataPolarPolComboBox.currentIndex()
 
-    @property
-    def analyzer_model(self) -> str:
+    def get_analyzer_model(self) -> str:
         return self.analyzerModelComboBox.currentText()
 
-    @property
-    def analyzer_port(self) -> str:
+    def get_analyzer_port(self) -> str:
         return self.analyzerPortComboBox.currentText()
 
-    @property
-    def positioner_model(self) -> str:
+    def get_positioner_model(self) -> str:
         return self.positionerModelComboBox.currentText()
 
-    @property
-    def positioner_port(self) -> str:
+    def get_positioner_port(self) -> str:
         return self.positionerPortComboBox.currentText()
 
-    @property
-    def el_start(self) -> float:
+    def get_el_start(self) -> float:
         return self.elStartSpinBox.value()
 
-    @property
-    def el_stop(self) -> float:
+    def get_el_stop(self) -> float:
         return self.elStopSpinBox.value()
 
-    @property
-    def el_step(self) -> float:
+    def get_el_step(self) -> float:
         return self.elStepSpinBox.value()
 
-    @property
-    def az_start(self) -> float:
+    def get_az_start(self) -> float:
         return self.azStartSpinBox.value()
 
-    @property
-    def az_stop(self) -> float:
+    def get_az_stop(self) -> float:
         return self.azStopSpinBox.value()
 
-    @property
-    def az_step(self) -> float:
+    def get_az_step(self) -> float:
         return self.azStepSpinBox.value()
 
-    @property
-    def pol_1(self) -> Optional[Tuple[str, str]]:
-        pol = self.pol1ComboBox.text()
-        return (pol[1], pol[2]) if pol != "" else None
+    def get_pol_1(self) -> Optional[List[int]]:
+        pol = self.pol1ComboBox.currentText()
+        return [int(pol[1]), int(pol[2])] if pol != "" else None
 
-    @property
-    def pol_2(self) -> Optional[Tuple[str, str]]:
-        pol = self.pol2ComboBox.text()
-        return (pol[1], pol[2]) if pol != "" else None
+    def get_pol_2(self) -> Optional[List[int]]:
+        pol = self.pol2ComboBox.currentText()
+        return [int(pol[1]), int(pol[2])] if pol != "" else None
 
-    @property
-    def el_jog_to(self) -> Optional[float]:
+    def get_el_jog_to(self) -> Optional[float]:
         try:
             return float(self.elJogToLineEdit.text())
         except ValueError:
             return None
 
-    @property
-    def el_jog_step(self) -> float:
+    def get_el_jog_step(self) -> float:
         return self.elJogStepSpinBox.value()
 
-    @property
-    def az_jog_to(self) -> Optional[float]:
+    def get_az_jog_to(self) -> Optional[float]:
         try:
             return float(self.azJogToLineEdit.text())
         except ValueError:
             return None
 
-    @property
-    def az_jog_step(self) -> float:
+    def get_az_jog_step(self) -> float:
         return self.azJogStepSpinBox.value()
 
-    @property
-    def az_pos(self) -> float:
+    def get_az_pos(self) -> float:
         return float(self.azPosLineEdit.text())
 
-    @az_pos.setter
-    def az_pos(self, pos: float) -> None:
+    def set_az_pos(self, pos: float) -> None:
         self.azPosLineEdit.setText(str(pos))
 
-    @property
-    def el_pos(self) -> float:
+    def get_el_pos(self) -> float:
         return float(self.elPosLineEdit.text())
 
-    @el_pos.setter
-    def el_pos(self, pos: float) -> None:
+    def set_el_pos(self, pos: float) -> None:
         self.elPosLineEdit.setText(str(pos))
 
     def closeEvent(self, event) -> None:

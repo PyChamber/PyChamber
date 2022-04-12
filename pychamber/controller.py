@@ -2,10 +2,10 @@ import functools
 import itertools
 import logging
 import pathlib
-import pickle
+import cloudpickle as pickle
 import time
 from enum import Enum, auto
-from typing import Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from PyQt5.QtCore import QMutex, QObject, QThread, pyqtSignal, QTimer
@@ -124,14 +124,15 @@ class ScanWorker(QObject):
     timeUpdate = pyqtSignal(float)
     azMoveComplete = pyqtSignal(float)
     elMoveComplete = pyqtSignal(float)
+    dataAcquired = pyqtSignal(object)
 
     azimuths: Optional[np.ndarray] = None
     elevations: Optional[np.ndarray] = None
-    # analyzer: Optional[vna.VNA] = None
+    analyzer: Optional[vna.VNA] = None
     positioner_: Optional[positioner.Positioner] = None
-    # ntwk_models: Optional[List[NetworkModel]] = None
-    pol1: Optional[Tuple] = None
-    pol2: Optional[Tuple] = None
+    ntwk_models: Optional[Dict[str, NetworkModel]] = None
+    pol1: Optional[List[int]] = None
+    pol2: Optional[List[int]] = None
 
     abort = False
 
@@ -150,11 +151,13 @@ class ScanWorker(QObject):
     def _run_full_scan(self) -> None:
         assert self.azimuths is not None
         assert self.elevations is not None
-        # assert self.analyzer is not None
+        assert self.analyzer is not None
         assert self.positioner_ is not None
-        # assert self.ntwk_models is not None
+        assert self.ntwk_models is not None
 
         total_iters = len(self.azimuths) * len(self.elevations)
+        pol_1_data = []
+        pol_2_data = []
         for i, az in enumerate(self.azimuths):
             MUTEX.lock()
             self.positioner_.move_azimuth_absolute(az)
@@ -168,15 +171,20 @@ class ScanWorker(QObject):
                     MUTEX.unlock()
                     break
 
+                pos_meta = {'azimuth': az, 'elevation': el}
                 start = time.time()
                 MUTEX.lock()
                 self.positioner_.move_elevation_absolute(el)
                 pos = self.positioner_.current_elevation
                 self.elMoveComplete.emit(pos)
-                # if self.pol1:
-                #     self.ntwk_models[0].append(self.analyzer.get_snp_network(self.pol1))
-                # if self.pol2:
-                #     self.ntwk_models[1].append(self.analyzer.get_snp_network(self.pol2))
+                if self.pol1:
+                    ntwk = self.analyzer.get_snp_network(self.pol1).s21
+                    ntwk.params = pos_meta
+                    pol_1_data.append(ntwk)
+                if self.pol2:
+                    ntwk = self.analyzer.get_snp_network(self.pol2).s21
+                    ntwk.params = pos_meta
+                    pol_2_data.append(ntwk)
                 MUTEX.unlock()
                 end = time.time()
 
@@ -192,12 +200,19 @@ class ScanWorker(QObject):
             if self.abort:
                 break
 
+        self.dataAcquired.emit({
+            'pol1': NetworkModel(pol_1_data), 
+            'pol2': NetworkModel(pol_2_data)}
+        )
+
     def _run_az_scan(self) -> None:
         assert self.azimuths is not None
-        # assert self.analyzer is not None
+        assert self.analyzer is not None
         assert self.positioner_ is not None
-        # assert self.ntwk_models is not None
+        assert self.ntwk_models is not None
 
+        pol_1_data = []
+        pol_2_data = []
         for i, az in enumerate(self.azimuths):
             log.info(f"Iteration: {i}/{len(self.azimuths)}")
             if self.abort:
@@ -206,16 +221,21 @@ class ScanWorker(QObject):
                 MUTEX.unlock()
                 break
 
+            pos_meta = {'azimuth': az, 'elevation': 0}
             start = time.time()
             MUTEX.lock()
             self.positioner_.move_azimuth_absolute(az)
             pos = self.positioner_.current_azimuth
             self.azMoveComplete.emit(pos)
 
-            # if self.pol1:
-            #     self.ntwk_models[0].append(self.analyzer.get_snp_network(self.pol1))
-            # if self.pol2:
-            #     self.ntwk_models[1].append(self.analyzer.get_snp_network(self.pol2))
+            if self.pol1:
+                ntwk = self.analyzer.get_snp_network(self.pol1).s21
+                ntwk.params = pos_meta
+                pol_1_data.append(ntwk)
+            if self.pol2:
+                ntwk = self.analyzer.get_snp_network(self.pol2).s21
+                ntwk.params = pos_meta
+                pol_2_data.append(ntwk)
             MUTEX.unlock()
             end = time.time()
 
@@ -225,14 +245,20 @@ class ScanWorker(QObject):
             remaining = len(self.azimuths) - i
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
-            QTimer.singleShot(1000, lambda: None)
+
+        self.dataAcquired.emit({
+            'pol1': NetworkModel(pol_1_data), 
+            'pol2': NetworkModel(pol_2_data)}
+        )
 
     def _run_el_scan(self) -> None:
         assert self.elevations is not None
-        # assert self.analyzer is not None
+        assert self.analyzer is not None
         assert self.positioner_ is not None
-        # assert self.ntwk_models is not None
+        assert self.ntwk_models is not None
 
+        pol_1_data = []
+        pol_2_data = []
         for i, el in enumerate(self.elevations):
             if self.abort:
                 MUTEX.lock()
@@ -240,16 +266,21 @@ class ScanWorker(QObject):
                 MUTEX.unlock()
                 break
 
+            pos_meta = {'azimuth': 0, 'elevation': el}
             start = time.time()
             MUTEX.lock()
             self.positioner_.move_elevation_absolute(el)
             pos = self.positioner_.current_elevation
             self.elMoveComplete.emit(pos)
 
-            # if self.pol1:
-            #     self.ntwk_models[0].append(self.analyzer.get_snp_network(self.pol1))
-            # if self.pol2:
-            #     self.ntwk_models[1].append(self.analyzer.get_snp_network(self.pol2))
+            if self.pol1:
+                ntwk = self.analyzer.get_snp_network(self.pol1).s21
+                ntwk.params = pos_meta
+                pol_1_data.append(ntwk)
+            if self.pol2:
+                ntwk = self.analyzer.get_snp_network(self.pol2).s21
+                ntwk.params = pos_meta
+                pol_2_data.append(ntwk)
             MUTEX.unlock()
             end = time.time()
 
@@ -259,6 +290,11 @@ class ScanWorker(QObject):
             remaining = len(self.elevations) - i
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
+
+        self.dataAcquired.emit({
+            'pol1': NetworkModel(pol_1_data), 
+            'pol2': NetworkModel(pol_2_data)}
+        )
 
 
 class PyChamberCtrl:
@@ -273,7 +309,10 @@ class PyChamberCtrl:
 
     def __init__(self, view: AppUI) -> None:
         self.view = view
-        self.ntwk_models = [NetworkModel(), NetworkModel()]
+        self.ntwk_models = {
+            'pol1': NetworkModel(),
+            'pol2': NetworkModel(),
+        }
         self.analyzer: Optional[vna.VNA] = None
         self.positioner: Optional[positioner.Positioner] = None
 
@@ -378,7 +417,7 @@ class PyChamberCtrl:
             return
 
         if dir:
-            step = self.view.az_jog_step
+            step = self.view.get_az_jog_step()
             if np.isclose(step, 0.0):
                 return
             diff = dir.value * step
@@ -406,7 +445,7 @@ class PyChamberCtrl:
             return
 
         if dir:
-            step = self.view.el_jog_step
+            step = self.view.get_el_jog_step()
             if np.isclose(step, 0.0):
                 return
             diff = dir.value * step
@@ -439,11 +478,11 @@ class PyChamberCtrl:
             return
 
     def jog_az_to(self) -> None:
-        if angle := self.view.az_jog_to:
+        if angle := self.view.get_az_jog_to():
             self.jog_az(angle=angle)
 
     def jog_el_to(self) -> None:
-        if angle := self.view.el_jog_to:
+        if angle := self.view.get_el_jog_to():
             self.jog_el(angle=angle)
 
     def set_zero(self) -> None:
@@ -452,8 +491,8 @@ class PyChamberCtrl:
             return
         log.info("Setting current position as 0,0")
         self.positioner.zero()
-        self.view.az_pos = 0.0
-        self.view.el_pos = 0.0
+        self.view.set_az_pos(0.0)
+        self.view.set_el_pos(0.0)
 
     def return_to_zero(self) -> None:
         if not self.positioner:
@@ -484,8 +523,8 @@ class PyChamberCtrl:
         self.view.cutProgressBar.show()
         self.update_monitor_freqs()
 
-        azimuths = np.arange(self.view.az_start, self.view.az_stop, self.view.az_step)
-        elevations = np.arange(self.view.el_start, self.view.el_stop, self.view.el_step)
+        azimuths = np.arange(self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step())
+        elevations = np.arange(self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step())
 
         try:
             log.info("Starting full scan")
@@ -501,12 +540,13 @@ class PyChamberCtrl:
 
         self.update_monitor_freqs()
 
-        azimuths = np.arange(self.view.az_start, self.view.az_stop, self.view.az_step)
+        azimuths = np.arange(self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step())
 
         try:
             log.info("Starting azimuth scan")
             self.start_scan_thread(azimuths=azimuths)
         except Exception as e:
+            log.error(str(e))
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
 
@@ -517,7 +557,7 @@ class PyChamberCtrl:
 
         self.update_monitor_freqs()
 
-        elevations = np.arange(self.view.el_start, self.view.el_stop, self.view.el_step)
+        elevations = np.arange(self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step())
 
         try:
             log.info("Starting elevation scan")
@@ -531,7 +571,7 @@ class PyChamberCtrl:
             log.info("Already connected.")
             return
         model = self.view.analyzerComboBox.currentText()
-        port = self.view.analyzer_port
+        port = self.view.get_analyzer_port()
 
         if model == "" or port == "":
             log.info("Model not selected. Ignoring")
@@ -544,10 +584,10 @@ class PyChamberCtrl:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
         try:
-            self.view.start_freq = self.analyzer.start_freq
-            self.view.stop_freq = self.analyzer.stop_freq
-            self.view.npoints = self.analyzer.npoints
-            # self.view.step_freq = self.analyzer.freq_step
+            self.view.set_start_freq(self.analyzer.start_freq)
+            self.view.set_stop_freq(self.analyzer.stop_freq)
+            self.view.set_npoints(self.analyzer.npoints)
+            # self.view.set_step_freq(self.analyzer.freq_step)
             ports = self.analyzer.ports
         except VisaIOError as e:
             log.error(f"Error communicating with the analyzer: {e}")
@@ -557,7 +597,7 @@ class PyChamberCtrl:
             )
             self.analyzer = None
             return
-        ports = [f"S{''.join(p)}" for p in itertools.combinations(ports, 2)]
+        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)]
         self.view.pol1ComboBox.addItems(ports)
         self.view.pol2ComboBox.addItems(ports)
         log.info("Connected")
@@ -569,8 +609,8 @@ class PyChamberCtrl:
         if self.positioner:
             log.info("Already connected.")
             return
-        model = self.view.positioner_model
-        port = self.view.positioner_port
+        model = self.view.get_positioner_model()
+        port = self.view.get_positioner_port()
         log.info(f"Connecting to positioner model [{model}] on port [{port}]")
 
         if model == "" or port == "":
@@ -595,13 +635,13 @@ class PyChamberCtrl:
 
         try:
             if setting == FreqSetting.START:
-                if freq := self.view.start_freq:
+                if freq := self.view.get_start_freq():
                     self.analyzer.start_freq = freq
             elif setting == FreqSetting.STOP:
-                if freq := self.view.stop_freq:
+                if freq := self.view.get_stop_freq():
                     self.analyzer.stop_freq = freq
             elif setting == FreqSetting.STEP:
-                if freq := self.view.freq_step:
+                if freq := self.view.get_freq_step():
                     self.analyzer.freq_step = freq
         except VisaIOError as e:
             log.error(f"Failed to communicate with analyzer: {str(e)}")
@@ -613,7 +653,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        if npoints := self.view.npoints:
+        if npoints := self.view.get_npoints():
             self.analyzer.npoints = npoints
 
     def init_polar_data_plot(self) -> None:
@@ -631,17 +671,17 @@ class PyChamberCtrl:
     def update_polar_data_plot(self) -> None:
         log.info("Updating Polar Data Plot")
 
-        scale_min = self.view.polar_plot_scale_min
-        scale_max = self.view.polar_plot_scale_max
-        scale_div = self.view.polar_plot_scale_step
-        freq = self.view.polar_plot_freq
-        pol = self.view.polar_plot_pol
+        scale_min = self.view.get_polar_plot_scale_min()
+        scale_max = self.view.get_polar_plot_scale_max()
+        scale_div = self.view.get_polar_plot_scale_step()
+        freq = self.view.get_polar_plot_freq()
+        pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2" # FIXME
 
         self.polar_data_ax.clear()
         try:
             self.polar_data_ax.plot(
-                self.ntwk_models[pol].azimuths,
-                self.ntwk_models[pol].mags(freq, elevation=0),
+                self.ntwk_models[pol].azimuths.reshape(-1,1),
+                self.ntwk_models[pol].mags(freq, elevation=0).reshape(-1,1),
                 color='tab:blue',
             )
         except Exception as e:
@@ -658,17 +698,19 @@ class PyChamberCtrl:
     def update_over_freq_plot(self) -> None:
         log.info("Updating Over Frequency Plot")
 
-        scale_min = self.view.over_freq_scale_min
-        scale_max = self.view.over_freq_scale_max
-        scale_div = self.view.over_freq_scale_step
+        scale_min = self.view.get_over_freq_scale_min()
+        scale_max = self.view.get_over_freq_scale_max()
+        scale_div = self.view.get_over_freq_scale_step()
+
+        pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2"
 
         self.over_freq_ax.clear()
         try:
             self.over_freq_ax.plot(
-                self.ntwk_models[self.view.over_freq_pol].freqs,
-                self.ntwk_models[self.view.over_freq_pol].mags(
+                self.ntwk_models[pol].freqs.reshape(-1,1),
+                self.ntwk_models[pol].mags(
                     azimuth=0.0, elevation=0.0
-                ),
+                ).reshape(-1,1),
                 color='tab:blue',
             )
         except Exception as e:
@@ -683,9 +725,9 @@ class PyChamberCtrl:
         self.view.dataOverFreqPlotMplWidget.canvas.draw()
 
     def update_monitor_freqs(self) -> None:
-        start = self.view.start_freq
-        stop = self.view.stop_freq
-        step = self.view.step_freq
+        start = self.view.get_start_freq()
+        stop = self.view.get_stop_freq()
+        step = self.view.get_step_freq()
 
         if start:
             self.view.dataPolarFreqSpinBox.setMinimum(start)
@@ -695,21 +737,25 @@ class PyChamberCtrl:
             self.view.dataPolarFreqSpinBox.setSingleStep(step)
 
     def clear_data(self) -> None:
-        if len(self.ntwk_models[0]) == 0 and len(self.ntwk_models[1]) == 0:
+        if len(self.ntwk_models['pol1']) == 0 and len(self.ntwk_models['pol2']) == 0:
             return
         actually_clear = ClearDataWarning(
             "This will delete all data. Are you sure?"
         ).warn()
         if actually_clear:
-            self.ntwk_models = [NetworkModel(), NetworkModel()]
+            self.ntwk_models = {
+                'pol1': NetworkModel(), 
+                'pol2': NetworkModel()
+            }
 
     def save_data(self) -> None:
-        if len(self.ntwk_models[0]) == 0 and len(self.ntwk_models[1]) == 0:
+        if len(self.ntwk_models['pol1']) == 0 and len(self.ntwk_models['pol2']) == 0:
             PopUpMessage("No data to save")
             return
         save_name, _ = QFileDialog.getSaveFileName()
         if save_name != "":
             log.info(f"Saving to {save_name}")
+
             with open(save_name, 'wb') as save_file:
                 pickle.dump(self.ntwk_models, save_file)
 
@@ -726,13 +772,13 @@ class PyChamberCtrl:
                     return
 
     def export_csv(self) -> None:
-        if len(self.ntwk_models[0]) > 0 and len(self.ntwk_models[1]) > 0:
-            which = WhichPol.ask()
+        if len(self.ntwk_models['pol1']) > 0 and len(self.ntwk_models['pol2']) > 0:
+            which = "pol1" if WhichPol.ask() == 1 else "pol2"
             to_export = self.ntwk_models[which]
-        elif len(self.ntwk_models[0]) > 0:
-            to_export = self.ntwk_models[0]
-        elif len(self.ntwk_models[1]) > 0:
-            to_export = self.ntwk_models[1]
+        elif len(self.ntwk_models['pol1']) > 0:
+            to_export = self.ntwk_models['pol1']
+        elif len(self.ntwk_models['pol2']) > 0:
+            to_export = self.ntwk_models['pol2']
         else:
             PopUpMessage("No data to export")
             return
@@ -744,6 +790,10 @@ class PyChamberCtrl:
                 save_path = save_path.with_suffix(".csv")
                 to_export.write_spreadsheet(save_name)
 
+    def update_ntwk_models(self, data: Dict[str, NetworkModel]) -> None:
+        self.ntwk_models = data
+
+
     def start_scan_thread(
         self,
         azimuths: Optional[np.ndarray] = None,
@@ -754,11 +804,11 @@ class PyChamberCtrl:
 
         self.worker.azimuths = azimuths
         self.worker.elevations = elevations
-        # self.worker.analyzer = self.analyzer
+        self.worker.analyzer = self.analyzer
         self.worker.positioner_ = self.positioner
-        # self.worker.ntwk_models = self.ntwk_models
-        # self.worker.pol1 = self.view.pol_1
-        # self.worker.pol2 = self.view.pol_2
+        self.worker.ntwk_models = self.ntwk_models
+        self.worker.pol1 = self.view.get_pol_1()
+        self.worker.pol2 = self.view.get_pol_2()
 
         self.worker.moveToThread(self.thread)
 
@@ -768,8 +818,8 @@ class PyChamberCtrl:
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.worker.progress.connect(lambda p: self.view.update_progress(p))
-        self.worker.progress.connect(self.update_polar_data_plot)
-        self.worker.progress.connect(self.update_over_freq_plot)
+        self.worker.finished.connect(self.update_polar_data_plot)
+        self.worker.finished.connect(self.update_over_freq_plot)
         self.worker.progress.connect(lambda p: self.view.update_progress(p))
         if self.view.cutProgressBar.isVisible():
             self.worker.cutProgress.connect(lambda p: self.view.update_cut_progress(p))
@@ -780,6 +830,7 @@ class PyChamberCtrl:
         self.worker.elMoveComplete.connect(
             lambda p: self.view.elPosLineEdit.setText(str(p))
         )
+        self.worker.dataAcquired.connect(lambda data: self.update_ntwk_models(data))
 
         self.thread.start()
 
