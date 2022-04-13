@@ -1376,7 +1376,7 @@
              </size>
             </property>
             <property name="suffix">
-             <string> MHz</string>
+             <string/>
             </property>
             <property name="maximum">
              <double>0.000000000000000</double>

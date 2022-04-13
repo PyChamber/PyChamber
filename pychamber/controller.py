@@ -2,15 +2,15 @@ import functools
 import itertools
 import logging
 import pathlib
-import cloudpickle as pickle
 import time
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
+import cloudpickle as pickle
 import numpy as np
-from PyQt5.QtCore import QMutex, QObject, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import QMutex, QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
-from pyvisa.errors import VisaIOError
+from pyvisa.errors import LibraryError, VisaIOError
 from serial.tools import list_ports
 from skrf.vi import vna
 
@@ -92,6 +92,7 @@ class JogWorker(QObject):
             pos = self.positioner_.current_elevation
             MUTEX.unlock()
         self.elMoveComplete.emit(pos)
+
 
 class JogZeroWorker(QObject):
     finished = pyqtSignal()
@@ -178,11 +179,11 @@ class ScanWorker(QObject):
                 pos = self.positioner_.current_elevation
                 self.elMoveComplete.emit(pos)
                 if self.pol1:
-                    ntwk = self.analyzer.get_snp_network(self.pol1).s21
+                    ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
                     ntwk.params = pos_meta
                     pol_1_data.append(ntwk)
                 if self.pol2:
-                    ntwk = self.analyzer.get_snp_network(self.pol2).s21
+                    ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
                     ntwk.params = pos_meta
                     pol_2_data.append(ntwk)
                 MUTEX.unlock()
@@ -200,9 +201,8 @@ class ScanWorker(QObject):
             if self.abort:
                 break
 
-        self.dataAcquired.emit({
-            'pol1': NetworkModel(pol_1_data), 
-            'pol2': NetworkModel(pol_2_data)}
+        self.dataAcquired.emit(
+            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
         )
 
     def _run_az_scan(self) -> None:
@@ -214,7 +214,7 @@ class ScanWorker(QObject):
         pol_1_data = []
         pol_2_data = []
         for i, az in enumerate(self.azimuths):
-            log.info(f"Iteration: {i}/{len(self.azimuths)}")
+            log.info(f"Iteration: {i+1}/{len(self.azimuths)}")
             if self.abort:
                 MUTEX.lock()
                 self.positioner_.abort_all()
@@ -229,11 +229,11 @@ class ScanWorker(QObject):
             self.azMoveComplete.emit(pos)
 
             if self.pol1:
-                ntwk = self.analyzer.get_snp_network(self.pol1).s21
+                ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
                 ntwk.params = pos_meta
                 pol_1_data.append(ntwk)
             if self.pol2:
-                ntwk = self.analyzer.get_snp_network(self.pol2).s21
+                ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
                 ntwk.params = pos_meta
                 pol_2_data.append(ntwk)
             MUTEX.unlock()
@@ -246,9 +246,8 @@ class ScanWorker(QObject):
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
 
-        self.dataAcquired.emit({
-            'pol1': NetworkModel(pol_1_data), 
-            'pol2': NetworkModel(pol_2_data)}
+        self.dataAcquired.emit(
+            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
         )
 
     def _run_el_scan(self) -> None:
@@ -274,11 +273,11 @@ class ScanWorker(QObject):
             self.elMoveComplete.emit(pos)
 
             if self.pol1:
-                ntwk = self.analyzer.get_snp_network(self.pol1).s21
+                ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
                 ntwk.params = pos_meta
                 pol_1_data.append(ntwk)
             if self.pol2:
-                ntwk = self.analyzer.get_snp_network(self.pol2).s21
+                ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
                 ntwk.params = pos_meta
                 pol_2_data.append(ntwk)
             MUTEX.unlock()
@@ -291,9 +290,8 @@ class ScanWorker(QObject):
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
 
-        self.dataAcquired.emit({
-            'pol1': NetworkModel(pol_1_data), 
-            'pol2': NetworkModel(pol_2_data)}
+        self.dataAcquired.emit(
+            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
         )
 
 
@@ -388,17 +386,20 @@ class PyChamberCtrl:
     def update_positioner_ports(self) -> None:
         self.view.positionerPortComboBox.clear()
         ports = [p.device for p in list_ports.comports()]
-        log.info("Available ports:")
-        for p in ports:
-            log.info(f"\t{p}")
         self.view.positionerPortComboBox.addItems(ports)
 
     def update_analyzer_ports(self) -> None:
         self.view.analyzerPortComboBox.clear()
-        ports = vna.VNA.available(backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0')
-        log.info("Available analyzers:")
-        for p in ports:
-            log.info(f"\t{p}")
+
+        # FIXME: This is only for linux
+        backend = '/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
+
+        # If we can't find the library, default to pyvisa-py
+        try:
+            ports = vna.VNA.available(backend=backend)
+        except LibraryError:
+            ports = vna.VNA.available()
+
         self.view.analyzerPortComboBox.addItems(ports)
 
     def update_analyzer_models(self) -> None:
@@ -421,7 +422,6 @@ class PyChamberCtrl:
             if np.isclose(step, 0.0):
                 return
             diff = dir.value * step
-            log.info(f"Jogging azimuth {diff}")
             try:
                 self.jog_thread(JogAxis.AZIMUTH, diff, relative=True)
             except PositionerError as e:
@@ -429,7 +429,6 @@ class PyChamberCtrl:
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
         elif angle is not None:
-            log.info(f"Jogging azimuth to {angle}")
             try:
                 self.jog_thread(JogAxis.AZIMUTH, angle, relative=False)
             except PositionerError as e:
@@ -449,7 +448,6 @@ class PyChamberCtrl:
             if np.isclose(step, 0.0):
                 return
             diff = dir.value * step
-            log.info(f"Jogging elevation {diff}")
             try:
                 self.jog_thread(JogAxis.ELEVATION, diff, relative=True)
             except PositionerError as e:
@@ -457,7 +455,6 @@ class PyChamberCtrl:
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
         elif angle is not None:
-            log.info(f"Jogging elevation to {angle}")
             try:
                 self.jog_thread(JogAxis.ELEVATION, angle, relative=False)
             except PositionerError as e:
@@ -469,7 +466,7 @@ class PyChamberCtrl:
         if not self.positioner:
             PopUpMessage("Positioner not connected")
             return
-        
+
         try:
             self.jog_zero_thread()
         except PositionerError as e:
@@ -489,7 +486,6 @@ class PyChamberCtrl:
         if not self.positioner:
             PopUpMessage("Not connected")
             return
-        log.info("Setting current position as 0,0")
         self.positioner.zero()
         self.view.set_az_pos(0.0)
         self.view.set_el_pos(0.0)
@@ -499,20 +495,15 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        log.info("Jogging to 0,0")
         az_not_at_zero = not np.isclose(self.positioner.current_azimuth, 0.0)
         el_not_at_zero = not np.isclose(self.positioner.current_elevation, 0.0)
 
         if az_not_at_zero and el_not_at_zero:
             self.jog_zero_thread()
         elif az_not_at_zero:
-            log.info("Elevation is fine")
             self.jog_az(angle=0.0)
         elif el_not_at_zero:
-            log.info("Azimuth is fine")
             self.jog_el(angle=0.0)
-        else:
-            log.info("Already at 0")
 
     def full_scan(self) -> None:
         if not self.positioner:
@@ -523,11 +514,14 @@ class PyChamberCtrl:
         self.view.cutProgressBar.show()
         self.update_monitor_freqs()
 
-        azimuths = np.arange(self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step())
-        elevations = np.arange(self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step())
+        azimuths = np.arange(
+            self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step()
+        )
+        elevations = np.arange(
+            self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step()
+        )
 
         try:
-            log.info("Starting full scan")
             self.start_scan_thread(azimuths, elevations)
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
@@ -540,10 +534,11 @@ class PyChamberCtrl:
 
         self.update_monitor_freqs()
 
-        azimuths = np.arange(self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step())
+        azimuths = np.arange(
+            self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step()
+        )
 
         try:
-            log.info("Starting azimuth scan")
             self.start_scan_thread(azimuths=azimuths)
         except Exception as e:
             log.error(str(e))
@@ -557,10 +552,11 @@ class PyChamberCtrl:
 
         self.update_monitor_freqs()
 
-        elevations = np.arange(self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step())
+        elevations = np.arange(
+            self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step()
+        )
 
         try:
-            log.info("Starting elevation scan")
             self.start_scan_thread(elevations=elevations)
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
@@ -568,18 +564,18 @@ class PyChamberCtrl:
 
     def connect_to_analyzer(self) -> None:
         if self.analyzer:
-            log.info("Already connected.")
             return
         model = self.view.analyzerComboBox.currentText()
         port = self.view.get_analyzer_port()
 
         if model == "" or port == "":
-            log.info("Model not selected. Ignoring")
             return
 
         try:
             log.info("Connecting to analyzer...")
-            self.analyzer = self.analyzer_models[model](port, backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0')
+            self.analyzer = self.analyzer_models[model](
+                port, backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
+            )
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
@@ -607,11 +603,10 @@ class PyChamberCtrl:
 
     def connect_to_positioner(self) -> None:
         if self.positioner:
-            log.info("Already connected.")
             return
         model = self.view.get_positioner_model()
         port = self.view.get_positioner_port()
-        log.info(f"Connecting to positioner model [{model}] on port [{port}]")
+        log.info("Connecting to positioner...")
 
         if model == "" or port == "":
             log.info("Model or Port not selected. Ignoring")
@@ -640,9 +635,9 @@ class PyChamberCtrl:
             elif setting == FreqSetting.STOP:
                 if freq := self.view.get_stop_freq():
                     self.analyzer.stop_freq = freq
-            elif setting == FreqSetting.STEP:
-                if freq := self.view.get_freq_step():
-                    self.analyzer.freq_step = freq
+            # elif setting == FreqSetting.STEP:
+            #     if freq := self.view.get_freq_step():
+            #         self.analyzer.freq_step = freq
         except VisaIOError as e:
             log.error(f"Failed to communicate with analyzer: {str(e)}")
             PopUpMessage("Failed to communicate with analyzer", MsgLevel.ERROR)
@@ -657,33 +652,32 @@ class PyChamberCtrl:
             self.analyzer.npoints = npoints
 
     def init_polar_data_plot(self) -> None:
-        log.debug("Initializing Data Polar Plot")
         self.polar_data_ax = self.view.dataPlotMplWidget.canvas.fig.add_subplot(
             projection='polar'
         )
         self.update_polar_data_plot()
 
     def init_over_freq_plot(self) -> None:
-        log.debug("Initializing Over Frequency Plot")
         self.over_freq_ax = self.view.dataOverFreqPlotMplWidget.canvas.fig.add_subplot()
         self.update_over_freq_plot()
 
     def update_polar_data_plot(self) -> None:
-        log.info("Updating Polar Data Plot")
-
         scale_min = self.view.get_polar_plot_scale_min()
         scale_max = self.view.get_polar_plot_scale_max()
         scale_div = self.view.get_polar_plot_scale_step()
         freq = self.view.get_polar_plot_freq()
-        pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2" # FIXME
+
+        pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2"  # FIXME
+
+        if len(self.ntwk_models[pol]) == 0:
+            return
+
+        azimuths = np.deg2rad(self.ntwk_models[pol].azimuths.reshape(-1, 1))
+        mags = self.ntwk_models[pol].mags(freq, elevation=0).reshape(-1, 1)
 
         self.polar_data_ax.clear()
         try:
-            self.polar_data_ax.plot(
-                self.ntwk_models[pol].azimuths.reshape(-1,1),
-                self.ntwk_models[pol].mags(freq, elevation=0).reshape(-1,1),
-                color='tab:blue',
-            )
+            self.polar_data_ax.plot(azimuths, mags, color='tab:blue')
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
@@ -696,26 +690,25 @@ class PyChamberCtrl:
         self.view.dataPlotMplWidget.canvas.draw()
 
     def update_over_freq_plot(self) -> None:
-        log.info("Updating Over Frequency Plot")
-
         scale_min = self.view.get_over_freq_scale_min()
         scale_max = self.view.get_over_freq_scale_max()
         scale_div = self.view.get_over_freq_scale_step()
 
         pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2"
 
+        if len(self.ntwk_models[pol]) == 0:
+            return
+
+        freqs = self.ntwk_models[pol].freqs.reshape(-1, 1)
+        mags = self.ntwk_models[pol].mags(azimuth=0.0, elevation=0.0).reshape(-1, 1)
+
         self.over_freq_ax.clear()
         try:
-            self.over_freq_ax.plot(
-                self.ntwk_models[pol].freqs.reshape(-1,1),
-                self.ntwk_models[pol].mags(
-                    azimuth=0.0, elevation=0.0
-                ).reshape(-1,1),
-                color='tab:blue',
-            )
+            self.over_freq_ax.plot(freqs, mags, color='tab:blue')
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
+        self.over_freq_ax.set_xlim(np.amin(freqs), np.amax(freqs))
         self.over_freq_ax.set_ylim(scale_min, scale_max)
         self.over_freq_ax.set_yticks(np.arange(scale_min, scale_max + 1, scale_div))
         self.over_freq_ax.grid(True)
@@ -743,10 +736,7 @@ class PyChamberCtrl:
             "This will delete all data. Are you sure?"
         ).warn()
         if actually_clear:
-            self.ntwk_models = {
-                'pol1': NetworkModel(), 
-                'pol2': NetworkModel()
-            }
+            self.ntwk_models = {'pol1': NetworkModel(), 'pol2': NetworkModel()}
 
     def save_data(self) -> None:
         if len(self.ntwk_models['pol1']) == 0 and len(self.ntwk_models['pol2']) == 0:
@@ -754,7 +744,6 @@ class PyChamberCtrl:
             return
         save_name, _ = QFileDialog.getSaveFileName()
         if save_name != "":
-            log.info(f"Saving to {save_name}")
 
             with open(save_name, 'wb') as save_file:
                 pickle.dump(self.ntwk_models, save_file)
@@ -762,7 +751,6 @@ class PyChamberCtrl:
     def load_data(self) -> None:
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
-            log.info(f"Loading {file_name}")
             with open(file_name, 'rb') as data:
                 try:
                     val = pickle.load(data)
@@ -770,6 +758,11 @@ class PyChamberCtrl:
                 except Exception:
                     PopUpMessage("Invalid file", MsgLevel.ERROR)
                     return
+
+            temp = next(iter(val.values()))
+            self.view.dataPolarFreqSpinBox.setMinimum(temp.freqs[0])
+            self.view.dataPolarFreqSpinBox.setMaximum(temp.freqs[-1])
+            self.view.dataPolarFreqSpinBox.setSingleStep(temp.freqs[1] - temp.freqs[0])
 
     def export_csv(self) -> None:
         if len(self.ntwk_models['pol1']) > 0 and len(self.ntwk_models['pol2']) > 0:
@@ -792,7 +785,6 @@ class PyChamberCtrl:
 
     def update_ntwk_models(self, data: Dict[str, NetworkModel]) -> None:
         self.ntwk_models = data
-
 
     def start_scan_thread(
         self,
