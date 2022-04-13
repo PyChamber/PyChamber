@@ -1,6 +1,6 @@
 sources = pychamber
 
-.PHONY: test format lint unittest coverage pre-commit clean
+.PHONY: test format lint unittest coverage pre-commit clean build
 test: format lint unittest
 
 format:
