@@ -2,10 +2,10 @@ import logging
 import sys
 import time
 from enum import Enum, auto
-from typing import Optional, List
+from typing import List, Optional
 
 import numpy as np
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QPlainTextEdit
 
@@ -93,9 +93,7 @@ class AppUI(QMainWindow, Ui_MainWindow):
 
         log_handler = QTextEditLogger(self.logTab)
         log_handler.setFormatter(
-            logging.Formatter(
-                '[%(levelname)s] - %(module)s %(funcName)s %(message)s'
-            )
+            logging.Formatter('[%(levelname)s] - %(module)s %(funcName)s %(message)s')
         )
         logging.getLogger('pychamber').addHandler(log_handler)
         logging.getLogger('pychamber').setLevel(logging.INFO)

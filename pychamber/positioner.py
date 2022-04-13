@@ -4,13 +4,14 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
-from PyQt5.QtCore import QTimer
 
 import pkg_resources  # type: ignore
 import serial
 from omegaconf import OmegaConf
+from PyQt5.QtCore import QTimer
 
 log = logging.getLogger(__name__)
+
 
 @dataclass
 class BoardResponse:
@@ -156,7 +157,7 @@ class D6050(Positioner):
             try:
                 buffer = buffer.decode('ascii')
                 if (
-                    buffer.startswith('x0') 
+                    buffer.startswith('x0')
                     or buffer.startswith('y0')
                     or buffer.startswith('z0')
                 ):
