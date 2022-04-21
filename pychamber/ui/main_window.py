@@ -28,6 +28,7 @@ from quantiphy import Quantity
 from pychamber import utils
 from pychamber.ui import resources_rc
 
+from .freq_spin_box import FrequencySpinBox
 from .logger import QTextEditLogger
 from .mplwidget import MplPolarWidget, MplRectWidget, MplWidget
 from .pop_ups import ClearDataWarning
@@ -685,8 +686,9 @@ class MainWindow(QMainWindow):
         self.polarPlotPolarizationComboBox = QComboBox(tab)
         self.polarPlotPolarizationComboBox.addItems(['1', '2'])
         self.polarPlotFreqLabel = QLabel("Frequency", tab)
-        self.polarPlotFreqSpinBox = QDoubleSpinBox(tab)
+        self.polarPlotFreqSpinBox = FrequencySpinBox(tab)
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.polarPlotAutoScaleButton = QPushButton("Auto Scale", tab)
         self.polarPlotMinLabel = QLabel("Min", tab)
         self.polarPlotMinSpinBox = QSpinBox(tab)
         self.polarPlotMaxLabel = QLabel("Max", tab)
@@ -699,6 +701,7 @@ class MainWindow(QMainWindow):
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotFreqLabel)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotFreqSpinBox)
         self.polarPlotSettingsHLayout.addItem(spacer)
+        self.polarPlotSettingsHLayout.addWidget(self.polarPlotAutoScaleButton)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotMinLabel)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotMinSpinBox)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotMaxLabel)
@@ -719,6 +722,7 @@ class MainWindow(QMainWindow):
         self.overFreqPlotPolarizationComboBox = QComboBox(tab)
         self.overFreqPlotPolarizationComboBox.addItems(['1', '2'])
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.overFreqPlotAutoScaleButton = QPushButton("Auto Scale", tab)
         self.overFreqPlotMinLabel = QLabel("Min", tab)
         self.overFreqPlotMinSpinBox = QSpinBox(tab)
         self.overFreqPlotMaxLabel = QLabel("Max", tab)
@@ -729,6 +733,7 @@ class MainWindow(QMainWindow):
         self.overFreqPlotSettingsHLayout1.addWidget(self.overFreqPlotPolarizationLabel)
         self.overFreqPlotSettingsHLayout1.addWidget(self.overFreqPlotPolarizationComboBox)
         self.overFreqPlotSettingsHLayout1.addItem(spacer)
+        self.overFreqPlotSettingsHLayout1.addWidget(self.overFreqPlotAutoScaleButton)
         self.overFreqPlotSettingsHLayout1.addWidget(self.overFreqPlotMinLabel)
         self.overFreqPlotSettingsHLayout1.addWidget(self.overFreqPlotMinSpinBox)
         self.overFreqPlotSettingsHLayout1.addWidget(self.overFreqPlotMaxLabel)
@@ -858,6 +863,9 @@ class MainWindow(QMainWindow):
         self.experimentCutProgressBar.setSizePolicy(_SIZE_POLICIES['exp_pref'])
         self.experimentTimeRemainingLabel.setSizePolicy(_SIZE_POLICIES['pref_pref'])
         self.experimentTimeRemainingLineEdit.setSizePolicy(_SIZE_POLICIES['exp_pref'])
+
+        self.polarPlotFreqSpinBox.setSizePolicy(_SIZE_POLICIES['pref_pref'])
+        self.polarPlotFreqSpinBox.setMinimumWidth(150)
 
         self.mainWindowLayout.setColumnStretch(0, 0)
         self.mainWindowLayout.setColumnStretch(1, 2)
@@ -1023,6 +1031,7 @@ class MainWindow(QMainWindow):
         self.polarPlotMinSpinBox.valueChanged.connect(self.polarPlot.set_scale_min)
         self.polarPlotMaxSpinBox.valueChanged.connect(self.polarPlot.set_scale_max)
         self.polarPlotStepSpinBox.valueChanged.connect(self.polarPlot.set_scale_step)
+        self.polarPlotAutoScaleButton.pressed.connect(self.polarPlot.auto_scale)
 
         self.overFreqPlot.set_scale(
             min=self.over_freq_plot_min,
@@ -1034,6 +1043,7 @@ class MainWindow(QMainWindow):
         self.overFreqPlotStepSpinBox.valueChanged.connect(
             self.overFreqPlot.set_scale_step
         )
+        self.overFreqPlotAutoScaleButton.pressed.connect(self.overFreqPlot.auto_scale)
 
     def update_az_extent_plot(self) -> None:
         start = np.deg2rad(self.az_extent_start)

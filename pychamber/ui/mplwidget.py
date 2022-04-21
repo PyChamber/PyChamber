@@ -59,7 +59,8 @@ class MplRectWidget(MplWidget):
         self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
         self.ax.grid(self.grid)
         self.ax.xaxis.set_major_formatter(self.xformatter)
-        self.ax.set_xlim(np.amin(xdata), np.amax(xdata))
+        if len(xdata) > 1:
+            self.ax.set_xlim(np.amin(xdata), np.amax(xdata))
         self.ax.set_xlabel("Frequency")
         self.ax.set_ylabel("Gain [dB]")
         self.ax.set_ylim(self.ymin, self.ymax)
@@ -70,6 +71,13 @@ class MplRectWidget(MplWidget):
         x = self.artist.get_xdata(orig=True)
         y = self.artist.get_ydata(orig=True)
         self.update_plot(x, y)
+
+    def auto_scale(self) -> None:
+        y = self.artist.get_ydata(orig=True)
+        min = np.floor(np.amin(y))
+        max = np.ceil(np.amax(y))
+        step = np.round((max - min) / 4)
+        self.set_scale(min, max, step)
 
     def set_scale_min(self, min: float) -> None:
         self.ymin = min
@@ -128,6 +136,13 @@ class MplPolarWidget(MplWidget):
         x = self.artist.get_xdata(orig=True)
         y = self.artist.get_ydata(orig=True)
         self.update_plot(x, y)
+
+    def auto_scale(self) -> None:
+        y = self.artist.get_ydata(orig=True)
+        min = np.floor(np.amin(y))
+        max = np.ceil(np.amax(y))
+        step = np.round((max - min) / 4)
+        self.set_scale(min, max, step)
 
     def set_scale_min(self, min: float) -> None:
         self.rmin = min
