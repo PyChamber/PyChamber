@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
 
     @property
     def polar_plot_freq(self) -> float:
-        return self.dataPolarFreqSpinBox.cleanText() + self.dataPolarFreqSpinBox.suffix()
+        return self.polarPlotFreqSpinBox.value()
 
     @property
     def polar_plot_min(self) -> float:
@@ -768,11 +768,11 @@ class MainWindow(QMainWindow):
         self.clearDataButton.setStyleSheet("background-color: rgb(237, 51, 59)")
         self.saveDataButton = QPushButton("Save Data", tab)
         self.loadDataButton = QPushButton("Load Data", tab)
-        self.exportDataButton = QPushButton("Export Data", tab)
+        # self.exportDataButton = QPushButton("Export Data", tab)
         self.dataTabVLayout.addWidget(self.clearDataButton)
         self.dataTabVLayout.addWidget(self.saveDataButton)
         self.dataTabVLayout.addWidget(self.loadDataButton)
-        self.dataTabVLayout.addWidget(self.exportDataButton)
+        # self.dataTabVLayout.addWidget(self.exportDataButton)
         self.dataTabLayout.addLayout(self.dataTabVLayout, 1, 1, 1, 1)
 
         vspacer_1 = QSpacerItem(20, 200, QSizePolicy.Minimum, QSizePolicy.Preferred)
@@ -991,6 +991,7 @@ class MainWindow(QMainWindow):
     def initPlots(self) -> None:
         self.positionerAzExtentPlot.ticks = False
         self.positionerAzExtentPlot.grid = False
+        self.positionerAzExtentPlot.set_scale(0, 1, 1)
         self.positionerAzExtentStartSpinBox.valueChanged.connect(
             self.update_az_extent_plot
         )
@@ -1004,6 +1005,7 @@ class MainWindow(QMainWindow):
 
         self.positionerElExtentPlot.ticks = False
         self.positionerElExtentPlot.grid = False
+        self.positionerElExtentPlot.set_scale(0, 1, 1)
         self.positionerElExtentStartSpinBox.valueChanged.connect(
             self.update_el_extent_plot
         )
@@ -1041,7 +1043,7 @@ class MainWindow(QMainWindow):
         thetas = np.arange(start, stop + np.deg2rad(1), step)
         rs = [0, 1] * len(thetas)
         thetas = np.repeat(thetas, 2)
-        self.positionerAzExtentPlot.update_plot(thetas, np.array(rs), redraw=True)
+        self.positionerAzExtentPlot.update_plot(thetas, np.array(rs))
 
     def update_el_extent_plot(self) -> None:
         start = np.deg2rad(self.el_extent_start)
@@ -1051,4 +1053,4 @@ class MainWindow(QMainWindow):
         thetas = np.arange(start, stop + np.deg2rad(1), step)
         rs = [0, 1] * len(thetas)
         thetas = np.repeat(thetas, 2)
-        self.positionerElExtentPlot.update_plot(thetas, np.array(rs), redraw=True)
+        self.positionerElExtentPlot.update_plot(thetas, np.array(rs))

@@ -95,7 +95,20 @@ class PyChamberCtrl:
         self.view.clearDataButton.clicked.connect(self.clear_data)
         self.view.saveDataButton.clicked.connect(self.save_data)
         self.view.loadDataButton.clicked.connect(self.load_data)
-        self.view.exportDataButton.clicked.connect(self.export_csv)
+        # self.view.exportDataButton.clicked.connect(self.export_csv)
+
+        # SpinBoxes
+        self.view.polarPlotFreqSpinBox.valueChanged.connect(self.update_polar_plot)
+        self.view.overFreqPlotAzSpinBox.valueChanged.connect(self.update_over_freq_plot)
+        self.view.overFreqPlotElSpinBox.valueChanged.connect(self.update_over_freq_plot)
+
+        # Combo Boxes
+        self.view.polarPlotPolarizationComboBox.currentIndexChanged.connect(
+            self.update_polar_plot
+        )
+        self.view.overFreqPlotPolarizationComboBox.currentIndexChanged.connect(
+            self.update_over_freq_plot
+        )
 
         # Line Edits
         self.view.analyzerStartFreqLineEdit.returnPressed.connect(
@@ -375,7 +388,7 @@ class PyChamberCtrl:
         if npoints := self.view.analyzer_npoints:
             self.analyzer.npoints = npoints
 
-    def update_polar_data_plot(self) -> None:
+    def update_polar_plot(self) -> None:
         freq = str(self.view.polar_plot_freq)
 
         pol = "pol1" if self.view.polar_plot_pol == 1 else "pol2"  # FIXME
@@ -430,9 +443,11 @@ class PyChamberCtrl:
                     return
 
             temp = next(iter(val.values()))
-            self.view.dataPolarFreqSpinBox.setMinimum(temp.freqs[0])
-            self.view.dataPolarFreqSpinBox.setMaximum(temp.freqs[-1])
-            self.view.dataPolarFreqSpinBox.setSingleStep(temp.freqs[1] - temp.freqs[0])
+            self.view.polarPlotFreqSpinBox.setMinimum(temp.freqs[0])
+            self.view.polarPlotFreqSpinBox.setMaximum(temp.freqs[-1])
+            self.view.polarPlotFreqSpinBox.setSingleStep(temp.freqs[1] - temp.freqs[0])
+            self.update_over_freq_plot()
+            self.update_polar_plot()
 
     def export_csv(self) -> None:
         if len(self.ntwk_models['pol1']) > 0 and len(self.ntwk_models['pol2']) > 0:
@@ -484,7 +499,7 @@ class PyChamberCtrl:
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.worker.progress.connect(lambda p: setattr(self.view, 'total_progress', p))
-        self.worker.finished.connect(self.update_polar_data_plot)
+        self.worker.finished.connect(self.update_polar_plot)
         self.worker.finished.connect(self.update_over_freq_plot)
         if self.view.cutProgressBar.isVisible():
             self.worker.cutProgress.connect(

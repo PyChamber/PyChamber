@@ -6,6 +6,7 @@
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+from matplotlib.ticker import EngFormatter
 
 import matplotlib
 import numpy as np
@@ -43,10 +44,6 @@ class MplWidget(QWidget):
     def grid(self, setting: bool) -> None:
         self._grid = setting
 
-    def blit(self) -> None:
-        self.ax.draw_artist(self.artist)
-        self.canvas.blit(self.canvas.fig.bbox)
-
 
 class MplRectWidget(MplWidget):
     def __init__(self, color: str, parent=None):
@@ -55,25 +52,24 @@ class MplRectWidget(MplWidget):
         self.ax = self.canvas.fig.add_subplot()
         self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]), color=self.color)
         self.ax.grid(self.grid)
+        self.xformatter = EngFormatter(unit='Hz')
+
+    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
+        self.ax.cla()
+        self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
+        self.ax.grid(self.grid)
+        self.ax.xaxis.set_major_formatter(self.xformatter)
+        self.ax.set_xlim(np.amin(xdata), np.amax(xdata))
         self.ax.set_xlabel("Frequency")
         self.ax.set_ylabel("Gain [dB]")
+        self.ax.set_ylim(self.ymin, self.ymax)
+        self.ax.set_yticks(np.arange(self.ymin, self.ymax + 1, self.ystep))
         self.canvas.draw()
-
-    def update_plot(
-        self, xdata: np.ndarray, ydata: np.ndarray, redraw: bool = False
-    ) -> None:
-        self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
-        self.blit()
 
     def update_scale(self) -> None:
         x = self.artist.get_xdata(orig=True)
         y = self.artist.get_ydata(orig=True)
-        self.ax.cla()
-        self.artist, *_ = self.ax.plot(x, y, color=self.color)
-        self.ax.grid(self.grid)
-        self.ax.set_ylim(self.ymin, self.ymax)
-        self.ax.set_yticks(np.arange(self.ymin, self.ymax + 1, self.ystep))
-        self.canvas.draw()
+        self.update_plot(x, y)
 
     def set_scale_min(self, min: float) -> None:
         self.ymin = min
@@ -114,33 +110,24 @@ class MplPolarWidget(MplWidget):
     def ticks(self, setting: bool) -> None:
         self._ticks = setting
 
-    def update_plot(
-        self, xdata: np.ndarray, ydata: np.ndarray, redraw: bool = False
-    ) -> None:
-        if redraw:
-            x = self.artist.get_xdata(orig=True)  # type: ignore
-            y = self.artist.get_ydata(orig=True)  # type: ignore
-            self.ax.cla()
-            self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
-            if not self.ticks:
-                self.ax.set_xticklabels([])
-                self.ax.set_yticklabels([])
-            self.ax.set_theta_zero_location('N')
-            self.ax.set_thetagrids(np.arange(0, 360, 30))
-            self.canvas.draw()
-        else:
-            self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
-            self.blit()
+    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
+        self.ax.cla()
+        self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
+        if not self.ticks:
+            self.ax.set_xticklabels([])
+            self.ax.set_yticklabels([])
+        self.ax.grid(self.grid)
+        self.ax.set_theta_zero_location('N')
+        self.ax.set_xticks(np.deg2rad(np.arange(-180, 180, 30)))
+        self.ax.set_thetalim(-np.pi, np.pi)
+        self.ax.set_rlim(self.rmin, self.rmax)
+        self.ax.set_rticks(np.arange(self.rmin, self.rmax + 1, self.rstep))
+        self.canvas.draw()
 
     def update_scale(self) -> None:
         x = self.artist.get_xdata(orig=True)
         y = self.artist.get_ydata(orig=True)
-        self.ax.cla()
-        self.artist, *_ = self.ax.plot(x, y, color=self.color)
-        self.ax.grid(self.grid)
-        self.ax.set_rlim(self.rmin, self.rmax)
-        self.ax.set_rticks(np.arange(self.rmin, self.rmax + 1, self.rstep))
-        self.canvas.draw()
+        self.update_plot(x, y)
 
     def set_scale_min(self, min: float) -> None:
         self.rmin = min
