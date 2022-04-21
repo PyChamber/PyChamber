@@ -2,31 +2,27 @@ import functools
 import itertools
 import logging
 import pathlib
-import time
 from enum import Enum, auto
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
 import cloudpickle as pickle
 import numpy as np
-from PyQt5.QtCore import QMutex, QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QMutex, QThread
 from PyQt5.QtWidgets import QFileDialog
 from pyvisa.errors import LibraryError, VisaIOError
 from serial.tools import list_ports
 from skrf.vi import vna
 
 from pychamber import positioner
+from pychamber.jog_worker import JogAxis, JogWorker, JogZeroWorker
 from pychamber.network_model import NetworkModel
 from pychamber.positioner import PositionerError
+from pychamber.scan_worker import ScanWorker
 from pychamber.ui.main_window import MainWindow
 from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage, WhichPol
 
 log = logging.getLogger(__name__)
 MUTEX = QMutex()
-
-
-class JogAxis(Enum):
-    AZIMUTH = auto()
-    ELEVATION = auto()
 
 
 class AzJogDir(Enum):
@@ -43,257 +39,6 @@ class FreqSetting(Enum):
     START = auto()
     STOP = auto()
     STEP = auto()
-
-
-class JogWorker(QObject):
-    finished = pyqtSignal()
-    azMoveComplete = pyqtSignal(float)
-    elMoveComplete = pyqtSignal(float)
-
-    axis: Optional[JogAxis] = None
-    angle: Optional[float] = None
-    positioner_: Optional[positioner.Positioner] = None
-    relative = False
-
-    def run(self) -> None:
-        if self.axis == JogAxis.AZIMUTH:
-            self._jog_az()
-        elif self.axis == JogAxis.ELEVATION:
-            self._jog_el()
-        self.finished.emit()
-
-    def _jog_az(self) -> None:
-        assert self.positioner_
-        assert self.angle is not None
-
-        if self.relative:
-            MUTEX.lock()
-            self.positioner_.move_azimuth_relative(self.angle)
-            pos = self.positioner_.current_azimuth
-            MUTEX.unlock()
-        else:
-            MUTEX.lock()
-            self.positioner_.move_azimuth_absolute(self.angle)
-            pos = self.positioner_.current_azimuth
-            MUTEX.unlock()
-        self.azMoveComplete.emit(pos)
-
-    def _jog_el(self) -> None:
-        assert self.positioner_
-        assert self.angle is not None
-
-        if self.relative:
-            MUTEX.lock()
-            self.positioner_.move_elevation_relative(self.angle)
-            pos = self.positioner_.current_elevation
-            MUTEX.unlock()
-        else:
-            MUTEX.lock()
-            self.positioner_.move_elevation_absolute(self.angle)
-            pos = self.positioner_.current_elevation
-            MUTEX.unlock()
-        self.elMoveComplete.emit(pos)
-
-
-class JogZeroWorker(QObject):
-    finished = pyqtSignal()
-    azMoveComplete = pyqtSignal(float)
-    elMoveComplete = pyqtSignal(float)
-
-    positioner_: Optional[positioner.Positioner] = None
-
-    def run(self) -> None:
-        assert self.positioner_
-
-        MUTEX.lock()
-        self.positioner_.move_elevation_absolute(0.0)
-        MUTEX.unlock()
-        self.elMoveComplete.emit(0.0)
-
-        MUTEX.lock()
-        self.positioner_.move_azimuth_absolute(0.0)
-        MUTEX.unlock()
-        self.azMoveComplete.emit(0.0)
-
-        self.finished.emit()
-
-
-class ScanWorker(QObject):
-    finished = pyqtSignal()
-    aborted = pyqtSignal()
-    progress = pyqtSignal(int)
-    cutProgress = pyqtSignal(int)
-    timeUpdate = pyqtSignal(float)
-    azMoveComplete = pyqtSignal(float)
-    elMoveComplete = pyqtSignal(float)
-    dataAcquired = pyqtSignal(object)
-
-    azimuths: Optional[np.ndarray] = None
-    elevations: Optional[np.ndarray] = None
-    analyzer: Optional[vna.VNA] = None
-    positioner_: Optional[positioner.Positioner] = None
-    ntwk_models: Optional[Dict[str, NetworkModel]] = None
-    pol1: Optional[List[int]] = None
-    pol2: Optional[List[int]] = None
-
-    abort = False
-
-    def set_abort(self, abort: bool) -> None:
-        self.abort = abort
-
-    def run(self) -> None:
-        if (self.azimuths is not None) and (self.elevations is not None):
-            self._run_full_scan()
-        elif self.azimuths is not None:
-            self._run_az_scan()
-        elif self.elevations is not None:
-            self._run_el_scan()
-        self.finished.emit()
-
-    def _run_full_scan(self) -> None:
-        assert self.azimuths is not None
-        assert self.elevations is not None
-        assert self.analyzer is not None
-        assert self.positioner_ is not None
-        assert self.ntwk_models is not None
-
-        total_iters = len(self.azimuths) * len(self.elevations)
-        pol_1_data = []
-        pol_2_data = []
-        for i, az in enumerate(self.azimuths):
-            MUTEX.lock()
-            self.positioner_.move_azimuth_absolute(az)
-            pos = self.positioner_.current_azimuth
-            MUTEX.unlock()
-            self.azMoveComplete.emit(pos)
-            for j, el in enumerate(self.elevations):
-                if self.abort:
-                    MUTEX.lock()
-                    self.positioner_.abort_all()
-                    MUTEX.unlock()
-                    break
-
-                pos_meta = {'azimuth': az, 'elevation': el}
-                start = time.time()
-                MUTEX.lock()
-                self.positioner_.move_elevation_absolute(el)
-                pos = self.positioner_.current_elevation
-                self.elMoveComplete.emit(pos)
-                if self.pol1:
-                    ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
-                    ntwk.params = pos_meta
-                    pol_1_data.append(ntwk)
-                if self.pol2:
-                    ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
-                    ntwk.params = pos_meta
-                    pol_2_data.append(ntwk)
-                MUTEX.unlock()
-                end = time.time()
-
-                completed = i * len(self.azimuths) + j
-                progress = completed * 100 // total_iters
-                self.progress.emit(progress)
-                self.cutProgress.emit(j * 100 // len(self.elevations))
-                single_iter_time = end - start
-                remaining = total_iters - completed
-                time_remaining = single_iter_time * remaining
-                self.timeUpdate.emit(time_remaining)
-
-            if self.abort:
-                break
-
-        self.dataAcquired.emit(
-            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
-        )
-
-    def _run_az_scan(self) -> None:
-        assert self.azimuths is not None
-        assert self.analyzer is not None
-        assert self.positioner_ is not None
-        assert self.ntwk_models is not None
-
-        pol_1_data = []
-        pol_2_data = []
-        for i, az in enumerate(self.azimuths):
-            log.info(f"Iteration: {i+1}/{len(self.azimuths)}")
-            if self.abort:
-                MUTEX.lock()
-                self.positioner_.abort_all()
-                MUTEX.unlock()
-                break
-
-            pos_meta = {'azimuth': az, 'elevation': 0}
-            start = time.time()
-            MUTEX.lock()
-            self.positioner_.move_azimuth_absolute(az)
-            pos = self.positioner_.current_azimuth
-            self.azMoveComplete.emit(pos)
-
-            if self.pol1:
-                ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_1_data.append(ntwk)
-            if self.pol2:
-                ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_2_data.append(ntwk)
-            MUTEX.unlock()
-            end = time.time()
-
-            progress = i * 100 // len(self.azimuths)
-            self.progress.emit(progress)
-            single_iter_time = end - start
-            remaining = len(self.azimuths) - i
-            time_remaining = single_iter_time * remaining
-            self.timeUpdate.emit(time_remaining)
-
-        self.dataAcquired.emit(
-            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
-        )
-
-    def _run_el_scan(self) -> None:
-        assert self.elevations is not None
-        assert self.analyzer is not None
-        assert self.positioner_ is not None
-        assert self.ntwk_models is not None
-
-        pol_1_data = []
-        pol_2_data = []
-        for i, el in enumerate(self.elevations):
-            if self.abort:
-                MUTEX.lock()
-                self.positioner_.abort_all()
-                MUTEX.unlock()
-                break
-
-            pos_meta = {'azimuth': 0, 'elevation': el}
-            start = time.time()
-            MUTEX.lock()
-            self.positioner_.move_elevation_absolute(el)
-            pos = self.positioner_.current_elevation
-            self.elMoveComplete.emit(pos)
-
-            if self.pol1:
-                ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_1_data.append(ntwk)
-            if self.pol2:
-                ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_2_data.append(ntwk)
-            MUTEX.unlock()
-            end = time.time()
-
-            progress = i * 100 // len(self.elevations)
-            self.progress.emit(progress)
-            single_iter_time = end - start
-            remaining = len(self.elevations) - i
-            time_remaining = single_iter_time * remaining
-            self.timeUpdate.emit(time_remaining)
-
-        self.dataAcquired.emit(
-            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
-        )
 
 
 class PyChamberCtrl:
@@ -399,7 +144,7 @@ class PyChamberCtrl:
             return
 
         if dir:
-            step = self.view.get_az_jog_step()
+            step = self.view.az_jog_step
             if np.isclose(step, 0.0):
                 return
             diff = dir.value * step
@@ -425,7 +170,7 @@ class PyChamberCtrl:
             return
 
         if dir:
-            step = self.view.get_el_jog_step()
+            step = self.view.el_jog_step
             if np.isclose(step, 0.0):
                 return
             diff = dir.value * step
@@ -456,11 +201,11 @@ class PyChamberCtrl:
             return
 
     def jog_az_to(self) -> None:
-        if angle := self.view.get_az_jog_to():
+        if angle := self.view.az_jog_to:
             self.jog_az(angle=angle)
 
     def jog_el_to(self) -> None:
-        if angle := self.view.get_el_jog_to():
+        if angle := self.view.el_jog_to:
             self.jog_el(angle=angle)
 
     def set_zero(self) -> None:
@@ -468,8 +213,8 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
         self.positioner.zero()
-        self.view.set_az_pos(0.0)
-        self.view.set_el_pos(0.0)
+        self.view.az_pos = 0.0
+        self.view.el_pos = 0.0
 
     def return_to_zero(self) -> None:
         if not self.positioner:
@@ -496,10 +241,10 @@ class PyChamberCtrl:
         self.view.update_monitor_freqs()
 
         azimuths = np.arange(
-            self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step()
+            self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
         )
         elevations = np.arange(
-            self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step()
+            self.view.el_extent_start, self.view.el_extent_stop, self.view.el_extent_step
         )
 
         try:
@@ -516,7 +261,7 @@ class PyChamberCtrl:
         self.view.update_monitor_freqs()
 
         azimuths = np.arange(
-            self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step()
+            self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
         )
 
         try:
@@ -534,7 +279,7 @@ class PyChamberCtrl:
         self.view.update_monitor_freqs()
 
         elevations = np.arange(
-            self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step()
+            self.view.el_extent_start, self.view.el_extent_stop, self.view.el_extent_step
         )
 
         try:
@@ -546,25 +291,25 @@ class PyChamberCtrl:
     def connect_to_analyzer(self) -> None:
         if self.analyzer:
             return
-        model = self.view.analyzerComboBox.currentText()
-        port = self.view.get_analyzer_port()
+        model = self.view.analyzer_model
+        addr = self.view.analyzer_address
 
-        if model == "" or port == "":
+        if model == "" or addr == "":
             return
 
         try:
             log.info("Connecting to analyzer...")
             self.analyzer = self.analyzer_models[model](
-                port, backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
+                addr, backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
             )
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
         try:
-            self.view.set_start_freq(self.analyzer.start_freq)
-            self.view.set_stop_freq(self.analyzer.stop_freq)
-            self.view.set_npoints(self.analyzer.npoints)
-            # self.view.set_step_freq(self.analyzer.freq_step)
+            self.view.analyzer_start_freq = self.analyzer.start_freq
+            self.view.analyzer_stop_freq = self.analyzer.stop_freq
+            self.view.analyzer_n_points = self.analyzer.npoints
+            # self.view.analyzer_freq_step = self.analyzer.freq_step
             ports = self.analyzer.ports
         except VisaIOError as e:
             log.error(f"Error communicating with the analyzer: {e}")
@@ -578,19 +323,17 @@ class PyChamberCtrl:
         self.view.pol1ComboBox.addItems(ports)
         self.view.pol2ComboBox.addItems(ports)
         log.info("Connected")
-        self.view.frequencyGroupBox.setEnabled(True)
-        if self.view.positionerGroupBox.isEnabled():
-            self.view.experimentGroupBox.setEnabled(True)
+        self.view.enable_freq()
+        self.view.enable_experiment()
 
     def connect_to_positioner(self) -> None:
         if self.positioner:
             return
-        model = self.view.get_positioner_model()
-        port = self.view.get_positioner_port()
+        model = self.view.positioner_model
+        port = self.view.positioner_port
         log.info("Connecting to positioner...")
 
         if model == "" or port == "":
-            log.info("Model or Port not selected. Ignoring")
             return
 
         try:
@@ -598,8 +341,8 @@ class PyChamberCtrl:
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
-        self.view.azPosLineEdit.setText(f"{self.positioner.azimuth_deg}")
-        self.view.elPosLineEdit.setText(f"{self.positioner.elevation_deg}")
+        self.view.az_pos = self.positioner.azimuth_deg
+        self.view.el_pos = self.positioner.elevation_deg
         log.info("Connected")
         self.view.enable_jog()
         self.view.enable_experiment()
@@ -611,14 +354,14 @@ class PyChamberCtrl:
 
         try:
             if setting == FreqSetting.START:
-                if freq := self.view.get_start_freq():
-                    self.analyzer.start_freq = freq
+                if freq := self.view.analyzer_start_freq:
+                    self.analyzer.start_freq = freq.real
             elif setting == FreqSetting.STOP:
-                if freq := self.view.get_stop_freq():
-                    self.analyzer.stop_freq = freq
+                if freq := self.view.analyzer_stop_freq:
+                    self.analyzer.stop_freq = freq.real
             # elif setting == FreqSetting.STEP:
-            #     if freq := self.view.get_freq_step():
-            #         self.analyzer.freq_step = freq
+            #     if freq := self.view.analyzer_freq_step:
+            #         self.analyzer.freq_step = freq.real
         except VisaIOError as e:
             log.error(f"Failed to communicate with analyzer: {str(e)}")
             PopUpMessage("Failed to communicate with analyzer", MsgLevel.ERROR)
@@ -629,7 +372,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        if npoints := self.view.get_npoints():
+        if npoints := self.view.analyzer_npoints:
             self.analyzer.npoints = npoints
 
     def update_polar_data_plot(self) -> None:
@@ -718,16 +461,20 @@ class PyChamberCtrl:
         azimuths: Optional[np.ndarray] = None,
         elevations: Optional[np.ndarray] = None,
     ) -> None:
-        self.thread = QThread()
-        self.worker = ScanWorker()
+        assert self.positioner
+        assert self.analyzer
 
-        self.worker.azimuths = azimuths
-        self.worker.elevations = elevations
-        self.worker.analyzer = self.analyzer
-        self.worker.positioner_ = self.positioner
-        self.worker.ntwk_models = self.ntwk_models
-        self.worker.pol1 = self.view.get_pol_1()
-        self.worker.pol2 = self.view.get_pol_2()
+        self.thread = QThread()
+        self.worker = ScanWorker(
+            MUTEX,
+            self.positioner,
+            self.analyzer,
+            self.ntwk_models,
+            azimuths,
+            elevations,
+            self.view.pol_1,
+            self.view.pol_2,
+        )
 
         self.worker.moveToThread(self.thread)
 
@@ -736,19 +483,16 @@ class PyChamberCtrl:
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
 
-        self.worker.progress.connect(lambda p: self.view.update_progress(p))
+        self.worker.progress.connect(lambda p: setattr(self.view, 'total_progress', p))
         self.worker.finished.connect(self.update_polar_data_plot)
         self.worker.finished.connect(self.update_over_freq_plot)
-        self.worker.progress.connect(lambda p: self.view.update_progress(p))
         if self.view.cutProgressBar.isVisible():
-            self.worker.cutProgress.connect(lambda p: self.view.update_cut_progress(p))
-        self.worker.timeUpdate.connect(lambda t: self.view.update_time_remaining(t))
-        self.worker.azMoveComplete.connect(
-            lambda p: self.view.azPosLineEdit.setText(str(p))
-        )
-        self.worker.elMoveComplete.connect(
-            lambda p: self.view.elPosLineEdit.setText(str(p))
-        )
+            self.worker.cutProgress.connect(
+                lambda p: setattr(self.view, 'cut_progress', p)
+            )
+        self.worker.timeUpdate.connect(lambda t: setattr(self.view, 'time_remaining', t))
+        self.worker.azMoveComplete.connect(lambda p: setattr(self.view, 'az_pos', p))
+        self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
         self.worker.dataAcquired.connect(lambda data: self.update_ntwk_models(data))
 
         self.thread.start()
@@ -760,9 +504,7 @@ class PyChamberCtrl:
         self.view.elScanButton.setEnabled(False)
         self.view.abortButton.setEnabled(True)
 
-        self.view.abortButton.clicked.connect(
-            lambda: self.worker.set_abort(True)  # type: ignore
-        )
+        self.view.abortButton.clicked.connect(lambda: setattr(self.worker, 'abort', True))
 
         self.thread.finished.connect(lambda: self.view.analyzerGroupBox.setEnabled(True))
         self.thread.finished.connect(
@@ -772,21 +514,17 @@ class PyChamberCtrl:
         self.thread.finished.connect(lambda: self.view.azScanButton.setEnabled(True))
         self.thread.finished.connect(lambda: self.view.elScanButton.setEnabled(True))
         self.thread.finished.connect(lambda: self.view.abortButton.setEnabled(False))
-        self.thread.finished.connect(lambda: self.view.update_progress(100))
-        self.thread.finished.connect(lambda: self.view.update_time_remaining(0))
+        self.thread.finished.connect(lambda: setattr(self.view, 'total_progress', 100))
+        self.thread.finished.connect(lambda: setattr(self.view, 'time_remaining', 0.0))
         self.thread.finished.connect(lambda: log.info("Scan complete"))
 
         if self.view.cutProgressBar.isVisible():
             self.thread.finished.connect(lambda: self.view.cutProgressBar.hide())
 
     def jog_thread(self, axis: JogAxis, angle: float, relative: bool) -> None:
+        assert self.positioner
         self.thread = QThread()
-        self.worker = JogWorker()
-
-        self.worker.axis = axis
-        self.worker.angle = angle
-        self.worker.relative = relative
-        self.worker.positioner_ = self.positioner
+        self.worker = JogWorker(MUTEX, axis, angle, self.positioner, relative)
 
         self.worker.moveToThread(self.thread)
 
@@ -795,12 +533,8 @@ class PyChamberCtrl:
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
 
-        self.worker.azMoveComplete.connect(
-            lambda p: self.view.azPosLineEdit.setText(str(p))
-        )
-        self.worker.elMoveComplete.connect(
-            lambda p: self.view.elPosLineEdit.setText(str(p))
-        )
+        self.worker.azMoveComplete.connect(lambda p: setattr(self.view, 'az_pos', p))
+        self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
 
         self.thread.start()
 
@@ -808,10 +542,10 @@ class PyChamberCtrl:
         self.thread.finished.connect(self.view.enable_jog_buttons)
 
     def jog_zero_thread(self) -> None:
-        self.thread = QThread()
-        self.worker = JogZeroWorker()
+        assert self.positioner
 
-        self.worker.positioner_ = self.positioner
+        self.thread = QThread()
+        self.worker = JogZeroWorker(MUTEX, self.positioner)
 
         self.worker.moveToThread(self.thread)
 
@@ -820,12 +554,8 @@ class PyChamberCtrl:
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
 
-        self.worker.azMoveComplete.connect(
-            lambda p: self.view.azPosLineEdit.setText(str(p))
-        )
-        self.worker.elMoveComplete.connect(
-            lambda p: self.view.elPosLineEdit.setText(str(p))
-        )
+        self.worker.azMoveComplete.connect(lambda p: setattr(self.view, 'az_pos', p))
+        self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
 
         self.thread.start()
 

@@ -1,29 +1,29 @@
 import logging
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QPlainTextEdit
 
 
 class ColorFormatter(logging.Formatter):
-    grey = "\x1b[38;20m"
-    yellow = "\x1b[33;20m"
-    red = "\x1b[31;20m"
-    bold_red = "\x1b[31;1m"
-    reset = "\x1b[0m"
-    log_fmt = "[%(levelname)s]-%(module)s: %(message)s"
-
     FORMATS = {
-        logging.DEBUG: grey + log_fmt + reset,
-        logging.INFO: grey + log_fmt + reset,
-        logging.WARNING: yellow + log_fmt + reset,
-        logging.ERROR: red + log_fmt + reset,
-        logging.CRITICAL: bold_red + log_fmt + reset,
+        logging.ERROR: ("[{levelname:^8s}] {message}", QColor("red")),
+        logging.DEBUG: ("[{levelname:^8s}] {message}", QColor("green")),
+        logging.INFO: ("[{levelname:^8s}] {message}", QColor("gray")),
+        logging.WARNING: ('[{levelname:^8s}] {message}', QColor(128, 128, 0)),
     }
 
     def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+        last_fmt = self._style._fmt
+        opt = self.FORMATS.get(record.levelno)
+        if opt:
+            fmt, color = opt
+            self._style._fmt = "<pre><font color=\"{}\">{}</font></pre>".format(
+                QColor(color).name(), fmt
+            )
+        res = logging.Formatter.format(self, record)
+        self._style._fmt = last_fmt
+        return res
 
 
 class QTextEditLogger(logging.Handler, QObject):
@@ -34,7 +34,8 @@ class QTextEditLogger(logging.Handler, QObject):
         QObject.__init__(self)
         self.widget = QPlainTextEdit(parent)
         self.widget.setReadOnly(True)
-        self.appendPlainText.connect(self.widget.appendPlainText)
+        self.appendPlainText.connect(self.widget.appendHtml)
+        self.setFormatter(ColorFormatter(style='{'))
 
     def emit(self, record):
         msg = self.format(record)
