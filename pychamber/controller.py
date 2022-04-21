@@ -15,9 +15,10 @@ from serial.tools import list_ports
 from skrf.vi import vna
 
 from pychamber import positioner
-from pychamber.app import AppUI, ClearDataWarning, MsgLevel, PopUpMessage, WhichPol
 from pychamber.network_model import NetworkModel
 from pychamber.positioner import PositionerError
+from pychamber.ui.main_window import MainWindow
+from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage, WhichPol
 
 log = logging.getLogger(__name__)
 MUTEX = QMutex()
@@ -305,7 +306,7 @@ class PyChamberCtrl:
 
     worker: Optional[Union[JogWorker, JogZeroWorker, ScanWorker]] = None
 
-    def __init__(self, view: AppUI) -> None:
+    def __init__(self, view: MainWindow) -> None:
         self.view = view
         self.ntwk_models = {
             'pol1': NetworkModel(),
@@ -321,30 +322,27 @@ class PyChamberCtrl:
         self.update_positioner_ports()
         self.update_positioner_models()
 
-        self.init_over_freq_plot()
-        self.init_polar_data_plot()
-
     def connect_signals(self) -> None:
         # Buttons
-        self.view.fullScanButton.clicked.connect(self.full_scan)
-        self.view.azScanButton.clicked.connect(self.az_scan)
-        self.view.elScanButton.clicked.connect(self.el_scan)
-        self.view.azJogLeftButton.clicked.connect(
+        self.view.experimentFullScanButton.clicked.connect(self.full_scan)
+        self.view.experimentAzScanButton.clicked.connect(self.az_scan)
+        self.view.experimentElScanButton.clicked.connect(self.el_scan)
+        self.view.jogAzLeftButton.clicked.connect(
             functools.partial(self.jog_az, AzJogDir.LEFT)
         )
-        self.view.azJogZeroButton.clicked.connect(functools.partial(self.jog_az, angle=0))
-        self.view.azJogRightButton.clicked.connect(
+        self.view.jogAzZeroButton.clicked.connect(functools.partial(self.jog_az, angle=0))
+        self.view.jogAzRightButton.clicked.connect(
             functools.partial(self.jog_az, AzJogDir.RIGHT)
         )
-        self.view.azJogToSubmitButton.clicked.connect(self.jog_az_to)
-        self.view.elJogUpButton.clicked.connect(
+        self.view.jogAzSubmitButton.clicked.connect(self.jog_az_to)
+        self.view.jogElSubmitButton.clicked.connect(
             functools.partial(self.jog_el, ElJogDir.UP)
         )
-        self.view.elJogZeroButton.clicked.connect(functools.partial(self.jog_el, angle=0))
-        self.view.elJogDownButton.clicked.connect(
+        self.view.jogElZeroButton.clicked.connect(functools.partial(self.jog_el, angle=0))
+        self.view.jogElDownButton.clicked.connect(
             functools.partial(self.jog_el, ElJogDir.DOWN)
         )
-        self.view.elJogToSubmitButton.clicked.connect(self.jog_el_to)
+        self.view.jogElSubmitButton.clicked.connect(self.jog_el_to)
         self.view.setZeroButton.clicked.connect(self.set_zero)
         self.view.returnToZeroButton.clicked.connect(self.return_to_zero)
         self.view.analyzerConnectButton.clicked.connect(self.connect_to_analyzer)
@@ -352,36 +350,19 @@ class PyChamberCtrl:
         self.view.clearDataButton.clicked.connect(self.clear_data)
         self.view.saveDataButton.clicked.connect(self.save_data)
         self.view.loadDataButton.clicked.connect(self.load_data)
-        self.view.exportCSVButton.clicked.connect(self.export_csv)
+        self.view.exportDataButton.clicked.connect(self.export_csv)
 
         # Line Edits
-        self.view.startFreqLineEdit.returnPressed.connect(
+        self.view.analyzerStartFreqLineEdit.returnPressed.connect(
             functools.partial(self.set_freq, FreqSetting.START)
         )
-        self.view.stopFreqLineEdit.returnPressed.connect(
+        self.view.analyzerStopFreqLineEdit.returnPressed.connect(
             functools.partial(self.set_freq, FreqSetting.STOP)
         )
         # self.view.stepFreqLineEdit.returnPressed.connect(
         #     functools.partial(self.set_freq, FreqSetting.STEP)
         # )
-        self.view.nPointsLineEdit.returnPressed.connect(self.set_npoints)
-
-        # Spin Boxes
-        self.view.dataPolarFreqSpinBox.valueChanged.connect(self.update_polar_data_plot)
-        self.view.dataPolarMinSpinBox.valueChanged.connect(self.update_polar_data_plot)
-        self.view.dataPolarMaxSpinBox.valueChanged.connect(self.update_polar_data_plot)
-        self.view.dataPolarDbPerSpinBox.valueChanged.connect(self.update_polar_data_plot)
-        self.view.overFreqMinSpinBox.valueChanged.connect(self.update_over_freq_plot)
-        self.view.overFreqMaxSpinBox.valueChanged.connect(self.update_over_freq_plot)
-        self.view.overFreqDbPerSpinBox.valueChanged.connect(self.update_over_freq_plot)
-
-        # Combo Boxes
-        self.view.dataPolarPolComboBox.currentIndexChanged.connect(
-            self.update_polar_data_plot
-        )
-        self.view.overFreqPolComboBox.currentIndexChanged.connect(
-            self.update_over_freq_plot
-        )
+        self.view.analyzerNPointsLineEdit.returnPressed.connect(self.set_npoints)
 
     def update_positioner_ports(self) -> None:
         self.view.positionerPortComboBox.clear()
@@ -389,22 +370,22 @@ class PyChamberCtrl:
         self.view.positionerPortComboBox.addItems(ports)
 
     def update_analyzer_ports(self) -> None:
-        self.view.analyzerPortComboBox.clear()
+        self.view.analyzerAddressComboBox.clear()
 
         # FIXME: This is only for linux
         backend = '/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
 
         # If we can't find the library, default to pyvisa-py
         try:
-            ports = vna.VNA.available(backend=backend)
+            addrs = vna.VNA.available(backend=backend)
         except LibraryError:
-            ports = vna.VNA.available()
+            addrs = vna.VNA.available()
 
-        self.view.analyzerPortComboBox.addItems(ports)
+        self.view.analyzerAddressComboBox.addItems(addrs)
 
     def update_analyzer_models(self) -> None:
-        self.view.analyzerComboBox.clear()
-        self.view.analyzerComboBox.addItems(["Agilent PNA"])
+        self.view.analyzerModelComboBox.clear()
+        self.view.analyzerModelComboBox.addItems(list(self.analyzer_models.keys()))
 
     def update_positioner_models(self) -> None:
         self.view.positionerModelComboBox.clear()
@@ -512,7 +493,7 @@ class PyChamberCtrl:
 
         self.view.cutProgressLabel.show()
         self.view.cutProgressBar.show()
-        self.update_monitor_freqs()
+        self.view.update_monitor_freqs()
 
         azimuths = np.arange(
             self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step()
@@ -532,7 +513,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        self.update_monitor_freqs()
+        self.view.update_monitor_freqs()
 
         azimuths = np.arange(
             self.view.get_az_start(), self.view.get_az_stop(), self.view.get_az_step()
@@ -550,7 +531,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        self.update_monitor_freqs()
+        self.view.update_monitor_freqs()
 
         elevations = np.arange(
             self.view.get_el_start(), self.view.get_el_stop(), self.view.get_el_step()
@@ -621,7 +602,7 @@ class PyChamberCtrl:
         self.view.elPosLineEdit.setText(f"{self.positioner.elevation_deg}")
         log.info("Connected")
         self.view.enable_jog()
-        self.view.enable_experiement()
+        self.view.enable_experiment()
 
     def set_freq(self, setting: FreqSetting) -> None:
         if not self.analyzer:
@@ -651,23 +632,10 @@ class PyChamberCtrl:
         if npoints := self.view.get_npoints():
             self.analyzer.npoints = npoints
 
-    def init_polar_data_plot(self) -> None:
-        self.polar_data_ax = self.view.dataPlotMplWidget.canvas.fig.add_subplot(
-            projection='polar'
-        )
-        self.update_polar_data_plot()
-
-    def init_over_freq_plot(self) -> None:
-        self.over_freq_ax = self.view.dataOverFreqPlotMplWidget.canvas.fig.add_subplot()
-        self.update_over_freq_plot()
-
     def update_polar_data_plot(self) -> None:
-        scale_min = self.view.get_polar_plot_scale_min()
-        scale_max = self.view.get_polar_plot_scale_max()
-        scale_div = self.view.get_polar_plot_scale_step()
-        freq = self.view.get_polar_plot_freq()
+        freq = str(self.view.polar_plot_freq)
 
-        pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2"  # FIXME
+        pol = "pol1" if self.view.polar_plot_pol == 1 else "pol2"  # FIXME
 
         if len(self.ntwk_models[pol]) == 0:
             return
@@ -675,26 +643,10 @@ class PyChamberCtrl:
         azimuths = np.deg2rad(self.ntwk_models[pol].azimuths.reshape(-1, 1))
         mags = self.ntwk_models[pol].mags(freq, elevation=0).reshape(-1, 1)
 
-        self.polar_data_ax.clear()
-        try:
-            self.polar_data_ax.plot(azimuths, mags, color='tab:blue')
-        except Exception as e:
-            PopUpMessage(str(e), MsgLevel.ERROR)
-            return
-        self.polar_data_ax.set_rlim(scale_min, scale_max)
-        self.polar_data_ax.set_rticks(np.arange(scale_min, scale_max + 1, scale_div))
-        self.polar_data_ax.set_thetagrids(np.arange(0, 360, 30))
-        self.polar_data_ax.grid(True)
-        self.polar_data_ax.set_theta_zero_location('N')
-
-        self.view.dataPlotMplWidget.canvas.draw()
+        self.view.update_polar_plot(azimuths, mags)
 
     def update_over_freq_plot(self) -> None:
-        scale_min = self.view.get_over_freq_scale_min()
-        scale_max = self.view.get_over_freq_scale_max()
-        scale_div = self.view.get_over_freq_scale_step()
-
-        pol = "pol1" if self.view.get_polar_plot_pol() == 1 else "pol2"
+        pol = "pol1" if self.view.over_freq_plot_pol == 1 else "pol2"
 
         if len(self.ntwk_models[pol]) == 0:
             return
@@ -702,32 +654,7 @@ class PyChamberCtrl:
         freqs = self.ntwk_models[pol].freqs.reshape(-1, 1)
         mags = self.ntwk_models[pol].mags(azimuth=0.0, elevation=0.0).reshape(-1, 1)
 
-        self.over_freq_ax.clear()
-        try:
-            self.over_freq_ax.plot(freqs, mags, color='tab:blue')
-        except Exception as e:
-            PopUpMessage(str(e), MsgLevel.ERROR)
-            return
-        self.over_freq_ax.set_xlim(np.amin(freqs), np.amax(freqs))
-        self.over_freq_ax.set_ylim(scale_min, scale_max)
-        self.over_freq_ax.set_yticks(np.arange(scale_min, scale_max + 1, scale_div))
-        self.over_freq_ax.grid(True)
-        self.over_freq_ax.set_xlabel("Frequency")
-        self.over_freq_ax.set_ylabel("Gain [dB]")
-
-        self.view.dataOverFreqPlotMplWidget.canvas.draw()
-
-    def update_monitor_freqs(self) -> None:
-        start = self.view.get_start_freq()
-        stop = self.view.get_stop_freq()
-        step = self.view.get_step_freq()
-
-        if start:
-            self.view.dataPolarFreqSpinBox.setMinimum(start)
-        if stop:
-            self.view.dataPolarFreqSpinBox.setMaximum(stop)
-        if step:
-            self.view.dataPolarFreqSpinBox.setSingleStep(step)
+        self.view.update_over_freq_plot(freqs, mags)
 
     def clear_data(self) -> None:
         if len(self.ntwk_models['pol1']) == 0 and len(self.ntwk_models['pol2']) == 0:

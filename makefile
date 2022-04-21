@@ -27,7 +27,5 @@ clean:
 	rm -rf coverage.xml .coverage
 
 build:
-	pyrcc5 ui/resources.qrc -o pychamber/ui/resources_rc.py
-	pyuic5 -x ui/mainWindow.ui -o pychamber/ui/mainWindow.py
-	cp ui/mplwidget.py pychamber/ui/mplwidget.py
+	pyrcc5 resources/resources.qrc -o pychamber/ui/resources_rc.py
 	poetry install

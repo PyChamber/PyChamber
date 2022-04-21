@@ -1000,6 +1000,14 @@ python-versions = ">=3.6"
 pyyaml = "*"
 
 [[package]]
+name = "quantiphy"
+version = "2.17.0"
+description = "physical quantities (numbers with units)"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[[package]]
 name = "readme-renderer"
 version = "34.0"
 description = "readme_renderer is a library for rendering \"readme\" descriptions for Warehouse"
@@ -1312,7 +1320,7 @@ test = ["pytest", "black", "isort", "mypy", "flake8", "flake8-docstrings", "pyte
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "33462d4b396d4dba062b09c41a99fef976d5c91a78bb258a4035846ece6465ad"
+content-hash = "3f002ad66659236ce272be070f9257f9c267c917222118233115ad6845ee860d"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -2039,6 +2047,10 @@ pyyaml = [
 pyyaml-env-tag = [
     {file = "pyyaml_env_tag-0.1-py3-none-any.whl", hash = "sha256:af31106dec8a4d68c60207c1886031cbf839b68aa7abccdb19868200532c2069"},
     {file = "pyyaml_env_tag-0.1.tar.gz", hash = "sha256:70092675bda14fdec33b31ba77e7543de9ddc88f2e5b99160396572d11525bdb"},
+]
+quantiphy = [
+    {file = "quantiphy-2.17.0-py3-none-any.whl", hash = "sha256:beb4cb01d31d5abadd70e0a5a0dfcd4f4945400a14febd31e1757e3c61bfbdf7"},
+    {file = "quantiphy-2.17.0.tar.gz", hash = "sha256:9660efae946ab5374c809cb8a771f6092602cc32f0d36c2726de153a0817ff42"},
 ]
 readme-renderer = [
     {file = "readme_renderer-34.0-py3-none-any.whl", hash = "sha256:262510fe6aae81ed4e94d8b169077f325614c0b1a45916a80442c6576264a9c2"},
