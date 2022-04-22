@@ -1,9 +1,13 @@
 import itertools
 import logging
-from typing import List, Optional
+from functools import reduce
+from typing import Dict, List, Optional
 
 import cloudpickle as pickle
-from PyQt5.QtGui import QFont
+import numpy as np
+import pandas as pd
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,
@@ -15,14 +19,15 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSpacerItem,
-    QTableWidget,
+    QTableView,
     QTabWidget,
     QVBoxLayout,
     QWidget,
     QWizard,
     QWizardPage,
 )
-from skrf import network
+from quantiphy import Quantity
+from skrf import Network
 from skrf.vi import vna
 
 from pychamber.ui.mplwidget import MplRectWidget
@@ -45,12 +50,16 @@ class IntroPage(QWizardPage):
         self.setTitle("Introduction")
         self.intro_text.setText(
             """
-            <html>
-            <p>This wizard will walk you through the procedure for
+            <html><span>This wizard will walk you through the procedure for
             generating a calibration file to offset losses. This
             is only one way to do a chamber calibration, but it
-            is the only one supported at this time.</p>
-            </html>
+            is the only one supported at this time.
+            <br/><br/>
+            This type of calibration works by pointing two identical horns with
+            known characteristics at each other and determining the difference
+            between the manufacturer specified gain and what is actually
+            received. That difference is a determination of the loss in the
+            system over frequency.</span></html>
             """
         )
 
@@ -122,9 +131,9 @@ class NotesPage(QWizardPage):
 
 
 class CalibrationPage(QWizardPage):
-    ref_data: Optional[network.Network] = None
-    cal_data_pol1: Optional[network.Network] = None
-    cal_data_pol2: Optional[network.Network] = None
+    ref_data: Optional[Network] = None
+    cal_data_pol1: Optional[Network] = None
+    cal_data_pol2: Optional[Network] = None
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -203,7 +212,7 @@ class CalibrationPage(QWizardPage):
         # TODO: Accept numpy / csv / ...others?
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
-            self.ref_data = network.Network(file_name)
+            self.ref_data = Network(file_name)
             self.refHornFNameLabel.setText(file_name)
 
     def capture_data(self) -> None:
@@ -239,28 +248,33 @@ class CalibrationPage(QWizardPage):
             self.saveButton.setEnabled(True)
 
     def save_data(self) -> None:
-        if not self.cal_data:
+        if not self.cal_data_pol1 and not self.cal_data_pol2:
             return
         file_name, _ = QFileDialog.getSaveFileName()
         if file_name != "":
-            to_save = {'Notes': self.field("notes"), 'Data': {}}
+            to_save = {'notes': self.field("notes"), 'data': {}}
             if self.cal_data_pol1 is not None:
                 pol1_name = self.pol1LineEdit.text()
                 if pol1_name == "":
                     pol1_name = "Polarization 1"
-                to_save['Data'][pol1_name] = self.cal_data_pol1
+                to_save['nata'][pol1_name] = self.cal_data_pol1
             if self.cal_data_pol2 is not None:
                 pol2_name = self.pol2LineEdit.text()
                 if pol2_name == "":
                     pol2_name = "Polarization 2"
-                to_save['Data'][pol2_name] = self.cal_data_pol2
+                to_save['data'][pol2_name] = self.cal_data_pol2
             with open(file_name, 'wb') as f:
                 pickle.dump(to_save, f)
 
+            self.wizard().update_cal(to_save)
 
-class CalibrationDialog(QWizard):
+
+class CalibrationWizard(QWizard):
+    cal: Optional[Dict] = None
+
     def __init__(self, analyzer: Optional[vna.VNA], parent=None) -> None:
         super().__init__(parent)
+        self.currentIdChanged.connect(self.adjustSize)
 
         self.analyzer = analyzer
         self.setWindowTitle("Calibration Wizard")
@@ -270,38 +284,100 @@ class CalibrationDialog(QWizard):
         self.addPage(NotesPage(self))
         self.addPage(CalibrationPage(self))
 
-        self.currentIdChanged.connect(self.adjustSize)
+    def update_cal(self, data: Dict) -> None:
+        self.cal = data
+
+    def get_cal(self) -> Optional[Dict]:
+        return self.cal
+
+
+class PandasTableModel(QStandardItemModel):
+    def __init__(self, data, parent=None):
+        QStandardItemModel.__init__(self, parent)
+        self._data = data
+        for col in data.columns:
+            if col == "Frequency":
+                data_col = [
+                    QStandardItem(f"{Quantity(x, units='Hz')}") for x in data[col].values
+                ]
+            else:
+                data_col = [QStandardItem(f"{x:.2f} dB") for x in data[col].values]
+            self.appendColumn(data_col)
+
+        return
+
+    def rowCount(self, parent=None):
+        return len(self._data.values)
+
+    def columnCount(self, parent=None):
+        return self._data.columns.size
+
+    def headerData(self, x, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self._data.columns[x]
+        if orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return self._data.index[x]
+        return None
 
 
 class CalibrationViewDialog(QDialog):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, data: Dict, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Calibration")
         self.setLayout(QVBoxLayout())
+        self.notes = data['notes']
+        self.data = data['data']
 
         self.setup()
+        self.setMinimumSize(500, 500)
 
     def setup(self) -> None:
         self.tabs = QTabWidget(self)
+        self.notes_tab = QWidget(self.tabs)
+        self.notes_tab.setLayout(QVBoxLayout())
+
         self.plot_tab = QWidget(self.tabs)
         self.plot_tab.setLayout(QVBoxLayout())
+        self.plot_pol_combobox = QComboBox(self.plot_tab)
+        self.plot_pol_combobox.addItems(list(self.data.keys()))
+        self.plot_tab.layout().addWidget(self.plot_pol_combobox)
+
         self.table_tab = QWidget(self.tabs)
         self.table_tab.setLayout(QVBoxLayout())
+
+        self.tabs.addTab(self.notes_tab, "Notes")
         self.tabs.addTab(self.plot_tab, "Plot")
         self.tabs.addTab(self.table_tab, "Table")
         self.layout().addWidget(self.tabs)
 
+        self.notes_text_edit = QPlainTextEdit(self)
+        self.notes_text_edit.setPlainText(self.notes)
+        self.notes_tab.layout().addWidget(self.notes_text_edit)
         self.plot = MplRectWidget('tab:blue', self)
         self.plot_tab.layout().addWidget(self.plot)
-        self.table = QTableWidget(self)
+        self.table = QTableView(self)
         self.table_tab.layout().addWidget(self.table)
 
+        self.plot_pol_combobox.currentTextChanged.connect(self.update_plot)
+
         self.init_plot()
+        self.init_table()
 
     def init_plot(self) -> None:
         self.plot.set_xtitle('Frequency')
         self.plot.set_ytitle('Loss [dB]')
-        self.plot.canvas.draw()
+        self.update_plot(self.plot_pol_combobox.currentText())
+        self.plot.auto_scale()
 
     def init_table(self) -> None:
-        pass
+        df_list = [d.to_dataframe() for d in self.data.values()]
+        df = pd.concat(df_list, axis=1)
+        df.reset_index(inplace=True)
+        df.columns = ['Frequency'] + list(self.data.keys())
+        self.table.setModel(PandasTableModel(df))
+
+    def update_plot(self, pol: str) -> None:
+        log.info(pol)
+        freqs = self.data[pol].frequency.f
+        mags = self.data[pol].s_db.reshape(-1, 1)  # type: ignore
+        self.plot.update_plot(freqs, mags)

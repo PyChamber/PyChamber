@@ -57,6 +57,4 @@ class NetworkModel(NetworkSet):
                 return self.sel(params)[0].s_db.reshape(-1, 1)  # type: ignore
 
     def append(self, ntwk: Network) -> NetworkModel:
-        temp = list(self.sel())  # type: ignore
-        temp.append(ntwk)
-        return NetworkModel(temp)
+        return NetworkModel(list(self) + [ntwk])  # type: ignore

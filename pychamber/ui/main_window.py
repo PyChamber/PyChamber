@@ -1,6 +1,5 @@
 import time
-from ctypes import util
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from PyQt5.QtCore import QSize, Qt
@@ -103,14 +102,16 @@ class MainWindow(QMainWindow):
         return self.analyzerAddressComboBox.currentText()
 
     @property
-    def pol_1(self) -> Optional[List[int]]:
+    def pol_1(self) -> Optional[Tuple[str, List[int]]]:
         pol = self.analyzerPol1ComboBox.currentText()
-        return [int(pol[1]), int(pol[2])] if pol != "" else None
+        label = self.analyzerPol1LineEdit.currentText()
+        return (label, [int(pol[1]), int(pol[2])]) if pol != "" else None
 
     @property
-    def pol_2(self) -> Optional[List[int]]:
+    def pol_2(self) -> Optional[Tuple[str, List[int]]]:
         pol = self.analyzerPol2ComboBox.currentText()
-        return [int(pol[1]), int(pol[2])] if pol != "" else None
+        label = self.analyzerPol2LineEdit.currentText()
+        return (label, [int(pol[1]), int(pol[2])]) if pol != "" else None
 
     @property
     def analyzer_start_freq(self) -> Optional[Quantity]:
@@ -262,8 +263,8 @@ class MainWindow(QMainWindow):
             self.timeRemainingLineEdit.setText(time_str)
 
     @property
-    def polar_plot_pol(self) -> int:
-        return self.polarPlotPolarizationComboBox.currentIndex()
+    def polar_plot_pol(self) -> str:
+        return self.polarPlotPolarizationComboBox.currentText()
 
     @property
     def polar_plot_freq(self) -> float:
@@ -378,13 +379,21 @@ class MainWindow(QMainWindow):
         self.analyzerGroupBoxLayout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
-        self.analyzerPol1Label = QLabel("Polarization 1", self.analyzerGroupBox)
-        self.analyzerPol1ComboBox = QComboBox(self.analyzerGroupBox)
-        self.analyzerPol2Label = QLabel("Polarization 2", self.analyzerGroupBox)
-        self.analyzerPol2ComboBox = QComboBox(self.analyzerGroupBox)
+        self.analyzerPol1Label = QLabel("Polarization 1:", self)
+        self.analyzerPol1LineEdit = QLineEdit(self)
+        self.analyzerPol1LineEdit.setPlaceholderText("Label (e.g. Vertical)")
+        self.analyzerPol1ComboBox = QComboBox(self)
         hlayout.addWidget(self.analyzerPol1Label)
+        hlayout.addWidget(self.analyzerPol1LineEdit)
         hlayout.addWidget(self.analyzerPol1ComboBox)
+        self.analyzerGroupBoxLayout.addLayout(hlayout)
+        hlayout = QHBoxLayout()
+        self.analyzerPol2Label = QLabel("Polarization 2:", self)
+        self.analyzerPol2LineEdit = QLineEdit(self)
+        self.analyzerPol2LineEdit.setPlaceholderText("Label")
+        self.analyzerPol2ComboBox = QComboBox(self)
         hlayout.addWidget(self.analyzerPol2Label)
+        hlayout.addWidget(self.analyzerPol2LineEdit)
         hlayout.addWidget(self.analyzerPol2ComboBox)
         self.analyzerGroupBoxLayout.addLayout(hlayout)
 
@@ -881,7 +890,7 @@ class MainWindow(QMainWindow):
         self.experimentTimeRemainingLineEdit.setSizePolicy(_SIZE_POLICIES['exp_pref'])
 
         self.polarPlotFreqSpinBox.setSizePolicy(_SIZE_POLICIES['pref_pref'])
-        self.polarPlotFreqSpinBox.setMinimumWidth(150)
+        self.polarPlotFreqSpinBox.setMinimumWidth(100)
 
     def updateFonts(self) -> None:
         self.positionerAzExtentLabel.setFont(_FONTS["bold_14"])

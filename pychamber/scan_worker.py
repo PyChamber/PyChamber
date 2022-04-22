@@ -1,11 +1,10 @@
 import time
-from typing import Dict, Optional, Sequence
+from typing import Optional
 
 import numpy as np
 from PyQt5.QtCore import QMutex, pyqtSignal
 from skrf.vi import vna
 
-from pychamber.network_model import NetworkModel
 from pychamber.positioner import Positioner
 from pychamber.worker import Worker
 
@@ -25,20 +24,14 @@ class ScanWorker(Worker):
         mutex: QMutex,
         positioner: Positioner,
         analyzer: vna.VNA,
-        ntwk_models: Dict[str, NetworkModel],
         azimuths: Optional[np.ndarray] = None,
         elevations: Optional[np.ndarray] = None,
-        pol1: Optional[Sequence[int]] = None,
-        pol2: Optional[Sequence[int]] = None,
     ) -> None:
         super(ScanWorker, self).__init__(mutex)
         self.positioner = positioner
         self.analyzer = analyzer
-        self.ntwk_models = ntwk_models
         self.azimuths = azimuths
         self.elevations = elevations
-        self.pol1 = pol1
-        self.pol2 = pol2
         self.abort = False
 
     def run(self) -> None:
@@ -53,41 +46,33 @@ class ScanWorker(Worker):
     def _run_full_scan(self) -> None:
         assert self.azimuths is not None
         assert self.elevations is not None
-        assert self.analyzer is not None
-        assert self.positioner_ is not None
-        assert self.ntwk_models is not None
 
         total_iters = len(self.azimuths) * len(self.elevations)
-        pol_1_data = []
-        pol_2_data = []
         for i, az in enumerate(self.azimuths):
             self.mutex.lock()
-            self.positioner_.move_azimuth_absolute(az)
-            pos = self.positioner_.current_azimuth
+            self.positioner.move_azimuth_absolute(az)
+            pos = self.positioner.current_azimuth
             self.mutex.unlock()
             self.azMoveComplete.emit(pos)
             for j, el in enumerate(self.elevations):
                 if self.abort:
                     self.mutex.lock()
-                    self.positioner_.abort_all()
+                    self.positioner.abort_all()
                     self.mutex.unlock()
                     break
 
                 pos_meta = {'azimuth': az, 'elevation': el}
                 start = time.time()
                 self.mutex.lock()
-                self.positioner_.move_elevation_absolute(el)
-                pos = self.positioner_.current_elevation
+
+                self.positioner.move_elevation_absolute(el)
+                pos = self.positioner.current_elevation
                 self.elMoveComplete.emit(pos)
-                if self.pol1:
-                    # FIXME: just getting s21 is INCORRECT!!!
-                    ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
-                    ntwk.params = pos_meta
-                    pol_1_data.append(ntwk)
-                if self.pol2:
-                    ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
-                    ntwk.params = pos_meta
-                    pol_2_data.append(ntwk)
+
+                ntwk = self.analyzer.get_snp_network()
+                ntwk.params = pos_meta
+                self.dataAcquired.emit(ntwk)
+
                 self.mutex.unlock()
                 end = time.time()
 
@@ -103,40 +88,27 @@ class ScanWorker(Worker):
             if self.abort:
                 break
 
-        self.dataAcquired.emit(
-            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
-        )
-
     def _run_az_scan(self) -> None:
         assert self.azimuths is not None
-        assert self.analyzer is not None
-        assert self.positioner_ is not None
-        assert self.ntwk_models is not None
 
-        pol_1_data = []
-        pol_2_data = []
         for i, az in enumerate(self.azimuths):
             if self.abort:
                 self.mutex.lock()
-                self.positioner_.abort_all()
+                self.positioner.abort_all()
                 self.mutex.unlock()
                 break
 
             pos_meta = {'azimuth': az, 'elevation': 0}
             start = time.time()
             self.mutex.lock()
-            self.positioner_.move_azimuth_absolute(az)
-            pos = self.positioner_.current_azimuth
+            self.positioner.move_azimuth_absolute(az)
+            pos = self.positioner.current_azimuth
             self.azMoveComplete.emit(pos)
 
-            if self.pol1:
-                ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_1_data.append(ntwk)
-            if self.pol2:
-                ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_2_data.append(ntwk)
+            ntwk = self.analyzer.get_snp_network()
+            ntwk.params = pos_meta
+            self.dataAcquired.emit(ntwk)
+
             self.mutex.unlock()
             end = time.time()
 
@@ -147,40 +119,27 @@ class ScanWorker(Worker):
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
 
-        self.dataAcquired.emit(
-            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
-        )
-
     def _run_el_scan(self) -> None:
         assert self.elevations is not None
-        assert self.analyzer is not None
-        assert self.positioner_ is not None
-        assert self.ntwk_models is not None
 
-        pol_1_data = []
-        pol_2_data = []
         for i, el in enumerate(self.elevations):
             if self.abort:
                 self.mutex.lock()
-                self.positioner_.abort_all()
+                self.positioner.abort_all()
                 self.mutex.unlock()
                 break
 
             pos_meta = {'azimuth': 0, 'elevation': el}
             start = time.time()
             self.mutex.lock()
-            self.positioner_.move_elevation_absolute(el)
-            pos = self.positioner_.current_elevation
+            self.positioner.move_elevation_absolute(el)
+            pos = self.positioner.current_elevation
             self.elMoveComplete.emit(pos)
 
-            if self.pol1:
-                ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_1_data.append(ntwk)
-            if self.pol2:
-                ntwk = self.analyzer.get_snp_network(self.pol2).s21  # type: ignore
-                ntwk.params = pos_meta
-                pol_2_data.append(ntwk)
+            ntwk = self.analyzer.get_snp_network()
+            ntwk.params = pos_meta
+            self.dataAcquired.emit(ntwk)
+
             self.mutex.unlock()
             end = time.time()
 
@@ -190,7 +149,3 @@ class ScanWorker(Worker):
             remaining = len(self.elevations) - i
             time_remaining = single_iter_time * remaining
             self.timeUpdate.emit(time_remaining)
-
-        self.dataAcquired.emit(
-            {'pol1': NetworkModel(pol_1_data), 'pol2': NetworkModel(pol_2_data)}
-        )

@@ -11,6 +11,7 @@ from PyQt5.QtCore import QMutex, QThread
 from PyQt5.QtWidgets import QFileDialog
 from pyvisa.errors import LibraryError, VisaIOError
 from serial.tools import list_ports
+from skrf import Network
 from skrf.vi import vna
 
 from pychamber import positioner
@@ -18,7 +19,7 @@ from pychamber.jog_worker import JogAxis, JogWorker, JogZeroWorker
 from pychamber.network_model import NetworkModel
 from pychamber.positioner import PositionerError
 from pychamber.scan_worker import ScanWorker
-from pychamber.ui.calibration import CalibrationDialog, CalibrationViewDialog
+from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
 from pychamber.ui.main_window import MainWindow
 from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage, WhichPol
 
@@ -50,14 +51,12 @@ class PyChamberCtrl:
         "D6050": positioner.D6050,
     }
 
+    cal: Optional[Dict] = None
     worker: Optional[Union[JogWorker, JogZeroWorker, ScanWorker]] = None
 
     def __init__(self, view: MainWindow) -> None:
         self.view = view
-        self.ntwk_models = {
-            'pol1': NetworkModel(),
-            'pol2': NetworkModel(),
-        }
+        self.ntwk_models: Dict[str, NetworkModel] = {}
         self.analyzer: Optional[vna.VNA] = None
         self.positioner: Optional[positioner.Positioner] = None
 
@@ -337,8 +336,8 @@ class PyChamberCtrl:
             self.analyzer = None
             return
         ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)]
-        self.view.pol1ComboBox.addItems(ports)
-        self.view.pol2ComboBox.addItems(ports)
+        self.view.analyzerPol1ComboBox.addItems(ports)
+        self.view.analyzerPol2ComboBox.addItems(ports)
         log.info("Connected")
         self.view.enable_freq()
         self.view.enable_experiment()
@@ -393,8 +392,10 @@ class PyChamberCtrl:
             self.analyzer.npoints = npoints
 
     def exec_cal_dialog(self) -> None:
-        dialog = CalibrationDialog(self.analyzer)
+        dialog = CalibrationWizard(self.analyzer)
         dialog.exec_()
+        if cal := dialog.get_cal():
+            self.cal = cal
 
     def exec_view_cal_dialog(self) -> None:
         dialog = CalibrationViewDialog(self.cal_file)
@@ -403,14 +404,15 @@ class PyChamberCtrl:
     def load_cal_file(self) -> None:
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
+            self.view.calibrationFileLineEdit.setText(file_name)
             with open(file_name, 'rb') as f:
                 self.cal_file = pickle.load(f)
-                self.view.calibrationViewButton.setEnable(True)
+                self.view.calibrationViewButton.setEnabled(True)
 
     def update_polar_plot(self) -> None:
         freq = str(self.view.polar_plot_freq)
 
-        pol = "pol1" if self.view.polar_plot_pol == 1 else "pol2"  # FIXME
+        pol = self.view.polar_plot_pol
 
         if len(self.ntwk_models[pol]) == 0:
             return
@@ -421,7 +423,7 @@ class PyChamberCtrl:
         self.view.update_polar_plot(azimuths, mags)
 
     def update_over_freq_plot(self) -> None:
-        pol = "pol1" if self.view.over_freq_plot_pol == 1 else "pol2"
+        pol = self.view.over_freq_plot_pol
 
         if len(self.ntwk_models[pol]) == 0:
             return
@@ -460,10 +462,28 @@ class PyChamberCtrl:
                     PopUpMessage("Invalid file", MsgLevel.ERROR)
                     return
 
+            self.view.polarPlotPolarizationComboBox.blockSignals(True)
+            self.view.polarPlotFreqSpinBox.blockSignals(True)
+            self.view.overFreqPlotPolarizationComboBox.blockSignals(True)
+
+            self.view.polarPlotPolarizationComboBox.clear()
+            self.view.polarPlotPolarizationComboBox.addItems(
+                list(self.ntwk_models.keys())
+            )
+            self.view.overFreqPlotPolarizationComboBox.clear()
+            self.view.overFreqPlotPolarizationComboBox.addItems(
+                list(self.ntwk_models.keys())
+            )
+
             temp = next(iter(val.values()))
             self.view.polarPlotFreqSpinBox.setMinimum(temp.freqs[0])
             self.view.polarPlotFreqSpinBox.setMaximum(temp.freqs[-1])
             self.view.polarPlotFreqSpinBox.setSingleStep(temp.freqs[1] - temp.freqs[0])
+
+            self.view.polarPlotPolarizationComboBox.blockSignals(False)
+            self.view.polarPlotFreqSpinBox.blockSignals(False)
+            self.view.overFreqPlotPolarizationComboBox.blockSignals(False)
+
             self.update_over_freq_plot()
             self.update_polar_plot()
 
@@ -486,8 +506,21 @@ class PyChamberCtrl:
                 save_path = save_path.with_suffix(".csv")
                 to_export.write_spreadsheet(save_name)
 
-    def update_ntwk_models(self, data: Dict[str, NetworkModel]) -> None:
-        self.ntwk_models = data
+    def update_ntwk_models(self, data: Network) -> None:
+        if pol1 := self.view.pol_1:
+            label = pol1[0]
+            port = pol1[1]
+            temp = Network(
+                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1]
+            )
+            self.ntwk_models[label] = self.ntwk_models[label].append(temp)
+        if pol2 := self.view.pol_2:
+            label = pol2[0]
+            port = pol2[1]
+            temp = Network(
+                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1]
+            )
+            self.ntwk_models[label] = self.ntwk_models[label].append(temp)
 
     def start_scan_thread(
         self,
@@ -502,11 +535,8 @@ class PyChamberCtrl:
             MUTEX,
             self.positioner,
             self.analyzer,
-            self.ntwk_models,
             azimuths,
             elevations,
-            self.view.pol_1,
-            self.view.pol_2,
         )
 
         self.worker.moveToThread(self.thread)
