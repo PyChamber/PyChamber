@@ -18,6 +18,7 @@ from pychamber.jog_worker import JogAxis, JogWorker, JogZeroWorker
 from pychamber.network_model import NetworkModel
 from pychamber.positioner import PositionerError
 from pychamber.scan_worker import ScanWorker
+from pychamber.ui.calibration import CalibrationDialog, CalibrationViewDialog
 from pychamber.ui.main_window import MainWindow
 from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage, WhichPol
 
@@ -96,6 +97,9 @@ class PyChamberCtrl:
         self.view.saveDataButton.clicked.connect(self.save_data)
         self.view.loadDataButton.clicked.connect(self.load_data)
         # self.view.exportDataButton.clicked.connect(self.export_csv)
+        self.view.calibrationFileBrowseButton.clicked.connect(self.load_cal_file)
+        self.view.calibrationButton.clicked.connect(self.exec_cal_dialog)
+        self.view.calibrationViewButton.clicked.connect(self.exec_view_cal_dialog)
 
         # SpinBoxes
         self.view.polarPlotFreqSpinBox.valueChanged.connect(self.update_polar_plot)
@@ -344,11 +348,11 @@ class PyChamberCtrl:
             return
         model = self.view.positioner_model
         port = self.view.positioner_port
-        log.info("Connecting to positioner...")
 
         if model == "" or port == "":
             return
 
+        log.info("Connecting to positioner...")
         try:
             self.positioner = self.positioner_models[model](port)
         except Exception as e:
@@ -387,6 +391,21 @@ class PyChamberCtrl:
 
         if npoints := self.view.analyzer_npoints:
             self.analyzer.npoints = npoints
+
+    def exec_cal_dialog(self) -> None:
+        dialog = CalibrationDialog(self.analyzer)
+        dialog.exec_()
+
+    def exec_view_cal_dialog(self) -> None:
+        dialog = CalibrationViewDialog(self.cal_file)
+        dialog.exec_()
+
+    def load_cal_file(self) -> None:
+        file_name, _ = QFileDialog.getOpenFileName()
+        if file_name != "":
+            with open(file_name, 'rb') as f:
+                self.cal_file = pickle.load(f)
+                self.view.calibrationViewButton.setEnable(True)
 
     def update_polar_plot(self) -> None:
         freq = str(self.view.polar_plot_freq)
@@ -427,7 +446,6 @@ class PyChamberCtrl:
             return
         save_name, _ = QFileDialog.getSaveFileName()
         if save_name != "":
-
             with open(save_name, 'wb') as save_file:
                 pickle.dump(self.ntwk_models, save_file)
 

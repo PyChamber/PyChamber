@@ -3,6 +3,7 @@
     isort:skip_file
 """
 
+from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
@@ -44,6 +45,9 @@ class MplWidget(QWidget):
     def grid(self, setting: bool) -> None:
         self._grid = setting
 
+    def sizeHint(self) -> QSize:
+        return QSize(300, 300)
+
 
 class MplRectWidget(MplWidget):
     def __init__(self, color: str, parent=None):
@@ -53,6 +57,11 @@ class MplRectWidget(MplWidget):
         self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]), color=self.color)
         self.ax.grid(self.grid)
         self.xformatter = EngFormatter(unit='Hz')
+        self.xtitle = ""
+        self.ytitle = ""
+        self.ymin = 0.0
+        self.ymax = 1.0
+        self.ystep = 1.0
 
     def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         self.ax.cla()
@@ -61,13 +70,13 @@ class MplRectWidget(MplWidget):
         self.ax.xaxis.set_major_formatter(self.xformatter)
         if len(xdata) > 1:
             self.ax.set_xlim(np.amin(xdata), np.amax(xdata))
-        self.ax.set_xlabel("Frequency")
-        self.ax.set_ylabel("Gain [dB]")
+        self.ax.set_xlabel(self.xtitle)
+        self.ax.set_ylabel(self.ytitle)
         self.ax.set_ylim(self.ymin, self.ymax)
         self.ax.set_yticks(np.arange(self.ymin, self.ymax + 1, self.ystep))
         self.canvas.draw()
 
-    def update_scale(self) -> None:
+    def refresh_plot(self) -> None:
         x = self.artist.get_xdata(orig=True)
         y = self.artist.get_ydata(orig=True)
         self.update_plot(x, y)
@@ -81,21 +90,27 @@ class MplRectWidget(MplWidget):
 
     def set_scale_min(self, min: float) -> None:
         self.ymin = min
-        self.update_scale()
+        self.refresh_plot()
 
     def set_scale_max(self, max: float) -> None:
         self.ymax = max
-        self.update_scale()
+        self.refresh_plot()
 
     def set_scale_step(self, step: float) -> None:
         self.ystep = step
-        self.update_scale()
+        self.refresh_plot()
 
     def set_scale(self, min: float, max: float, step: float) -> None:
         self.ymin = min
         self.ymax = max
         self.ystep = step
-        self.update_scale()
+        self.refresh_plot()
+
+    def set_xtitle(self, text: str) -> None:
+        self.xtitle = text
+
+    def set_ytitle(self, text: str) -> None:
+        self.ytitle = text
 
 
 class MplPolarWidget(MplWidget):
@@ -132,7 +147,7 @@ class MplPolarWidget(MplWidget):
         self.ax.set_rticks(np.arange(self.rmin, self.rmax + 1, self.rstep))
         self.canvas.draw()
 
-    def update_scale(self) -> None:
+    def refresh_plot(self) -> None:
         x = self.artist.get_xdata(orig=True)
         y = self.artist.get_ydata(orig=True)
         self.update_plot(x, y)
@@ -146,18 +161,18 @@ class MplPolarWidget(MplWidget):
 
     def set_scale_min(self, min: float) -> None:
         self.rmin = min
-        self.update_scale()
+        self.refresh_plot()
 
     def set_scale_max(self, max: float) -> None:
         self.rmax = max
-        self.update_scale()
+        self.refresh_plot()
 
     def set_scale_step(self, step: float) -> None:
         self.rstep = step
-        self.update_scale()
+        self.refresh_plot()
 
     def set_scale(self, min: float, max: float, step: float) -> None:
         self.rmin = min
         self.rmax = max
         self.rstep = step
-        self.update_scale()
+        self.refresh_plot()

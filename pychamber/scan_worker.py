@@ -80,6 +80,7 @@ class ScanWorker(Worker):
                 pos = self.positioner_.current_elevation
                 self.elMoveComplete.emit(pos)
                 if self.pol1:
+                    # FIXME: just getting s21 is INCORRECT!!!
                     ntwk = self.analyzer.get_snp_network(self.pol1).s21  # type: ignore
                     ntwk.params = pos_meta
                     pol_1_data.append(ntwk)

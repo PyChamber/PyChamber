@@ -47,6 +47,7 @@ _SIZE_POLICIES = {
 _FONTS = {
     'bold_12': QFont('Roboto', 12, QFont.Bold),
     'bold_14': QFont('Roboto', 14, QFont.Bold),
+    'bold_20': QFont('Roboto', 20, QFont.Bold),
     'bold_20_ibm': QFont('IBM 3270', 20, QFont.Bold),
 }
 
@@ -58,11 +59,16 @@ class MainWindow(QMainWindow):
 
         self.centralwidget = QWidget(self)
         self.setCentralWidget(self.centralwidget)
-        self.mainWindowLayout = QGridLayout()
+        self.mainWindowLayout = QHBoxLayout()
+        self.leftSideLayout = QVBoxLayout()
+        self.rightSideLayout = QVBoxLayout()
+        self.mainWindowLayout.addLayout(self.leftSideLayout, stretch=1)
+        self.mainWindowLayout.addLayout(self.rightSideLayout, stretch=3)
         self.centralwidget.setLayout(self.mainWindowLayout)
 
     def setupUi(self) -> None:
         self.setupAnalyzerGroupBox()
+        self.setupCalibrationGroupBox()
         self.setupPositionerGroupBox()
         self.setupExperimentGroupBox()
         self.setupTabWidget()
@@ -72,6 +78,8 @@ class MainWindow(QMainWindow):
         self.updateValidators()
         self.initInputs()
         self.initPlots()
+
+        self.leftSideLayout.addStretch()
 
         # Convenience methods
         self.update_polar_plot = self.polarPlot.update_plot
@@ -356,32 +364,29 @@ class MainWindow(QMainWindow):
         self.analyzerGroupBox = QGroupBox("Analyzer", self.centralwidget)
         self.analyzerGroupBoxLayout = QVBoxLayout(self.analyzerGroupBox)
 
-        self.analyzerHLayout1 = QHBoxLayout()
-
+        hlayout = QHBoxLayout()
         self.analyzerModelLabel = QLabel("Model", self.analyzerGroupBox)
         self.analyzerModelComboBox = QComboBox(self.analyzerGroupBox)
-        self.analyzerHLayout1.addWidget(self.analyzerModelLabel)
-        self.analyzerHLayout1.addWidget(self.analyzerModelComboBox)
-
         self.analyzerAddressLabel = QLabel("Address", self.analyzerGroupBox)
         self.analyzerAddressComboBox = QComboBox(self.analyzerGroupBox)
-        self.analyzerHLayout1.addWidget(self.analyzerAddressLabel)
-        self.analyzerHLayout1.addWidget(self.analyzerAddressComboBox)
-
         self.analyzerConnectButton = QPushButton("Connect", self.analyzerGroupBox)
-        self.analyzerHLayout1.addWidget(self.analyzerConnectButton)
+        hlayout.addWidget(self.analyzerModelLabel)
+        hlayout.addWidget(self.analyzerModelComboBox)
+        hlayout.addWidget(self.analyzerAddressLabel)
+        hlayout.addWidget(self.analyzerAddressComboBox)
+        hlayout.addWidget(self.analyzerConnectButton)
+        self.analyzerGroupBoxLayout.addLayout(hlayout)
 
-        self.analyzerHLayout2 = QHBoxLayout()
-
+        hlayout = QHBoxLayout()
         self.analyzerPol1Label = QLabel("Polarization 1", self.analyzerGroupBox)
         self.analyzerPol1ComboBox = QComboBox(self.analyzerGroupBox)
-        self.analyzerHLayout2.addWidget(self.analyzerPol1Label)
-        self.analyzerHLayout2.addWidget(self.analyzerPol1ComboBox)
-
         self.analyzerPol2Label = QLabel("Polarization 2", self.analyzerGroupBox)
         self.analyzerPol2ComboBox = QComboBox(self.analyzerGroupBox)
-        self.analyzerHLayout2.addWidget(self.analyzerPol2Label)
-        self.analyzerHLayout2.addWidget(self.analyzerPol2ComboBox)
+        hlayout.addWidget(self.analyzerPol1Label)
+        hlayout.addWidget(self.analyzerPol1ComboBox)
+        hlayout.addWidget(self.analyzerPol2Label)
+        hlayout.addWidget(self.analyzerPol2ComboBox)
+        self.analyzerGroupBoxLayout.addLayout(hlayout)
 
         self.analyzerFreqGroupBox = QGroupBox("Frequency", self.analyzerGroupBox)
         self.analyzerFreqLayout = QGridLayout(self.analyzerFreqGroupBox)
@@ -406,12 +411,37 @@ class MainWindow(QMainWindow):
         self.analyzerFreqLayout.addWidget(self.analyzerNPointsLabel, 3, 0, 1, 1)
         self.analyzerFreqLayout.addWidget(self.analyzerNPointsLineEdit, 3, 1, 1, 1)
 
-        self.analyzerGroupBoxLayout.addLayout(self.analyzerHLayout1)
-        self.analyzerGroupBoxLayout.addLayout(self.analyzerHLayout2)
+        self.analyzerFreqGroupBox.setEnabled(False)
         self.analyzerGroupBoxLayout.addWidget(self.analyzerFreqGroupBox)
 
-        self.mainWindowLayout.addWidget(self.analyzerGroupBox, 0, 0, 1, 1)
-        self.analyzerFreqGroupBox.setEnabled(False)
+        self.leftSideLayout.addWidget(self.analyzerGroupBox)
+
+    def setupCalibrationGroupBox(self) -> None:
+        self.calibrationGroupBox = QGroupBox("Calibration", self.analyzerGroupBox)
+        self.calibrationGroupBoxLayout = QVBoxLayout(self.calibrationGroupBox)
+        hlayout = QHBoxLayout()
+        self.calibrationFileLabel = QLabel("Cal file:", self.calibrationGroupBox)
+        self.calibrationFileLineEdit = QLineEdit(self.calibrationGroupBox)
+        self.calibrationFileLineEdit.setReadOnly(True)
+        self.calibrationFileBrowseButton = QPushButton("Browse", self.calibrationGroupBox)
+        hlayout.addWidget(self.calibrationFileLabel)
+        hlayout.addWidget(self.calibrationFileLineEdit)
+        hlayout.addWidget(self.calibrationFileBrowseButton)
+        self.calibrationGroupBoxLayout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+        self.calibrationButton = QPushButton(
+            "Generate Cal File", self.calibrationGroupBox
+        )
+        self.calibrationViewButton = QPushButton(
+            "View Cal File", self.calibrationGroupBox
+        )
+        self.calibrationViewButton.setEnabled(False)
+        hlayout.addWidget(self.calibrationButton)
+        hlayout.addWidget(self.calibrationViewButton)
+        self.calibrationGroupBoxLayout.addLayout(hlayout)
+
+        self.leftSideLayout.addWidget(self.calibrationGroupBox)
 
     def setupPositionerGroupBox(self) -> None:
         self.positionerGroupBox = QGroupBox("Positioner", self.centralwidget)
@@ -443,16 +473,12 @@ class MainWindow(QMainWindow):
         self.setupJogBox()
         self.positionerGroupBoxLayout.addWidget(self.jogGroupBox)
 
-        self.mainWindowLayout.addWidget(self.positionerGroupBox, 1, 0, 1, 1)
+        self.leftSideLayout.addWidget(self.positionerGroupBox)
 
     def setupAzExtentWidgets(self) -> None:
         self.positionerAzExtentLayout = QVBoxLayout()
         self.positionerAzExtentLabel = QLabel("Azimuth", self.positionerExtentsGroupBox)
-        self.positionerAzExtentPlot = MplPolarWidget(
-            'tab:blue', self.positionerExtentsGroupBox
-        )
         self.positionerAzExtentLayout.addWidget(self.positionerAzExtentLabel)
-        self.positionerAzExtentLayout.addWidget(self.positionerAzExtentPlot)
 
         self.positionerAzStartHLayout = QHBoxLayout()
         self.positionerAzExtentStartLabel = QLabel(
@@ -488,11 +514,7 @@ class MainWindow(QMainWindow):
     def setupElExtentWidgets(self) -> None:
         self.positionerElExtentLayout = QVBoxLayout()
         self.positionerElExtentLabel = QLabel("Elevation", self.positionerExtentsGroupBox)
-        self.positionerElExtentPlot = MplPolarWidget(
-            'tab:orange', self.positionerExtentsGroupBox
-        )
         self.positionerElExtentLayout.addWidget(self.positionerElExtentLabel)
-        self.positionerElExtentLayout.addWidget(self.positionerElExtentPlot)
 
         self.positionerElStartHLayout = QHBoxLayout()
         self.positionerElExtentStartLabel = QLabel(
@@ -534,7 +556,7 @@ class MainWindow(QMainWindow):
         self.jogAzLeftButton = QPushButton(self.jogGroupBox)
         self.jogAzLeftButton.setIcon(QIcon(QPixmap(":/icons/icons/LeftArrow.png")))
         self.jogAzLeftButton.setIconSize(QSize(32, 32))
-        self.jogAzZeroButton = QPushButton(self.jogGroupBox)
+        self.jogAzZeroButton = QPushButton("0", self.jogGroupBox)
         self.jogAzRightButton = QPushButton(self.jogGroupBox)
         self.jogAzRightButton.setIcon(QIcon(QPixmap(":/icons/icons/RightArrow.png")))
         self.jogAzRightButton.setIconSize(QSize(32, 32))
@@ -560,7 +582,7 @@ class MainWindow(QMainWindow):
         self.jogElUpButton = QPushButton("", self.jogGroupBox)
         self.jogElUpButton.setIcon(QIcon(QPixmap(":/icons/icons/UpArrow.png")))
         self.jogElUpButton.setIconSize(QSize(32, 32))
-        self.jogElZeroButton = QPushButton("", self.jogGroupBox)
+        self.jogElZeroButton = QPushButton("0", self.jogGroupBox)
         self.jogElDownButton = QPushButton("", self.jogGroupBox)
         self.jogElDownButton.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
         self.jogElDownButton.setIconSize(QSize(32, 32))
@@ -650,7 +672,7 @@ class MainWindow(QMainWindow):
         self.experimentGroupBoxLayout.addLayout(self.experimentButtonVLayout)
         self.experimentGroupBoxLayout.addLayout(self.experimentProgressVLayout)
 
-        self.mainWindowLayout.addWidget(self.experimentGroupBox, 0, 1, 1, 1)
+        self.rightSideLayout.addWidget(self.experimentGroupBox)
         self.experimentGroupBox.setEnabled(False)
         self.experimentCutProgressLabel.hide()
         self.experimentCutProgressBar.hide()
@@ -659,23 +681,20 @@ class MainWindow(QMainWindow):
         self.tabWidget = QTabWidget(self.centralwidget)
         self.polarPlotTab = QWidget(self.tabWidget)
         self.overFreqPlotTab = QWidget(self.tabWidget)
-        self.calibrationTab = QWidget(self.tabWidget)
         self.dataTab = QWidget(self.tabWidget)
         self.logTab = QWidget(self.tabWidget)
 
         self.tabWidget.addTab(self.polarPlotTab, "Polar Plot")
         self.tabWidget.addTab(self.overFreqPlotTab, "Over Frequency Plot")
-        self.tabWidget.addTab(self.calibrationTab, "Calibration")
         self.tabWidget.addTab(self.dataTab, "Data")
         self.tabWidget.addTab(self.logTab, "Log")
 
         self.setupPolarPlotTab()
         self.setupOverFreqPlotTab()
-        self.setupCalibrationTab()
         self.setupDataTab()
         self.setupLogTab()
 
-        self.mainWindowLayout.addWidget(self.tabWidget, 1, 1, 1, 1)
+        self.rightSideLayout.addWidget(self.tabWidget)
 
     def setupPolarPlotTab(self) -> None:
         tab = self.polarPlotTab
@@ -760,9 +779,6 @@ class MainWindow(QMainWindow):
         self.overFreqPlot = MplRectWidget('tab:blue', tab)
         self.overFreqPlotTabLayout.addWidget(self.overFreqPlot)
 
-    def setupCalibrationTab(self) -> None:
-        pass
-
     def setupDataTab(self) -> None:
         tab = self.dataTab
         self.dataTabLayout = QGridLayout(tab)
@@ -821,12 +837,12 @@ class MainWindow(QMainWindow):
         self.positionerPortComboBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
         self.positionerConnectButton.setSizePolicy(_SIZE_POLICIES["min_pref"])
 
-        self.positionerAzExtentPlot.setSizePolicy(_SIZE_POLICIES["pref_pref"])
-        self.positionerAzExtentPlot.setMinimumSize(QSize(200, 200))
-        self.positionerAzExtentPlot.setMaximumSize(QSize(250, 250))
-        self.positionerElExtentPlot.setSizePolicy(_SIZE_POLICIES["pref_pref"])
-        self.positionerElExtentPlot.setMinimumSize(QSize(200, 200))
-        self.positionerElExtentPlot.setMaximumSize(QSize(250, 250))
+        self.positionerAzExtentStartSpinBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
+        self.positionerAzExtentStopSpinBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
+        self.positionerAzExtentStepSpinBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
+        self.positionerElExtentStartSpinBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
+        self.positionerElExtentStopSpinBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
+        self.positionerElExtentStepSpinBox.setSizePolicy(_SIZE_POLICIES["exp_pref"])
 
         self.jogAzLabel.setSizePolicy(_SIZE_POLICIES['pref_min'])
         self.jogAzStepLabel.setSizePolicy(_SIZE_POLICIES['pref_min'])
@@ -867,9 +883,6 @@ class MainWindow(QMainWindow):
         self.polarPlotFreqSpinBox.setSizePolicy(_SIZE_POLICIES['pref_pref'])
         self.polarPlotFreqSpinBox.setMinimumWidth(150)
 
-        self.mainWindowLayout.setColumnStretch(0, 0)
-        self.mainWindowLayout.setColumnStretch(1, 2)
-
     def updateFonts(self) -> None:
         self.positionerAzExtentLabel.setFont(_FONTS["bold_14"])
         self.positionerAzExtentLabel.setAlignment(Qt.AlignHCenter)
@@ -882,12 +895,14 @@ class MainWindow(QMainWindow):
         self.jogAzStepLabel.setAlignment(Qt.AlignHCenter)
         self.jogAzToLabel.setFont(_FONTS["bold_12"])
         self.jogAzToLabel.setAlignment(Qt.AlignHCenter)
+        self.jogAzZeroButton.setFont(_FONTS["bold_20"])
         self.jogElLabel.setFont(_FONTS["bold_12"])
         self.jogElLabel.setAlignment(Qt.AlignHCenter)
         self.jogElStepLabel.setFont(_FONTS["bold_12"])
         self.jogElStepLabel.setAlignment(Qt.AlignHCenter)
         self.jogElToLabel.setFont(_FONTS["bold_12"])
         self.jogElToLabel.setAlignment(Qt.AlignHCenter)
+        self.jogElZeroButton.setFont(_FONTS["bold_20"])
 
         self.azPositionLabel.setFont(_FONTS["bold_12"])
         self.azPositionLabel.setAlignment(Qt.AlignHCenter)
@@ -997,34 +1012,6 @@ class MainWindow(QMainWindow):
         self.overFreqPlotStepSpinBox.setValue(10)
 
     def initPlots(self) -> None:
-        self.positionerAzExtentPlot.ticks = False
-        self.positionerAzExtentPlot.grid = False
-        self.positionerAzExtentPlot.set_scale(0, 1, 1)
-        self.positionerAzExtentStartSpinBox.valueChanged.connect(
-            self.update_az_extent_plot
-        )
-        self.positionerAzExtentStopSpinBox.valueChanged.connect(
-            self.update_az_extent_plot
-        )
-        self.positionerAzExtentStepSpinBox.valueChanged.connect(
-            self.update_az_extent_plot
-        )
-        self.update_az_extent_plot()
-
-        self.positionerElExtentPlot.ticks = False
-        self.positionerElExtentPlot.grid = False
-        self.positionerElExtentPlot.set_scale(0, 1, 1)
-        self.positionerElExtentStartSpinBox.valueChanged.connect(
-            self.update_el_extent_plot
-        )
-        self.positionerElExtentStopSpinBox.valueChanged.connect(
-            self.update_el_extent_plot
-        )
-        self.positionerElExtentStepSpinBox.valueChanged.connect(
-            self.update_el_extent_plot
-        )
-        self.update_el_extent_plot()
-
         self.polarPlot.set_scale(
             min=self.polar_plot_min, max=self.polar_plot_max, step=self.polar_plot_step
         )
@@ -1033,6 +1020,8 @@ class MainWindow(QMainWindow):
         self.polarPlotStepSpinBox.valueChanged.connect(self.polarPlot.set_scale_step)
         self.polarPlotAutoScaleButton.pressed.connect(self.polarPlot.auto_scale)
 
+        self.overFreqPlot.set_xtitle("Frequency")
+        self.overFreqPlot.set_ytitle("Gain [dB]")
         self.overFreqPlot.set_scale(
             min=self.over_freq_plot_min,
             max=self.over_freq_plot_max,
@@ -1044,23 +1033,3 @@ class MainWindow(QMainWindow):
             self.overFreqPlot.set_scale_step
         )
         self.overFreqPlotAutoScaleButton.pressed.connect(self.overFreqPlot.auto_scale)
-
-    def update_az_extent_plot(self) -> None:
-        start = np.deg2rad(self.az_extent_start)
-        stop = np.deg2rad(self.az_extent_stop)
-        step = np.deg2rad(self.az_extent_step)
-
-        thetas = np.arange(start, stop + np.deg2rad(1), step)
-        rs = [0, 1] * len(thetas)
-        thetas = np.repeat(thetas, 2)
-        self.positionerAzExtentPlot.update_plot(thetas, np.array(rs))
-
-    def update_el_extent_plot(self) -> None:
-        start = np.deg2rad(self.el_extent_start)
-        stop = np.deg2rad(self.el_extent_stop)
-        step = np.deg2rad(self.el_extent_step)
-
-        thetas = np.arange(start, stop + np.deg2rad(1), step)
-        rs = [0, 1] * len(thetas)
-        thetas = np.repeat(thetas, 2)
-        self.positionerElExtentPlot.update_plot(thetas, np.array(rs))
