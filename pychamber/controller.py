@@ -1,14 +1,13 @@
 import functools
 import itertools
 import logging
-import pathlib
 from enum import Enum, auto
 from typing import Dict, Optional, Union
 
 import cloudpickle as pickle
 import numpy as np
 from PyQt5.QtCore import QMutex, QThread
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QInputDialog
 from pyvisa.errors import LibraryError, VisaIOError
 from serial.tools import list_ports
 from skrf import Network
@@ -21,7 +20,7 @@ from pychamber.positioner import PositionerError
 from pychamber.scan_worker import ScanWorker
 from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
 from pychamber.ui.main_window import MainWindow
-from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage, WhichPol
+from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage
 
 log = logging.getLogger(__name__)
 MUTEX = QMutex()
@@ -95,7 +94,7 @@ class PyChamberCtrl:
         self.view.clearDataButton.clicked.connect(self.clear_data)
         self.view.saveDataButton.clicked.connect(self.save_data)
         self.view.loadDataButton.clicked.connect(self.load_data)
-        # self.view.exportDataButton.clicked.connect(self.export_csv)
+        self.view.exportDataButton.clicked.connect(self.export_csv)
         self.view.calibrationFileBrowseButton.clicked.connect(self.load_cal_file)
         self.view.calibrationButton.clicked.connect(self.exec_cal_dialog)
         self.view.calibrationViewButton.clicked.connect(self.exec_view_cal_dialog)
@@ -394,8 +393,10 @@ class PyChamberCtrl:
     def exec_cal_dialog(self) -> None:
         dialog = CalibrationWizard(self.analyzer)
         dialog.exec_()
-        if cal := dialog.get_cal():
-            self.cal = cal
+        val = dialog.get_cal()
+        if val:
+            self.view.cal_file_name = val[0]
+            self.cal = val[1]
 
     def exec_view_cal_dialog(self) -> None:
         dialog = CalibrationViewDialog(self.cal_file)
@@ -404,7 +405,7 @@ class PyChamberCtrl:
     def load_cal_file(self) -> None:
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
-            self.view.calibrationFileLineEdit.setText(file_name)
+            self.view.cal_file_name = file_name
             with open(file_name, 'rb') as f:
                 self.cal_file = pickle.load(f)
                 self.view.calibrationViewButton.setEnabled(True)
@@ -413,7 +414,8 @@ class PyChamberCtrl:
         freq = str(self.view.polar_plot_freq)
 
         pol = self.view.polar_plot_pol
-
+        if pol not in self.ntwk_models:
+            return
         if len(self.ntwk_models[pol]) == 0:
             return
 
@@ -424,7 +426,8 @@ class PyChamberCtrl:
 
     def update_over_freq_plot(self) -> None:
         pol = self.view.over_freq_plot_pol
-
+        if pol not in self.ntwk_models:
+            return
         if len(self.ntwk_models[pol]) == 0:
             return
 
@@ -434,16 +437,16 @@ class PyChamberCtrl:
         self.view.update_over_freq_plot(freqs, mags)
 
     def clear_data(self) -> None:
-        if len(self.ntwk_models['pol1']) == 0 and len(self.ntwk_models['pol2']) == 0:
+        if len(self.ntwk_models) == 0:
             return
         actually_clear = ClearDataWarning(
             "This will delete all data. Are you sure?"
         ).warn()
         if actually_clear:
-            self.ntwk_models = {'pol1': NetworkModel(), 'pol2': NetworkModel()}
+            self.ntwk_models = {}
 
     def save_data(self) -> None:
-        if len(self.ntwk_models['pol1']) == 0 and len(self.ntwk_models['pol2']) == 0:
+        if len(self.ntwk_models) == 0:
             PopUpMessage("No data to save")
             return
         save_name, _ = QFileDialog.getSaveFileName()
@@ -485,26 +488,34 @@ class PyChamberCtrl:
             self.view.overFreqPlotPolarizationComboBox.blockSignals(False)
 
             self.update_over_freq_plot()
+            self.view.overFreqPlot.auto_scale()
             self.update_polar_plot()
+            self.view.polarPlot.auto_scale()
 
     def export_csv(self) -> None:
-        if len(self.ntwk_models['pol1']) > 0 and len(self.ntwk_models['pol2']) > 0:
-            which = "pol1" if WhichPol.ask() == 1 else "pol2"
-            to_export = self.ntwk_models[which]
-        elif len(self.ntwk_models['pol1']) > 0:
-            to_export = self.ntwk_models['pol1']
-        elif len(self.ntwk_models['pol2']) > 0:
-            to_export = self.ntwk_models['pol2']
-        else:
+        if len(self.ntwk_models) == 0:
             PopUpMessage("No data to export")
             return
 
-        save_name, _ = QFileDialog.getSaveFileName()
-        if save_name != "":
-            save_path = pathlib.Path(save_name)
-            if save_path.suffix != ".csv":
-                save_path = save_path.with_suffix(".csv")
-                to_export.write_spreadsheet(save_name)
+        pols = list(self.ntwk_models.keys())
+        which, ok = QInputDialog.getItem(
+            None,
+            "Which Polarization",
+            "Polarizations:",
+            pols,
+            editable=False,  # type: ignore
+        )
+        if not ok:
+            return
+        to_export = self.ntwk_models[which]
+        to_export.write_spreadsheet(file_name='testing.xlsx')
+
+        # save_name, _ = QFileDialog.getSaveFileName()
+        # if save_name != "":
+        #     save_path = pathlib.Path(save_name)
+        #     if save_path.suffix != ".csv":
+        #         save_path = save_path.with_suffix(".csv")
+        #         to_export.write_spreadsheet(save_name)
 
     def update_ntwk_models(self, data: Network) -> None:
         if pol1 := self.view.pol_1:
@@ -513,6 +524,8 @@ class PyChamberCtrl:
             temp = Network(
                 frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1]
             )
+            if self.cal is not None:
+                temp = temp - self.cal['data'][pol1]
             self.ntwk_models[label] = self.ntwk_models[label].append(temp)
         if pol2 := self.view.pol_2:
             label = pol2[0]
@@ -520,6 +533,8 @@ class PyChamberCtrl:
             temp = Network(
                 frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1]
             )
+            if self.cal is not None:
+                temp = temp - self.cal['data'][pol2]
             self.ntwk_models[label] = self.ntwk_models[label].append(temp)
 
     def start_scan_thread(

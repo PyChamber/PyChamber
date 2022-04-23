@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum, auto
+from typing import List
 
 from PyQt5.QtWidgets import QMessageBox
 
@@ -39,20 +42,3 @@ class ClearDataWarning(QMessageBox):
             return True
         else:
             return False
-
-
-class WhichPol(QMessageBox):
-    def __init__(self) -> None:
-        super(WhichPol, self).__init__()
-        self.addButton("1", QMessageBox.NoRole)
-        self.addButton("2", QMessageBox.YesRole)
-        self.setText("Which Polarization?")
-
-    @classmethod
-    def ask(cls) -> int:
-        instance = WhichPol()
-        ret = instance.exec_()
-        if ret == QMessageBox.No:
-            return 0
-        else:
-            return 1

@@ -1,11 +1,13 @@
 import itertools
 import logging
-from functools import reduce
-from typing import Dict, List, Optional
+import pathlib
+import tempfile
+from typing import Dict, List, Optional, Tuple
 
 import cloudpickle as pickle
 import numpy as np
 import pandas as pd
+from pandas.errors import ParserError
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
@@ -27,7 +29,7 @@ from PyQt5.QtWidgets import (
     QWizardPage,
 )
 from quantiphy import Quantity
-from skrf import Network
+from skrf import Frequency, Network
 from skrf.vi import vna
 
 from pychamber.ui.mplwidget import MplRectWidget
@@ -212,7 +214,38 @@ class CalibrationPage(QWizardPage):
         # TODO: Accept numpy / csv / ...others?
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
-            self.ref_data = Network(file_name)
+            path = pathlib.Path(file_name)
+            try:
+                if path.suffix == ".csv" or path.suffix == ".txt":
+                    # This is very annoying. scikit-rf can't read a
+                    # csv into a network, so we create a temporary
+                    # .s1p file with 0 phase from the csv then read
+                    # that temp file into a skrf.Network...
+                    df = pd.read_csv(path, header=None, names=["Frequency", "Gain"])
+                    df = df.sort_values(by='Frequency')
+                    freqs = df['Frequency'].to_numpy()
+                    s_db = df['Gain'].to_numpy()
+
+                    temp = pathlib.Path(tempfile.gettempdir())
+                    temp = temp / f"{path.stem}.s1p"
+                    log.info(str(temp))
+                    with open(temp, 'w') as f:
+                        f.write("# GHZ S DB R 50\n")
+                        log.info("# GHZ S DB R 50")
+                        for freq, s in zip(freqs, s_db):
+                            log.info(f"{freq} {s} 0")
+                            f.write(f"{freq} {s} 0\n")
+
+                    self.ref_data = Network(str(temp))
+                    log.info(self.ref_data)
+                elif path.suffix == ".s1p":
+                    self.ref_data = Network(file_name)
+                else:
+                    raise ParserError()
+            except (UnicodeDecodeError, ParserError):
+                PopUpMessage("Invalid file", MsgLevel.ERROR)
+                return
+
             self.refHornFNameLabel.setText(file_name)
 
     def capture_data(self) -> None:
@@ -266,11 +299,11 @@ class CalibrationPage(QWizardPage):
             with open(file_name, 'wb') as f:
                 pickle.dump(to_save, f)
 
-            self.wizard().update_cal(to_save)
+            self.wizard().update_cal(file_name, to_save)
 
 
 class CalibrationWizard(QWizard):
-    cal: Optional[Dict] = None
+    cal: Optional[Tuple[str, Dict]] = None
 
     def __init__(self, analyzer: Optional[vna.VNA], parent=None) -> None:
         super().__init__(parent)
@@ -284,10 +317,10 @@ class CalibrationWizard(QWizard):
         self.addPage(NotesPage(self))
         self.addPage(CalibrationPage(self))
 
-    def update_cal(self, data: Dict) -> None:
-        self.cal = data
+    def update_cal(self, fname: str, data: Dict) -> None:
+        self.cal = (fname, data)
 
-    def get_cal(self) -> Optional[Dict]:
+    def get_cal(self) -> Optional[Tuple[str, Dict]]:
         return self.cal
 
 

@@ -161,6 +161,14 @@ class MainWindow(QMainWindow):
         self.analyzerNPointsLineEdit.setText(str(n))
 
     @property
+    def cal_file_name(self) -> str:
+        return self.calibrationFileLineEdit.text()
+
+    @cal_file_name.setter
+    def cal_file_name(self, name: str) -> None:
+        self.calibrationFileLineEdit.setText(name)
+
+    @property
     def positioner_model(self) -> str:
         return self.positionerModelComboBox.currentText()
 
@@ -798,11 +806,11 @@ class MainWindow(QMainWindow):
         self.clearDataButton.setStyleSheet("background-color: rgb(237, 51, 59)")
         self.saveDataButton = QPushButton("Save Data", tab)
         self.loadDataButton = QPushButton("Load Data", tab)
-        # self.exportDataButton = QPushButton("Export Data", tab)
+        self.exportDataButton = QPushButton("Export Data", tab)
         self.dataTabVLayout.addWidget(self.clearDataButton)
         self.dataTabVLayout.addWidget(self.saveDataButton)
         self.dataTabVLayout.addWidget(self.loadDataButton)
-        # self.dataTabVLayout.addWidget(self.exportDataButton)
+        self.dataTabVLayout.addWidget(self.exportDataButton)
         self.dataTabLayout.addLayout(self.dataTabVLayout, 1, 1, 1, 1)
 
         vspacer_1 = QSpacerItem(20, 200, QSizePolicy.Minimum, QSizePolicy.Preferred)

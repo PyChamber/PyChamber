@@ -59,9 +59,11 @@ class MplRectWidget(MplWidget):
         self.xformatter = EngFormatter(unit='Hz')
         self.xtitle = ""
         self.ytitle = ""
-        self.ymin = 0.0
-        self.ymax = 1.0
-        self.ystep = 1.0
+
+        # Semi-sensible defaults
+        self.ymin = -30.0
+        self.ymax = 0.0
+        self.ystep = 10.0
 
     def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         self.ax.cla()
@@ -83,6 +85,8 @@ class MplRectWidget(MplWidget):
 
     def auto_scale(self) -> None:
         y = self.artist.get_ydata(orig=True)
+        if len(y) <= 1:
+            return
         min = np.floor(np.amin(y))
         max = np.ceil(np.amax(y))
         step = np.round((max - min) / 4)
@@ -118,6 +122,10 @@ class MplPolarWidget(MplWidget):
         super(MplPolarWidget, self).__init__(color, parent)
 
         self._ticks = True
+        # Semi-sensible defaults
+        self.rmin = -30.0
+        self.rmax = 0.0
+        self.rstep = 10.0
 
         self.ax = self.canvas.fig.add_subplot(projection='polar')
         self.ax.set_theta_zero_location('N')
@@ -154,6 +162,8 @@ class MplPolarWidget(MplWidget):
 
     def auto_scale(self) -> None:
         y = self.artist.get_ydata(orig=True)
+        if len(y) <= 1:
+            return
         min = np.floor(np.amin(y))
         max = np.ceil(np.amax(y))
         step = np.round((max - min) / 4)
