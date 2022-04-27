@@ -24,7 +24,7 @@ class JogWorker(Worker):
         positioner: Positioner,
         relative: bool = False,
     ) -> None:
-        super(JogWorker, self).__init__(mutex)
+        super(JogWorker, self).__init__(mutex, parent=None)
         self.axis = axis
         self.angle = angle
         self.positioner = positioner
@@ -41,7 +41,7 @@ class JogWorker(Worker):
         if self.relative:
             self.mutex.lock()
             self.positioner.move_azimuth_relative(self.angle)
-            pos = self.positioner_current_azimuth
+            pos = self.positioner.current_azimuth
             self.mutex.unlock()
         else:
             self.mutex.lock()

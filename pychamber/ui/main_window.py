@@ -104,13 +104,13 @@ class MainWindow(QMainWindow):
     @property
     def pol_1(self) -> Optional[Tuple[str, List[int]]]:
         pol = self.analyzerPol1ComboBox.currentText()
-        label = self.analyzerPol1LineEdit.currentText()
+        label = self.analyzerPol1LineEdit.text()
         return (label, [int(pol[1]), int(pol[2])]) if pol != "" else None
 
     @property
     def pol_2(self) -> Optional[Tuple[str, List[int]]]:
         pol = self.analyzerPol2ComboBox.currentText()
-        label = self.analyzerPol2LineEdit.currentText()
+        label = self.analyzerPol2LineEdit.text()
         return (label, [int(pol[1]), int(pol[2])]) if pol != "" else None
 
     @property
@@ -265,10 +265,10 @@ class MainWindow(QMainWindow):
     @time_remaining.setter
     def time_remaining(self, time_: float) -> None:
         if np.isclose(time_, 0):
-            self.timeRemainingLineEdit.setText("")
+            self.experimentTimeRemainingLineEdit.setText("")
         else:
             time_str = time.strftime("%H hours %M minutes %S seconds", time.gmtime(time_))
-            self.timeRemainingLineEdit.setText(time_str)
+            self.experimentTimeRemainingLineEdit.setText(time_str)
 
     @property
     def polar_plot_pol(self) -> str:
@@ -368,6 +368,20 @@ class MainWindow(QMainWindow):
             self.polarPlotFreqSpinBox.setMaximum(stop)
         if step:
             self.polarPlotFreqSpinBox.setMinimum(step)
+
+    def update_plot_pols(self, pols: List[str]) -> None:
+            self.polarPlotPolarizationComboBox.blockSignals(True)
+            self.polarPlotFreqSpinBox.blockSignals(True)
+            self.overFreqPlotPolarizationComboBox.blockSignals(True)
+
+            self.polarPlotPolarizationComboBox.clear()
+            self.polarPlotPolarizationComboBox.addItems(
+                pols
+            )
+            self.overFreqPlotPolarizationComboBox.clear()
+            self.overFreqPlotPolarizationComboBox.addItems(
+                pols
+            )
 
     def setupAnalyzerGroupBox(self) -> None:
         self.analyzerGroupBox = QGroupBox("Analyzer", self.centralwidget)

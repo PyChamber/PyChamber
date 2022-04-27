@@ -184,5 +184,5 @@ class MplPolarWidget(MplWidget):
     def set_scale(self, min: float, max: float, step: float) -> None:
         self.rmin = min
         self.rmax = max
-        self.rstep = step
+        self.rstep = step if not np.isclose(step, 0.0) else 1.0
         self.refresh_plot()

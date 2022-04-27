@@ -251,9 +251,9 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        self.view.cutProgressLabel.show()
-        self.view.cutProgressBar.show()
-        self.view.update_monitor_freqs()
+        self.view.experimentCutProgressLabel.show()
+        self.view.experimentCutProgressBar.show()
+        self.view.update_polar_plot_freqs()
 
         azimuths = np.arange(
             self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
@@ -273,7 +273,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        self.view.update_monitor_freqs()
+        self.view.update_polar_plot_freqs()
 
         azimuths = np.arange(
             self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
@@ -291,7 +291,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        self.view.update_monitor_freqs()
+        self.view.update_polar_plot_freqs()
 
         elevations = np.arange(
             self.view.el_extent_start, self.view.el_extent_stop, self.view.el_extent_step
@@ -387,7 +387,7 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        if npoints := self.view.analyzer_npoints:
+        if npoints := self.view.analyzer_n_points:
             self.analyzer.npoints = npoints
 
     def exec_cal_dialog(self) -> None:
@@ -465,18 +465,7 @@ class PyChamberCtrl:
                     PopUpMessage("Invalid file", MsgLevel.ERROR)
                     return
 
-            self.view.polarPlotPolarizationComboBox.blockSignals(True)
-            self.view.polarPlotFreqSpinBox.blockSignals(True)
-            self.view.overFreqPlotPolarizationComboBox.blockSignals(True)
-
-            self.view.polarPlotPolarizationComboBox.clear()
-            self.view.polarPlotPolarizationComboBox.addItems(
-                list(self.ntwk_models.keys())
-            )
-            self.view.overFreqPlotPolarizationComboBox.clear()
-            self.view.overFreqPlotPolarizationComboBox.addItems(
-                list(self.ntwk_models.keys())
-            )
+            self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
             temp = next(iter(val.values()))
             self.view.polarPlotFreqSpinBox.setMinimum(temp.freqs[0])
@@ -518,24 +507,28 @@ class PyChamberCtrl:
         #         to_export.write_spreadsheet(save_name)
 
     def update_ntwk_models(self, data: Network) -> None:
-        if pol1 := self.view.pol_1:
-            label = pol1[0]
+        log.info(f"\n{data[0].s_db}")
+        if pol1:=self.view.pol_1:
+            label = pol1[0] if pol1[0] != "" else "Polarization 1"
             port = pol1[1]
             temp = Network(
-                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1]
+                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1], params=data.params
             )
             if self.cal is not None:
-                temp = temp - self.cal['data'][pol1]
+                temp = temp - self.cal['data'][label]
             self.ntwk_models[label] = self.ntwk_models[label].append(temp)
-        if pol2 := self.view.pol_2:
-            label = pol2[0]
+        if pol2:=self.view.pol_2:
+            label = pol2[0] if pol2[0] != "" else "Polarization 2"
             port = pol2[1]
             temp = Network(
-                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1]
+                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1], params=data.params
             )
             if self.cal is not None:
-                temp = temp - self.cal['data'][pol2]
+                temp = temp - self.cal['data'][label]
             self.ntwk_models[label] = self.ntwk_models[label].append(temp)
+
+            self.update_polar_plot()
+            self.update_over_freq_plot()
 
     def start_scan_thread(
         self,
@@ -544,6 +537,23 @@ class PyChamberCtrl:
     ) -> None:
         assert self.positioner
         assert self.analyzer
+
+        if pol1 := self.view.pol_1:
+            label1 = pol1[0] if pol1[0] != "" else "Polarization 1"
+        if pol2 := self.view.pol_2:
+            label2 = pol2[0] if pol2[0] != "" else "Polarization 2"
+
+        if pol1 is None and pol2 is None:
+            log.info("No polarizations selected.")
+            return
+
+        if len(self.ntwk_models) == 0:
+            self.ntwk_models = {
+                label1: NetworkModel(),
+                label2: NetworkModel(),
+            }
+
+        self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
         self.thread = QThread()
         self.worker = ScanWorker(
@@ -564,7 +574,7 @@ class PyChamberCtrl:
         self.worker.progress.connect(lambda p: setattr(self.view, 'total_progress', p))
         self.worker.finished.connect(self.update_polar_plot)
         self.worker.finished.connect(self.update_over_freq_plot)
-        if self.view.cutProgressBar.isVisible():
+        if self.view.experimentCutProgressBar.isVisible():
             self.worker.cutProgress.connect(
                 lambda p: setattr(self.view, 'cut_progress', p)
             )
@@ -577,27 +587,27 @@ class PyChamberCtrl:
 
         self.view.analyzerGroupBox.setEnabled(False)
         self.view.positionerGroupBox.setEnabled(False)
-        self.view.fullScanButton.setEnabled(False)
-        self.view.azScanButton.setEnabled(False)
-        self.view.elScanButton.setEnabled(False)
-        self.view.abortButton.setEnabled(True)
+        self.view.experimentFullScanButton.setEnabled(False)
+        self.view.experimentAzScanButton.setEnabled(False)
+        self.view.experimentElScanButton.setEnabled(False)
+        self.view.experimentAbortButton.setEnabled(True)
 
-        self.view.abortButton.clicked.connect(lambda: setattr(self.worker, 'abort', True))
+        self.view.experimentAbortButton.clicked.connect(lambda: setattr(self.worker, 'abort', True))
 
         self.thread.finished.connect(lambda: self.view.analyzerGroupBox.setEnabled(True))
         self.thread.finished.connect(
             lambda: self.view.positionerGroupBox.setEnabled(True)
         )
-        self.thread.finished.connect(lambda: self.view.fullScanButton.setEnabled(True))
-        self.thread.finished.connect(lambda: self.view.azScanButton.setEnabled(True))
-        self.thread.finished.connect(lambda: self.view.elScanButton.setEnabled(True))
-        self.thread.finished.connect(lambda: self.view.abortButton.setEnabled(False))
+        self.thread.finished.connect(lambda: self.view.experimentFullScanButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.view.experimentAzScanButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.view.experimentElScanButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.view.experimentAbortButton.setEnabled(False))
         self.thread.finished.connect(lambda: setattr(self.view, 'total_progress', 100))
         self.thread.finished.connect(lambda: setattr(self.view, 'time_remaining', 0.0))
         self.thread.finished.connect(lambda: log.info("Scan complete"))
 
-        if self.view.cutProgressBar.isVisible():
-            self.thread.finished.connect(lambda: self.view.cutProgressBar.hide())
+        if self.view.experimentCutProgressBar.isVisible():
+            self.thread.finished.connect(lambda: self.view.experimentCutProgressBar.hide())
 
     def jog_thread(self, axis: JogAxis, angle: float, relative: bool) -> None:
         assert self.positioner
