@@ -5,8 +5,8 @@ import numpy as np
 from PyQt5.QtCore import QMutex, pyqtSignal
 from skrf.vi import vna
 
-from pychamber.positioner import Positioner
-from pychamber.worker import Worker
+from pychamber.classes.positioner import Positioner
+from pychamber.classes.worker import Worker
 
 
 class ScanWorker(Worker):

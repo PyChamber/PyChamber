@@ -1,7 +1,6 @@
 """Top-level package for PyChamber."""
+from importlib.metadata import version
 
 __author__ = """Bailey Campbell"""
 __email__ = 'baileycampbell@psu.edu'
-__version__ = '0.1.0'
-
-from .positioner import D6050, Positioner
+__version__ = version(__name__)

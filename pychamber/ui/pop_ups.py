@@ -27,18 +27,3 @@ class PopUpMessage(QMessageBox):
 
         self.setText(msg)
         self.exec_()
-
-
-class ClearDataWarning(QMessageBox):
-    def __init__(self, msg: str) -> None:
-        super(ClearDataWarning, self).__init__(parent=None)
-        self.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
-        self.setDefaultButton(QMessageBox.Cancel)
-        self.setText(msg)
-
-    def warn(self) -> bool:
-        ret = self.exec_()
-        if ret == QMessageBox.Yes:
-            return True
-        else:
-            return False

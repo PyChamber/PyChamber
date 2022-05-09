@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import logging
 from typing import Optional
 
 import numpy as np
 from skrf.network import Network
 from skrf.networkSet import NetworkSet
-
-log = logging.getLogger(__name__)
 
 
 class NetworkModel(NetworkSet):

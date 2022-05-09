@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -9,8 +8,6 @@ import pkg_resources  # type: ignore
 import serial
 from omegaconf import OmegaConf
 from PyQt5.QtCore import QTimer
-
-log = logging.getLogger(__name__)
 
 
 @dataclass

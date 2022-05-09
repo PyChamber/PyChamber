@@ -2,8 +2,8 @@ from enum import Enum, auto
 
 from PyQt5.QtCore import QMutex, pyqtSignal
 
-from pychamber.positioner import Positioner
-from pychamber.worker import Worker
+from pychamber.classes.positioner import Positioner
+from pychamber.classes.worker import Worker
 
 
 class JogAxis(Enum):

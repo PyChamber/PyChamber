@@ -32,12 +32,11 @@ from quantiphy import Quantity
 from skrf import Frequency, Network
 from skrf.vi import vna
 
+from pychamber.classes.logger import log
 from pychamber.ui.mplwidget import MplRectWidget
 from pychamber.ui.pop_ups import MsgLevel, PopUpMessage
 
 _FONTS = {'header': QFont('Roboto', 12, QFont.Bold)}
-
-log = logging.getLogger(__name__)
 
 
 class IntroPage(QWizardPage):

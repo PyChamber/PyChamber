@@ -1,28 +1,31 @@
 import functools
 import itertools
-import logging
 from enum import Enum, auto
 from typing import Dict, Optional, Union
 
 import cloudpickle as pickle
 import numpy as np
 from PyQt5.QtCore import QMutex, QThread
-from PyQt5.QtWidgets import QFileDialog, QInputDialog
+from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 from pyvisa.errors import LibraryError, VisaIOError
 from serial.tools import list_ports
 from skrf import Network
 from skrf.vi import vna
 
-from pychamber import positioner
-from pychamber.jog_worker import JogAxis, JogWorker, JogZeroWorker
-from pychamber.network_model import NetworkModel
-from pychamber.positioner import PositionerError
-from pychamber.scan_worker import ScanWorker
+from pychamber.classes import positioner
+from pychamber.classes.jog_worker import JogAxis, JogWorker, JogZeroWorker
+from pychamber.classes.logger import log
+from pychamber.classes.network_model import NetworkModel
+from pychamber.classes.positioner import PositionerError
+from pychamber.classes.scan_worker import ScanWorker
+from pychamber.classes.settings_manager import SettingsManager
+from pychamber.ui.about import AboutPyChamber
 from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
+from pychamber.ui.log_viewer import LogViewer
 from pychamber.ui.main_window import MainWindow
-from pychamber.ui.pop_ups import ClearDataWarning, MsgLevel, PopUpMessage
+from pychamber.ui.pop_ups import MsgLevel, PopUpMessage
+from pychamber.ui.settings_dialog import SettingsDialog
 
-log = logging.getLogger(__name__)
 MUTEX = QMutex()
 
 
@@ -54,10 +57,12 @@ class PyChamberCtrl:
     worker: Optional[Union[JogWorker, JogZeroWorker, ScanWorker]] = None
 
     def __init__(self, view: MainWindow) -> None:
-        self.view = view
+        self.view: MainWindow = view
         self.ntwk_models: Dict[str, NetworkModel] = {}
         self.analyzer: Optional[vna.VNA] = None
         self.positioner: Optional[positioner.Positioner] = None
+
+        self.settings = SettingsManager()
 
         self.connect_signals()
 
@@ -67,6 +72,15 @@ class PyChamberCtrl:
         self.update_positioner_models()
 
     def connect_signals(self) -> None:
+        # Menu
+        self.view.save.triggered.connect(self.save_data)
+        self.view.export.triggered.connect(self.export_csv)
+        self.view.settings.triggered.connect(self.show_settings)
+        self.view.about.triggered.connect(self.about)
+        self.view.log.triggered.connect(self.show_log)
+        self.view.closeEvent = self.closeEvent  # type: ignore
+        self.view.quit.triggered.connect(self.view.close)
+
         # Buttons
         self.view.experimentFullScanButton.clicked.connect(self.full_scan)
         self.view.experimentAzScanButton.clicked.connect(self.az_scan)
@@ -91,10 +105,6 @@ class PyChamberCtrl:
         self.view.returnToZeroButton.clicked.connect(self.return_to_zero)
         self.view.analyzerConnectButton.clicked.connect(self.connect_to_analyzer)
         self.view.positionerConnectButton.clicked.connect(self.connect_to_positioner)
-        self.view.clearDataButton.clicked.connect(self.clear_data)
-        self.view.saveDataButton.clicked.connect(self.save_data)
-        self.view.loadDataButton.clicked.connect(self.load_data)
-        self.view.exportDataButton.clicked.connect(self.export_csv)
         self.view.calibrationFileBrowseButton.clicked.connect(self.load_cal_file)
         self.view.calibrationButton.clicked.connect(self.exec_cal_dialog)
         self.view.calibrationViewButton.clicked.connect(self.exec_view_cal_dialog)
@@ -119,10 +129,23 @@ class PyChamberCtrl:
         self.view.analyzerStopFreqLineEdit.returnPressed.connect(
             functools.partial(self.set_freq, FreqSetting.STOP)
         )
-        # self.view.stepFreqLineEdit.returnPressed.connect(
-        #     functools.partial(self.set_freq, FreqSetting.STEP)
-        # )
+        self.view.analyzerStepFreqLineEdit.returnPressed.connect(
+            functools.partial(self.set_freq, FreqSetting.STEP)
+        )
         self.view.analyzerNPointsLineEdit.returnPressed.connect(self.set_npoints)
+
+    def closeEvent(self, event) -> None:
+        warning = QMessageBox()
+        warning.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        warning.setDefaultButton(QMessageBox.Cancel)
+        warning.setText("Are you sure you want to quit?\n(Any unsaved data will be LOST)")
+
+        resp = warning.exec_()
+        if resp == QMessageBox.Yes:
+            del self.settings
+            event.accept()
+        else:
+            event.ignore()
 
     def update_positioner_ports(self) -> None:
         self.view.positionerPortComboBox.clear()
@@ -132,8 +155,9 @@ class PyChamberCtrl:
     def update_analyzer_ports(self) -> None:
         self.view.analyzerAddressComboBox.clear()
 
-        # FIXME: This is only for linux
-        backend = '/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
+        # Need to provide a way to try to find libraries but
+        # provide the user a back up of specifying the path directly
+        backend = self.settings['backend']
 
         # If we can't find the library, default to pyvisa-py
         try:
@@ -321,10 +345,10 @@ class PyChamberCtrl:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
         try:
-            self.view.analyzer_start_freq = self.analyzer.start_freq
-            self.view.analyzer_stop_freq = self.analyzer.stop_freq
-            self.view.analyzer_n_points = self.analyzer.npoints
-            # self.view.analyzer_freq_step = self.analyzer.freq_step
+            self.view.analyzer_start_freq = self.analyzer.start_freq()
+            self.view.analyzer_stop_freq = self.analyzer.stop_freq()
+            self.view.analyzer_n_points = self.analyzer.npoints()
+            self.view.analyzer_freq_step = self.analyzer.freq_step()
             ports = self.analyzer.ports
         except VisaIOError as e:
             log.error(f"Error communicating with the analyzer: {e}")
@@ -370,13 +394,13 @@ class PyChamberCtrl:
         try:
             if setting == FreqSetting.START:
                 if freq := self.view.analyzer_start_freq:
-                    self.analyzer.start_freq = freq.real
+                    self.analyzer.set_start_freq(freq.real)
             elif setting == FreqSetting.STOP:
                 if freq := self.view.analyzer_stop_freq:
-                    self.analyzer.stop_freq = freq.real
-            # elif setting == FreqSetting.STEP:
-            #     if freq := self.view.analyzer_freq_step:
-            #         self.analyzer.freq_step = freq.real
+                    self.analyzer.set_stop_freq(freq.real)
+            elif setting == FreqSetting.STEP:
+                if freq := self.view.analyzer_freq_step:
+                    self.analyzer.set_freq_step(freq.real)
         except VisaIOError as e:
             log.error(f"Failed to communicate with analyzer: {str(e)}")
             PopUpMessage("Failed to communicate with analyzer", MsgLevel.ERROR)
@@ -388,7 +412,7 @@ class PyChamberCtrl:
             return
 
         if npoints := self.view.analyzer_n_points:
-            self.analyzer.npoints = npoints
+            self.analyzer.set_npoints(npoints)
 
     def exec_cal_dialog(self) -> None:
         dialog = CalibrationWizard(self.analyzer)
@@ -435,15 +459,6 @@ class PyChamberCtrl:
         mags = self.ntwk_models[pol].mags(azimuth=0.0, elevation=0.0).reshape(-1, 1)
 
         self.view.update_over_freq_plot(freqs, mags)
-
-    def clear_data(self) -> None:
-        if len(self.ntwk_models) == 0:
-            return
-        actually_clear = ClearDataWarning(
-            "This will delete all data. Are you sure?"
-        ).warn()
-        if actually_clear:
-            self.ntwk_models = {}
 
     def save_data(self) -> None:
         if len(self.ntwk_models) == 0:
@@ -506,22 +521,36 @@ class PyChamberCtrl:
         #         save_path = save_path.with_suffix(".csv")
         #         to_export.write_spreadsheet(save_name)
 
+    def show_settings(self) -> None:
+        diag = SettingsDialog(self.settings, parent=None)
+        diag.exec_()
+
+    def about(self) -> None:
+        AboutPyChamber.display()
+
+    def show_log(self) -> None:
+        LogViewer.display()
+
     def update_ntwk_models(self, data: Network) -> None:
         log.info(f"\n{data[0].s_db}")
-        if pol1:=self.view.pol_1:
+        if pol1 := self.view.pol_1:
             label = pol1[0] if pol1[0] != "" else "Polarization 1"
             port = pol1[1]
             temp = Network(
-                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1], params=data.params
+                frequency=data.frequency,
+                s=data.s[:, port[0] - 1, port[1] - 1],
+                params=data.params,
             )
             if self.cal is not None:
                 temp = temp - self.cal['data'][label]
             self.ntwk_models[label] = self.ntwk_models[label].append(temp)
-        if pol2:=self.view.pol_2:
+        if pol2 := self.view.pol_2:
             label = pol2[0] if pol2[0] != "" else "Polarization 2"
             port = pol2[1]
             temp = Network(
-                frequency=data.frequency, s=data.s[:, port[0] - 1, port[1] - 1], params=data.params
+                frequency=data.frequency,
+                s=data.s[:, port[0] - 1, port[1] - 1],
+                params=data.params,
             )
             if self.cal is not None:
                 temp = temp - self.cal['data'][label]
@@ -592,22 +621,34 @@ class PyChamberCtrl:
         self.view.experimentElScanButton.setEnabled(False)
         self.view.experimentAbortButton.setEnabled(True)
 
-        self.view.experimentAbortButton.clicked.connect(lambda: setattr(self.worker, 'abort', True))
+        self.view.experimentAbortButton.clicked.connect(
+            lambda: setattr(self.worker, 'abort', True)
+        )
 
         self.thread.finished.connect(lambda: self.view.analyzerGroupBox.setEnabled(True))
         self.thread.finished.connect(
             lambda: self.view.positionerGroupBox.setEnabled(True)
         )
-        self.thread.finished.connect(lambda: self.view.experimentFullScanButton.setEnabled(True))
-        self.thread.finished.connect(lambda: self.view.experimentAzScanButton.setEnabled(True))
-        self.thread.finished.connect(lambda: self.view.experimentElScanButton.setEnabled(True))
-        self.thread.finished.connect(lambda: self.view.experimentAbortButton.setEnabled(False))
+        self.thread.finished.connect(
+            lambda: self.view.experimentFullScanButton.setEnabled(True)
+        )
+        self.thread.finished.connect(
+            lambda: self.view.experimentAzScanButton.setEnabled(True)
+        )
+        self.thread.finished.connect(
+            lambda: self.view.experimentElScanButton.setEnabled(True)
+        )
+        self.thread.finished.connect(
+            lambda: self.view.experimentAbortButton.setEnabled(False)
+        )
         self.thread.finished.connect(lambda: setattr(self.view, 'total_progress', 100))
         self.thread.finished.connect(lambda: setattr(self.view, 'time_remaining', 0.0))
         self.thread.finished.connect(lambda: log.info("Scan complete"))
 
         if self.view.experimentCutProgressBar.isVisible():
-            self.thread.finished.connect(lambda: self.view.experimentCutProgressBar.hide())
+            self.thread.finished.connect(
+                lambda: self.view.experimentCutProgressBar.hide()
+            )
 
     def jog_thread(self, axis: JogAxis, angle: float, relative: bool) -> None:
         assert self.positioner

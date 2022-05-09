@@ -1,4 +1,5 @@
 import time
+import webbrowser
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -6,6 +7,7 @@ from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QDoubleValidator, QFont, QIcon, QIntValidator, QPixmap
 from PyQt5.QtWidgets import (
     QComboBox,
+    QDesktopWidget,
     QDoubleSpinBox,
     QGridLayout,
     QGroupBox,
@@ -28,9 +30,7 @@ from pychamber import utils
 from pychamber.ui import resources_rc
 
 from .freq_spin_box import FrequencySpinBox
-from .logger import QTextEditLogger
 from .mplwidget import MplPolarWidget, MplRectWidget, MplWidget
-from .pop_ups import ClearDataWarning
 
 _SIZE_POLICIES = {
     'min_min': QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum),
@@ -65,7 +65,12 @@ class MainWindow(QMainWindow):
         self.mainWindowLayout.addLayout(self.rightSideLayout, stretch=3)
         self.centralwidget.setLayout(self.mainWindowLayout)
 
+        self.setupUi()
+        self.show()
+        self.center()
+
     def setupUi(self) -> None:
+        self.setupMenuBar()
         self.setupAnalyzerGroupBox()
         self.setupCalibrationGroupBox()
         self.setupPositionerGroupBox()
@@ -84,14 +89,13 @@ class MainWindow(QMainWindow):
         self.update_polar_plot = self.polarPlot.update_plot
         self.update_over_freq_plot = self.overFreqPlot.update_plot
 
-    def closeEvent(self, event) -> None:
-        resp = ClearDataWarning(
-            ("Are you sure you want to quit?\n" "(Any unsaved data will be LOST)")
-        ).warn()
-        if resp:
-            event.accept()
-        else:
-            event.ignore()
+    def center(self):
+        qr = self.frameGeometry()
+        print(qr)
+        cp = QDesktopWidget().availableGeometry().center()
+        print(cp)
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
     @property
     def analyzer_model(self) -> str:
@@ -370,18 +374,33 @@ class MainWindow(QMainWindow):
             self.polarPlotFreqSpinBox.setMinimum(step)
 
     def update_plot_pols(self, pols: List[str]) -> None:
-            self.polarPlotPolarizationComboBox.blockSignals(True)
-            self.polarPlotFreqSpinBox.blockSignals(True)
-            self.overFreqPlotPolarizationComboBox.blockSignals(True)
+        self.polarPlotPolarizationComboBox.blockSignals(True)
+        self.polarPlotFreqSpinBox.blockSignals(True)
+        self.overFreqPlotPolarizationComboBox.blockSignals(True)
 
-            self.polarPlotPolarizationComboBox.clear()
-            self.polarPlotPolarizationComboBox.addItems(
-                pols
-            )
-            self.overFreqPlotPolarizationComboBox.clear()
-            self.overFreqPlotPolarizationComboBox.addItems(
-                pols
-            )
+        self.polarPlotPolarizationComboBox.clear()
+        self.polarPlotPolarizationComboBox.addItems(pols)
+        self.overFreqPlotPolarizationComboBox.clear()
+        self.overFreqPlotPolarizationComboBox.addItems(pols)
+
+    def setupMenuBar(self) -> None:
+        self.menu = self.menuBar()
+        self.file = self.menu.addMenu("File")
+        self.save = self.file.addAction("Save")
+        self.export = self.file.addAction("Export")
+        self.file.addSeparator()
+        self.settings = self.file.addAction("Settings")
+        self.file.addSeparator()
+        self.quit = self.file.addAction("Quit")
+
+        self.help = self.menu.addMenu("Help")
+        self.bug = self.help.addAction("Submit a Bug")
+        self.help.addSeparator()
+        self.about = self.help.addAction("About")
+        self.log = self.help.addAction("View Log")
+
+        bug_report_url = "https://github.com/HRG-Lab/PyChamber/issues/new"
+        self.bug.triggered.connect(lambda: webbrowser.open(bug_report_url))
 
     def setupAnalyzerGroupBox(self) -> None:
         self.analyzerGroupBox = QGroupBox("Analyzer", self.centralwidget)
@@ -712,18 +731,12 @@ class MainWindow(QMainWindow):
         self.tabWidget = QTabWidget(self.centralwidget)
         self.polarPlotTab = QWidget(self.tabWidget)
         self.overFreqPlotTab = QWidget(self.tabWidget)
-        self.dataTab = QWidget(self.tabWidget)
-        self.logTab = QWidget(self.tabWidget)
 
         self.tabWidget.addTab(self.polarPlotTab, "Polar Plot")
         self.tabWidget.addTab(self.overFreqPlotTab, "Over Frequency Plot")
-        self.tabWidget.addTab(self.dataTab, "Data")
-        self.tabWidget.addTab(self.logTab, "Log")
 
         self.setupPolarPlotTab()
         self.setupOverFreqPlotTab()
-        self.setupDataTab()
-        self.setupLogTab()
 
         self.rightSideLayout.addWidget(self.tabWidget)
 
@@ -809,38 +822,6 @@ class MainWindow(QMainWindow):
 
         self.overFreqPlot = MplRectWidget('tab:blue', tab)
         self.overFreqPlotTabLayout.addWidget(self.overFreqPlot)
-
-    def setupDataTab(self) -> None:
-        tab = self.dataTab
-        self.dataTabLayout = QGridLayout(tab)
-
-        self.dataTabVLayout = QVBoxLayout()
-
-        self.clearDataButton = QPushButton("Clear Data", tab)
-        self.clearDataButton.setStyleSheet("background-color: rgb(237, 51, 59)")
-        self.saveDataButton = QPushButton("Save Data", tab)
-        self.loadDataButton = QPushButton("Load Data", tab)
-        self.exportDataButton = QPushButton("Export Data", tab)
-        self.dataTabVLayout.addWidget(self.clearDataButton)
-        self.dataTabVLayout.addWidget(self.saveDataButton)
-        self.dataTabVLayout.addWidget(self.loadDataButton)
-        self.dataTabVLayout.addWidget(self.exportDataButton)
-        self.dataTabLayout.addLayout(self.dataTabVLayout, 1, 1, 1, 1)
-
-        vspacer_1 = QSpacerItem(20, 200, QSizePolicy.Minimum, QSizePolicy.Preferred)
-        vspacer_2 = QSpacerItem(20, 200, QSizePolicy.Minimum, QSizePolicy.Preferred)
-        hspacer_1 = QSpacerItem(200, 20, QSizePolicy.Preferred, QSizePolicy.Minimum)
-        hspacer_2 = QSpacerItem(200, 20, QSizePolicy.Preferred, QSizePolicy.Minimum)
-
-        self.dataTabLayout.addItem(vspacer_1, 0, 1, 1, 1)
-        self.dataTabLayout.addItem(vspacer_2, 2, 1, 1, 1)
-        self.dataTabLayout.addItem(hspacer_1, 1, 0, 1, 1)
-        self.dataTabLayout.addItem(hspacer_2, 1, 2, 1, 1)
-
-    def setupLogTab(self) -> None:
-        self.logTabLayout = QVBoxLayout(self.logTab)
-        self.logger = QTextEditLogger(self.logTab)
-        self.logTabLayout.addWidget(self.logger.widget)
 
     def updateSizePolicies(self) -> None:
         self.analyzerModelLabel.setSizePolicy(_SIZE_POLICIES['min_pref'])
