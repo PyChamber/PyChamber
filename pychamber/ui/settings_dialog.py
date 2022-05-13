@@ -10,6 +10,7 @@ class SettingsDialog(QDialog):
     def __init__(self, settings_mgr: SettingsManager, parent=None) -> None:
         super().__init__(parent)
         self.settings_mgr = settings_mgr
+        print(self.settings_mgr.fileName())
         self.setup_widgets()
         self.setup_buttons()
 
@@ -18,9 +19,9 @@ class SettingsDialog(QDialog):
 
         self.backend = QComboBox(self)
         self.backend.addItem("Browse...")
-        backends = list(get_system_details()['backends'])
+        backends = ['pyvisa-py', 'IVI'] + [self.settings_mgr["backend"]]
         self.backend.addItems(backends)
-        self.backend.currentTextChanged.connect(self.backend_browse)
+        self.backend.textActivated.connect(self.backend_browse)
 
         current_backend = self.settings_mgr['backend']
         idx = self.backend.findText(current_backend)
@@ -40,13 +41,11 @@ class SettingsDialog(QDialog):
 
     def accept(self) -> None:
         self.settings_mgr["backend"] = self.backend.currentText()
-        # self.settings_mgr.sync()
         self.close()
 
     def backend_browse(self, text: str) -> None:
         if text == "Browse...":
             backend_path, _ = QFileDialog.getOpenFileName()
             if backend_path != "":
-                path = pathlib.Path(backend_path)
-                self.backend.insertItem(2, path.name)
+                self.backend.insertItem(2, backend_path)
                 self.backend.setCurrentIndex(2)

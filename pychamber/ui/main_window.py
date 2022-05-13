@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (
 from quantiphy import Quantity
 
 from pychamber import utils
+from pychamber.classes.polarization import Polarization
 from pychamber.ui import resources_rc
 
 from .freq_spin_box import FrequencySpinBox
@@ -104,16 +105,16 @@ class MainWindow(QMainWindow):
         return self.analyzerAddressComboBox.currentText()
 
     @property
-    def pol_1(self) -> Optional[Tuple[str, List[int]]]:
+    def pol_1(self) -> Optional[Polarization]:
         pol = self.analyzerPol1ComboBox.currentText()
         label = self.analyzerPol1LineEdit.text()
-        return (label, [int(pol[1]), int(pol[2])]) if pol != "" else None
+        return Polarization(label, pol) if pol != "" else None
 
     @property
-    def pol_2(self) -> Optional[Tuple[str, List[int]]]:
+    def pol_2(self) -> Optional[Polarization]:
         pol = self.analyzerPol2ComboBox.currentText()
         label = self.analyzerPol2LineEdit.text()
-        return (label, [int(pol[1]), int(pol[2])]) if pol != "" else None
+        return Polarization(label, pol) if pol != "" else None
 
     @property
     def analyzer_start_freq(self) -> Optional[Quantity]:
@@ -381,10 +382,15 @@ class MainWindow(QMainWindow):
         self.overFreqPlotPolarizationComboBox.clear()
         self.overFreqPlotPolarizationComboBox.addItems(pols)
 
+        self.polarPlotPolarizationComboBox.blockSignals(False)
+        self.polarPlotFreqSpinBox.blockSignals(False)
+        self.overFreqPlotPolarizationComboBox.blockSignals(False)
+
     def setupMenuBar(self) -> None:
         self.menu = self.menuBar()
         self.file = self.menu.addMenu("File")
         self.save = self.file.addAction("Save")
+        self.load = self.file.addAction("Load")
         self.export = self.file.addAction("Export")
         self.file.addSeparator()
         self.settings = self.file.addAction("Settings")

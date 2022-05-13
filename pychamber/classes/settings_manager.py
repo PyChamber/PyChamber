@@ -4,7 +4,7 @@ from typing import Any
 
 from PyQt5.QtCore import QSettings
 
-ORG_NAME = "HRG"
+ORG_NAME = "PyChamber"
 APP_NAME = "PyChamber"
 
 

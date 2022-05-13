@@ -16,6 +16,7 @@ from pychamber.classes import positioner
 from pychamber.classes.jog_worker import JogAxis, JogWorker, JogZeroWorker
 from pychamber.classes.logger import log
 from pychamber.classes.network_model import NetworkModel
+from pychamber.classes.polarization import Polarization
 from pychamber.classes.positioner import PositionerError
 from pychamber.classes.scan_worker import ScanWorker
 from pychamber.classes.settings_manager import SettingsManager
@@ -76,6 +77,7 @@ class PyChamberCtrl:
     def connect_signals(self) -> None:
         # Menu
         self.view.save.triggered.connect(self.save_data)
+        self.view.load.triggered.connect(self.load_data)
         self.view.export.triggered.connect(self.export_csv)
         self.view.settings.triggered.connect(self.show_settings)
         self.view.python_interpreter.triggered.connect(self.show_python)
@@ -305,7 +307,7 @@ class PyChamberCtrl:
         self.view.update_polar_plot_freqs()
 
         azimuths = np.arange(
-            self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
+            self.view.az_extent_start, self.view.az_extent_stop + self.view.az_extent_step, self.view.az_extent_step
         )
 
         try:
@@ -323,7 +325,7 @@ class PyChamberCtrl:
         self.view.update_polar_plot_freqs()
 
         elevations = np.arange(
-            self.view.el_extent_start, self.view.el_extent_stop, self.view.el_extent_step
+            self.view.el_extent_start, self.view.el_extent_stop+self.view.el_extent_step, self.view.el_extent_step
         )
 
         try:
@@ -344,7 +346,7 @@ class PyChamberCtrl:
         try:
             log.info("Connecting to analyzer...")
             self.analyzer = self.analyzer_models[model](
-                addr, backend='/usr/lib/x86_64-linux-gnu/libktvisa32.so.0'
+                addr, backend=self.settings['backend']
             )
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
@@ -363,7 +365,7 @@ class PyChamberCtrl:
             )
             self.analyzer = None
             return
-        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)]
+        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [f"S{p}{p}" for p in ports]
         self.view.analyzerPol1ComboBox.addItems(ports)
         self.view.analyzerPol2ComboBox.addItems(ports)
         log.info("Connected")
@@ -406,6 +408,7 @@ class PyChamberCtrl:
             elif setting == FreqSetting.STEP:
                 if freq := self.view.analyzer_freq_step:
                     self.analyzer.set_freq_step(freq.real)
+                    self.view.analyzer_n_points = self.analyzer.npoints()
         except VisaIOError as e:
             log.error(f"Failed to communicate with analyzer: {str(e)}")
             PopUpMessage("Failed to communicate with analyzer", MsgLevel.ERROR)
@@ -418,6 +421,7 @@ class PyChamberCtrl:
 
         if npoints := self.view.analyzer_n_points:
             self.analyzer.set_npoints(npoints)
+            self.view.analyzer_freq_step = self.analyzer.freq_step()
 
     def exec_cal_dialog(self) -> None:
         dialog = CalibrationWizard(self.analyzer)
@@ -492,10 +496,6 @@ class PyChamberCtrl:
             self.view.polarPlotFreqSpinBox.setMaximum(temp.freqs[-1])
             self.view.polarPlotFreqSpinBox.setSingleStep(temp.freqs[1] - temp.freqs[0])
 
-            self.view.polarPlotPolarizationComboBox.blockSignals(False)
-            self.view.polarPlotFreqSpinBox.blockSignals(False)
-            self.view.overFreqPlotPolarizationComboBox.blockSignals(False)
-
             self.update_over_freq_plot()
             self.view.overFreqPlot.auto_scale()
             self.update_polar_plot()
@@ -529,6 +529,7 @@ class PyChamberCtrl:
     def show_settings(self) -> None:
         diag = SettingsDialog(self.settings, parent=None)
         diag.exec_()
+        # TODO: Update settings that get changed
 
     def show_python(self) -> None:
         if self.pyconsole is None:
@@ -546,30 +547,22 @@ class PyChamberCtrl:
     def show_log(self) -> None:
         LogViewer.display()
 
-    def update_ntwk_models(self, data: Network) -> None:
-        log.info(f"\n{data[0].s_db}")
+    def update_pol1_ntwk_model(self, data: Network) -> None:
         if pol1 := self.view.pol_1:
-            label = pol1[0] if pol1[0] != "" else "Polarization 1"
-            port = pol1[1]
-            temp = Network(
-                frequency=data.frequency,
-                s=data.s[:, port[0] - 1, port[1] - 1],
-                params=data.params,
-            )
+            label = pol1.label if pol1.label != "" else "Polarization 1"
             if self.cal is not None:
-                temp = temp - self.cal['data'][label]
-            self.ntwk_models[label] = self.ntwk_models[label].append(temp)
+                data = data - self.cal['data'][label]
+            self.ntwk_models[label] = self.ntwk_models[label].append(data)
+
+            self.update_polar_plot()
+            self.update_over_freq_plot()
+
+    def update_pol2_ntwk_model(self, data: Network) -> None:
         if pol2 := self.view.pol_2:
-            label = pol2[0] if pol2[0] != "" else "Polarization 2"
-            port = pol2[1]
-            temp = Network(
-                frequency=data.frequency,
-                s=data.s[:, port[0] - 1, port[1] - 1],
-                params=data.params,
-            )
+            label = pol2.label if pol2.label != "" else "Polarization 2"
             if self.cal is not None:
-                temp = temp - self.cal['data'][label]
-            self.ntwk_models[label] = self.ntwk_models[label].append(temp)
+                data = data - self.cal['data'][label]
+            self.ntwk_models[label] = self.ntwk_models[label].append(data)
 
             self.update_polar_plot()
             self.update_over_freq_plot()
@@ -583,9 +576,9 @@ class PyChamberCtrl:
         assert self.analyzer
 
         if pol1 := self.view.pol_1:
-            label1 = pol1[0] if pol1[0] != "" else "Polarization 1"
+            label1 = pol1.label if pol1.label != "" else "Polarization 1"
         if pol2 := self.view.pol_2:
-            label2 = pol2[0] if pol2[0] != "" else "Polarization 2"
+            label2 = pol2.label if pol2.label != "" else "Polarization 2"
 
         if pol1 is None and pol2 is None:
             log.info("No polarizations selected.")
@@ -604,6 +597,7 @@ class PyChamberCtrl:
             MUTEX,
             self.positioner,
             self.analyzer,
+            (pol1, pol2),
             azimuths,
             elevations,
         )
@@ -625,7 +619,8 @@ class PyChamberCtrl:
         self.worker.timeUpdate.connect(lambda t: setattr(self.view, 'time_remaining', t))
         self.worker.azMoveComplete.connect(lambda p: setattr(self.view, 'az_pos', p))
         self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
-        self.worker.dataAcquired.connect(lambda data: self.update_ntwk_models(data))
+        self.worker.pol1Acquired.connect(lambda data: self.update_pol1_ntwk_model(data))
+        self.worker.pol2Acquired.connect(lambda data: self.update_pol2_ntwk_model(data))
 
         self.thread.start()
 
