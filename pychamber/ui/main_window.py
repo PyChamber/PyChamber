@@ -30,7 +30,7 @@ from pychamber import utils
 from pychamber.ui import resources_rc
 
 from .freq_spin_box import FrequencySpinBox
-from .mplwidget import MplPolarWidget, MplRectWidget, MplWidget
+from .mplwidget import MplPolarWidget, MplRectWidget
 
 _SIZE_POLICIES = {
     'min_min': QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum),
@@ -91,9 +91,7 @@ class MainWindow(QMainWindow):
 
     def center(self):
         qr = self.frameGeometry()
-        print(qr)
         cp = QDesktopWidget().availableGeometry().center()
-        print(cp)
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -392,6 +390,9 @@ class MainWindow(QMainWindow):
         self.settings = self.file.addAction("Settings")
         self.file.addSeparator()
         self.quit = self.file.addAction("Quit")
+
+        self.tools = self.menu.addMenu("Tools")
+        self.python_interpreter = self.tools.addAction("Python Terminal")
 
         self.help = self.menu.addMenu("Help")
         self.bug = self.help.addAction("Submit a Bug")

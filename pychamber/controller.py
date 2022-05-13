@@ -24,6 +24,7 @@ from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
 from pychamber.ui.log_viewer import LogViewer
 from pychamber.ui.main_window import MainWindow
 from pychamber.ui.pop_ups import MsgLevel, PopUpMessage
+from pychamber.ui.python_console import PythonConsoleWidget
 from pychamber.ui.settings_dialog import SettingsDialog
 
 MUTEX = QMutex()
@@ -55,6 +56,7 @@ class PyChamberCtrl:
 
     cal: Optional[Dict] = None
     worker: Optional[Union[JogWorker, JogZeroWorker, ScanWorker]] = None
+    pyconsole: Optional[PythonConsoleWidget] = None
 
     def __init__(self, view: MainWindow) -> None:
         self.view: MainWindow = view
@@ -76,6 +78,7 @@ class PyChamberCtrl:
         self.view.save.triggered.connect(self.save_data)
         self.view.export.triggered.connect(self.export_csv)
         self.view.settings.triggered.connect(self.show_settings)
+        self.view.python_interpreter.triggered.connect(self.show_python)
         self.view.about.triggered.connect(self.about)
         self.view.log.triggered.connect(self.show_log)
         self.view.closeEvent = self.closeEvent  # type: ignore
@@ -142,6 +145,8 @@ class PyChamberCtrl:
 
         resp = warning.exec_()
         if resp == QMessageBox.Yes:
+            if self.pyconsole:
+                self.pyconsole.shutdown_kernel()
             del self.settings
             event.accept()
         else:
@@ -525,6 +530,16 @@ class PyChamberCtrl:
         diag = SettingsDialog(self.settings, parent=None)
         diag.exec_()
 
+    def show_python(self) -> None:
+        if self.pyconsole is None:
+            self.pyconsole = PythonConsoleWidget()
+            # self.pyconsole.push_vars({'ntwk_models': self.ntwk_models})
+        self.pyconsole.show()
+
+    # def update_python_widget(self) -> None:
+    #     if self.pyconsole:
+    #         self.pyconsole.push_vars({'ntwk_models': self.ntwk_models})
+
     def about(self) -> None:
         AboutPyChamber.display()
 
@@ -619,6 +634,7 @@ class PyChamberCtrl:
         self.view.experimentFullScanButton.setEnabled(False)
         self.view.experimentAzScanButton.setEnabled(False)
         self.view.experimentElScanButton.setEnabled(False)
+        self.view.python_interpreter.setEnabled(False)
         self.view.experimentAbortButton.setEnabled(True)
 
         self.view.experimentAbortButton.clicked.connect(
@@ -638,6 +654,10 @@ class PyChamberCtrl:
         self.thread.finished.connect(
             lambda: self.view.experimentElScanButton.setEnabled(True)
         )
+        self.thread.finished.connect(
+            lambda: self.view.python_interpreter.setEnabled(False)
+        )
+        # self.thread.finished.connect(self.update_python_widget)
         self.thread.finished.connect(
             lambda: self.view.experimentAbortButton.setEnabled(False)
         )
