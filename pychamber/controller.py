@@ -16,7 +16,6 @@ from pychamber.classes import positioner
 from pychamber.classes.jog_worker import JogAxis, JogWorker, JogZeroWorker
 from pychamber.classes.logger import log
 from pychamber.classes.network_model import NetworkModel
-from pychamber.classes.polarization import Polarization
 from pychamber.classes.positioner import PositionerError
 from pychamber.classes.scan_worker import ScanWorker
 from pychamber.classes.settings_manager import SettingsManager
@@ -113,6 +112,8 @@ class PyChamberCtrl:
         self.view.calibrationFileBrowseButton.clicked.connect(self.load_cal_file)
         self.view.calibrationButton.clicked.connect(self.exec_cal_dialog)
         self.view.calibrationViewButton.clicked.connect(self.exec_view_cal_dialog)
+        self.view.polarPlotAutoScaleButton.clicked.connect(self.auto_scale_polar)
+        self.view.overFreqPlotAutoScaleButton.clicked.connect(self.auto_scale_over_freq)
 
         # SpinBoxes
         self.view.polarPlotFreqSpinBox.valueChanged.connect(self.update_polar_plot)
@@ -138,6 +139,8 @@ class PyChamberCtrl:
             functools.partial(self.set_freq, FreqSetting.STEP)
         )
         self.view.analyzerNPointsLineEdit.returnPressed.connect(self.set_npoints)
+
+        self.settings.settingsChanged.connect(self.settings_updated)
 
     def closeEvent(self, event) -> None:
         warning = QMessageBox()
@@ -307,7 +310,9 @@ class PyChamberCtrl:
         self.view.update_polar_plot_freqs()
 
         azimuths = np.arange(
-            self.view.az_extent_start, self.view.az_extent_stop + self.view.az_extent_step, self.view.az_extent_step
+            self.view.az_extent_start,
+            self.view.az_extent_stop + self.view.az_extent_step,
+            self.view.az_extent_step,
         )
 
         try:
@@ -325,7 +330,9 @@ class PyChamberCtrl:
         self.view.update_polar_plot_freqs()
 
         elevations = np.arange(
-            self.view.el_extent_start, self.view.el_extent_stop+self.view.el_extent_step, self.view.el_extent_step
+            self.view.el_extent_start,
+            self.view.el_extent_stop + self.view.el_extent_step,
+            self.view.el_extent_step,
         )
 
         try:
@@ -365,7 +372,9 @@ class PyChamberCtrl:
             )
             self.analyzer = None
             return
-        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [f"S{p}{p}" for p in ports]
+        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [
+            f"S{p}{p}" for p in ports
+        ]
         self.view.analyzerPol1ComboBox.addItems(ports)
         self.view.analyzerPol2ComboBox.addItems(ports)
         log.info("Connected")
@@ -457,17 +466,31 @@ class PyChamberCtrl:
 
         self.view.update_polar_plot(azimuths, mags)
 
+    def auto_scale_polar(self) -> None:
+        self.view.polarPlot.auto_scale()
+        self.view.polar_plot_min = int(self.view.polarPlot.rmin)
+        self.view.polar_plot_max = int(self.view.polarPlot.rmax)
+        self.view.polar_plot_step = int(self.view.polarPlot.rstep)
+
     def update_over_freq_plot(self) -> None:
         pol = self.view.over_freq_plot_pol
+        az = self.view.over_freq_plot_az
+        el = self.view.over_freq_plot_el
         if pol not in self.ntwk_models:
             return
         if len(self.ntwk_models[pol]) == 0:
             return
 
         freqs = self.ntwk_models[pol].freqs.reshape(-1, 1)
-        mags = self.ntwk_models[pol].mags(azimuth=0.0, elevation=0.0).reshape(-1, 1)
+        mags = self.ntwk_models[pol].mags(azimuth=az, elevation=el).reshape(-1, 1)
 
         self.view.update_over_freq_plot(freqs, mags)
+
+    def auto_scale_over_freq(self) -> None:
+        self.view.overFreqPlot.auto_scale()
+        self.view.over_freq_plot_min = int(self.view.overFreqPlot.ymin)
+        self.view.over_freq_plot_max = int(self.view.overFreqPlot.ymax)
+        self.view.over_freq_plot_step = int(self.view.overFreqPlot.ystep)
 
     def save_data(self) -> None:
         if len(self.ntwk_models) == 0:
@@ -529,7 +552,9 @@ class PyChamberCtrl:
     def show_settings(self) -> None:
         diag = SettingsDialog(self.settings, parent=None)
         diag.exec_()
-        # TODO: Update settings that get changed
+
+    def settings_updated(self) -> None:
+        self.update_analyzer_ports()
 
     def show_python(self) -> None:
         if self.pyconsole is None:

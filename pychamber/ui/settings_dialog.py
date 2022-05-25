@@ -10,7 +10,6 @@ class SettingsDialog(QDialog):
     def __init__(self, settings_mgr: SettingsManager, parent=None) -> None:
         super().__init__(parent)
         self.settings_mgr = settings_mgr
-        print(self.settings_mgr.fileName())
         self.setup_widgets()
         self.setup_buttons()
 
@@ -19,7 +18,7 @@ class SettingsDialog(QDialog):
 
         self.backend = QComboBox(self)
         self.backend.addItem("Browse...")
-        backends = ['pyvisa-py', 'IVI'] + [self.settings_mgr["backend"]]
+        backends = ['pyvisa-py', 'IVI']
         self.backend.addItems(backends)
         self.backend.textActivated.connect(self.backend_browse)
 
@@ -27,6 +26,9 @@ class SettingsDialog(QDialog):
         idx = self.backend.findText(current_backend)
         if idx != -1:
             self.backend.setCurrentIndex(idx)
+        else:
+            self.backend.addItem(current_backend)
+            self.backend.setCurrentIndex(self.backend.count() - 1)
 
         layout.addRow("VISA Backend", self.backend)
 

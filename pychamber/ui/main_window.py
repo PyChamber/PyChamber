@@ -285,13 +285,25 @@ class MainWindow(QMainWindow):
     def polar_plot_min(self) -> float:
         return float(self.polarPlotMinSpinBox.value())
 
+    @polar_plot_min.setter
+    def polar_plot_min(self, rmin: int) -> None:
+        self.polarPlotMinSpinBox.setValue(rmin)
+
     @property
     def polar_plot_max(self) -> float:
         return float(self.polarPlotMaxSpinBox.value())
 
+    @polar_plot_max.setter
+    def polar_plot_max(self, rmax: int) -> None:
+        self.polarPlotMaxSpinBox.setValue(rmax)
+
     @property
     def polar_plot_step(self) -> float:
         return float(self.polarPlotStepSpinBox.value())
+
+    @polar_plot_step.setter
+    def polar_plot_step(self, rstep: int) -> None:
+        self.polarPlotStepSpinBox.setValue(rstep)
 
     @property
     def over_freq_plot_pol(self) -> str:
@@ -301,13 +313,25 @@ class MainWindow(QMainWindow):
     def over_freq_plot_min(self) -> float:
         return float(self.overFreqPlotMinSpinBox.value())
 
+    @over_freq_plot_min.setter
+    def over_freq_plot_min(self, ymin: int) -> None:
+        self.overFreqPlotMinSpinBox.setValue(ymin)
+
     @property
     def over_freq_plot_max(self) -> float:
         return float(self.overFreqPlotMaxSpinBox.value())
 
+    @over_freq_plot_max.setter
+    def over_freq_plot_max(self, ymax: int) -> None:
+        self.overFreqPlotMaxSpinBox.setValue(ymax)
+
     @property
     def over_freq_plot_step(self) -> float:
         return float(self.overFreqPlotStepSpinBox.value())
+
+    @over_freq_plot_step.setter
+    def over_freq_plot_step(self, ystep: int) -> None:
+        self.overFreqPlotStepSpinBox.setValue(ystep)
 
     @property
     def over_freq_plot_az(self) -> float:
@@ -392,6 +416,7 @@ class MainWindow(QMainWindow):
         self.save = self.file.addAction("Save")
         self.load = self.file.addAction("Load")
         self.export = self.file.addAction("Export")
+        self.export.setDisabled(True)
         self.file.addSeparator()
         self.settings = self.file.addAction("Settings")
         self.file.addSeparator()
@@ -1037,7 +1062,6 @@ class MainWindow(QMainWindow):
         self.polarPlotMinSpinBox.valueChanged.connect(self.polarPlot.set_scale_min)
         self.polarPlotMaxSpinBox.valueChanged.connect(self.polarPlot.set_scale_max)
         self.polarPlotStepSpinBox.valueChanged.connect(self.polarPlot.set_scale_step)
-        self.polarPlotAutoScaleButton.pressed.connect(self.polarPlot.auto_scale)
 
         self.overFreqPlot.set_xtitle("Frequency")
         self.overFreqPlot.set_ytitle("Gain [dB]")
@@ -1051,4 +1075,3 @@ class MainWindow(QMainWindow):
         self.overFreqPlotStepSpinBox.valueChanged.connect(
             self.overFreqPlot.set_scale_step
         )
-        self.overFreqPlotAutoScaleButton.pressed.connect(self.overFreqPlot.auto_scale)
