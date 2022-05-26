@@ -1,6 +1,6 @@
 import time
 import webbrowser
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from PyQt5.QtCore import QSize, Qt
@@ -56,8 +56,6 @@ _FONTS = {
 class MainWindow(QMainWindow):
     def __init__(self, *args) -> None:
         super().__init__(*args)
-        self.setWindowTitle("PyChamber")
-
         self.centralwidget = QWidget(self)
         self.setCentralWidget(self.centralwidget)
         self.mainWindowLayout = QHBoxLayout()
@@ -68,6 +66,10 @@ class MainWindow(QMainWindow):
         self.centralwidget.setLayout(self.mainWindowLayout)
 
         self.setupUi()
+
+        self.setWindowTitle("PyChamber")
+        self.setWindowIcon(QIcon(":/logo.png"))
+
         self.show()
         self.center()
 

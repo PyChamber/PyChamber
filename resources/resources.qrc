@@ -6,4 +6,7 @@
     <file>icons/DownArrow.png</file>
     <file>icons/UpArrow.png</file>
   </qresource>
+  <qresource>
+    <file>logo.png</file>
+  </qresource>
 </RCC>

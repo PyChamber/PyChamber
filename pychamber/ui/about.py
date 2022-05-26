@@ -1,14 +1,19 @@
-import webbrowser
-
-from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout
 
 import pychamber
+from pychamber.ui import resources_rc
 
 
 class AboutPyChamber(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout()
+
+        self.logo_label = QLabel()
+        self.logo = QPixmap(":/logo.png")
+        self.logo_label.setPixmap(self.logo.scaledToWidth(200))
+        layout.addWidget(self.logo_label)
 
         self.label = QLabel(self)
         self.label.setText(

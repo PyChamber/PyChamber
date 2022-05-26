@@ -1,44 +1,54 @@
 site_name: PyChamber
-site_url: https://cafeclimber.github.io/pychamber
-repo_url: https://github.com/cafeclimber/pychamber
-repo_name: cafeclimber/pychamber
+site_url: https://hrg-lab.github.io/pychamber
+repo_url: https://github.com/hrg-lab/pychamber
+repo_name: hrg-lab/pychamber
 #strict: true
 nav:
   - Home: index.md
   - Installation: installation.md
   - Usage: usage.md
-  - Modules: api.md
   - Contributing: contributing.md
   - Changelog: changelog.md
 theme:
   name: material
   language: en
-  #logo: assets/logo.png
+  #   #logo: assets/logo.png
   palette:
-    scheme: preference
-    primary: indigo
-    accent: indigo
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: lime
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
   features:
     - navigation.indexes
     - navigation.instant
     - navigation.tabs.sticky
 markdown_extensions:
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
-  - pymdownx.critic
-  - pymdownx.caret
-  - pymdownx.mark
-  - pymdownx.tilde
-  - pymdownx.tabbed
+  #   - pymdownx.emoji:
+  #       emoji_index: !!python/name:materialx.emoji.twemoji
+  #       emoji_generator: !!python/name:materialx.emoji.to_svg
+  #   - pymdownx.critic
+  #   - pymdownx.caret
+  #   - pymdownx.mark
+  #   - pymdownx.tilde
+  #   - pymdownx.tabbed
   - attr_list
-  - pymdownx.arithmatex:
-      generic: true
-  - pymdownx.highlight:
-      linenums: false
-  - pymdownx.superfences
-  - pymdownx.inlinehilite
-  - pymdownx.details
+  #   - pymdownx.arithmatex:
+  #       generic: true
+  #   - pymdownx.highlight:
+  #       linenums: false
+  #   - pymdownx.superfences
+  #   - pymdownx.inlinehilite
+  #   - pymdownx.details
   - admonition
   - toc:
       baselevel: 2
@@ -47,29 +57,29 @@ markdown_extensions:
   - meta
 plugins:
   - include-markdown
-  - search:
-      lang: en
-  - mkdocstrings:
-      watch:
-        - pychamber
-extra:
-  social:
-    - icon: fontawesome/brands/twitter
-      # replace with your own tweet link below
-      link: https://github.com/waynerv/cookiecutter-pypackage
-      name: Tweet
-    - icon: fontawesome/brands/facebook
-      # replace with your own facebook link below
-      link: https://github.com/waynerv/cookiecutter-pypackage
-      name: Facebook
-    - icon: fontawesome/brands/github
-      link: https://github.com/cafeclimber/pychamber
-      name: Github
-    - icon: material/email
-      link: "mailto:baileycampbell@psu.edu"
-  # to enable disqus, uncomment the following and put your disqus id below
-  # disqus: disqus_id
-# uncomment the following and put your google tracking id below to enable GA
-#google_analytics:
-  #- UA-xxx
-  #- auto
+  #   - search:
+  #       lang: en
+  # - mkdocstrings:
+  #     watch:
+  #       - pychamber
+# extra:
+#   social:
+#     - icon: fontawesome/brands/twitter
+#       # replace with your own tweet link below
+#       link: https://github.com/waynerv/cookiecutter-pypackage
+#       name: Tweet
+#     - icon: fontawesome/brands/facebook
+#       # replace with your own facebook link below
+#       link: https://github.com/waynerv/cookiecutter-pypackage
+#       name: Facebook
+#     - icon: fontawesome/brands/github
+#       link: https://github.com/cafeclimber/pychamber
+#       name: Github
+#     - icon: material/email
+#       link: "mailto:baileycampbell@psu.edu"
+#   # to enable disqus, uncomment the following and put your disqus id below
+#   # disqus: disqus_id
+# # uncomment the following and put your google tracking id below to enable GA
+# #google_analytics:
+#   #- UA-xxx
+#   #- auto
