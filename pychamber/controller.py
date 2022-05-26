@@ -6,7 +6,7 @@ from typing import Dict, Optional, Union
 import cloudpickle as pickle
 import numpy as np
 from PyQt5.QtCore import QMutex, QThread
-from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from pyvisa.errors import LibraryError, VisaIOError
 from serial.tools import list_ports
 from skrf import Network
@@ -24,7 +24,7 @@ from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
 from pychamber.ui.log_viewer import LogViewer
 from pychamber.ui.main_window import MainWindow
 from pychamber.ui.pop_ups import MsgLevel, PopUpMessage
-from pychamber.ui.python_console import PythonConsoleWidget
+from pychamber.ui.pyconsole import PyConsole
 from pychamber.ui.settings_dialog import SettingsDialog
 
 MUTEX = QMutex()
@@ -56,7 +56,7 @@ class PyChamberCtrl:
 
     cal: Optional[Dict] = None
     worker: Optional[Union[JogWorker, JogZeroWorker, ScanWorker]] = None
-    pyconsole: Optional[PythonConsoleWidget] = None
+    pyconsole: Optional[PyConsole] = None
 
     def __init__(self, view: MainWindow) -> None:
         self.view: MainWindow = view
@@ -73,11 +73,12 @@ class PyChamberCtrl:
         self.update_positioner_ports()
         self.update_positioner_models()
 
+        self.view.updateFromSettings(self.settings)
+
     def connect_signals(self) -> None:
         # Menu
         self.view.save.triggered.connect(self.save_data)
         self.view.load.triggered.connect(self.load_data)
-        self.view.export.triggered.connect(self.export_csv)
         self.view.settings.triggered.connect(self.show_settings)
         self.view.python_interpreter.triggered.connect(self.show_python)
         self.view.about.triggered.connect(self.about)
@@ -119,6 +120,24 @@ class PyChamberCtrl:
         self.view.polarPlotFreqSpinBox.valueChanged.connect(self.update_polar_plot)
         self.view.overFreqPlotAzSpinBox.valueChanged.connect(self.update_over_freq_plot)
         self.view.overFreqPlotElSpinBox.valueChanged.connect(self.update_over_freq_plot)
+        self.view.positionerAzExtentStartSpinBox.valueChanged.connect(
+            lambda val: self.settings.setval('az-start', val)
+        )
+        self.view.positionerAzExtentStopSpinBox.valueChanged.connect(
+            lambda val: self.settings.setval('az-stop', val)
+        )
+        self.view.positionerAzExtentStepSpinBox.valueChanged.connect(
+            lambda val: self.settings.setval('az-step', val)
+        )
+        self.view.positionerElExtentStartSpinBox.valueChanged.connect(
+            lambda val: self.settings.setval('el-start', val)
+        )
+        self.view.positionerElExtentStopSpinBox.valueChanged.connect(
+            lambda val: self.settings.setval('el-stop', val)
+        )
+        self.view.positionerElExtentStepSpinBox.valueChanged.connect(
+            lambda val: self.settings.setval('el-step', val)
+        )
 
         # Combo Boxes
         self.view.polarPlotPolarizationComboBox.currentIndexChanged.connect(
@@ -140,6 +159,13 @@ class PyChamberCtrl:
         )
         self.view.analyzerNPointsLineEdit.returnPressed.connect(self.set_npoints)
 
+        self.view.analyzerPol1LineEdit.textChanged.connect(
+            lambda val: self.settings.setval('pol1-label', val)
+        )
+        self.view.analyzerPol2LineEdit.textChanged.connect(
+            lambda val: self.settings.setval('pol2-label', val)
+        )
+
         self.settings.settingsChanged.connect(self.settings_updated)
 
     def closeEvent(self, event) -> None:
@@ -150,8 +176,6 @@ class PyChamberCtrl:
 
         resp = warning.exec_()
         if resp == QMessageBox.Yes:
-            if self.pyconsole:
-                self.pyconsole.shutdown_kernel()
             del self.settings
             event.accept()
         else:
@@ -161,12 +185,11 @@ class PyChamberCtrl:
         self.view.positionerPortComboBox.clear()
         ports = [p.device for p in list_ports.comports()]
         self.view.positionerPortComboBox.addItems(ports)
+        self.view.positionerPortComboBox.setCurrentText(self.settings['positioner-port'])
 
     def update_analyzer_ports(self) -> None:
         self.view.analyzerAddressComboBox.clear()
 
-        # Need to provide a way to try to find libraries but
-        # provide the user a back up of specifying the path directly
         backend = self.settings['backend']
 
         # If we can't find the library, default to pyvisa-py
@@ -176,14 +199,19 @@ class PyChamberCtrl:
             addrs = vna.VNA.available()
 
         self.view.analyzerAddressComboBox.addItems(addrs)
+        self.view.analyzerAddressComboBox.setCurrentText(self.settings['analyzer-addr'])
 
     def update_analyzer_models(self) -> None:
         self.view.analyzerModelComboBox.clear()
         self.view.analyzerModelComboBox.addItems(list(self.analyzer_models.keys()))
+        self.view.analyzerModelComboBox.setCurrentText(self.settings['analyzer-model'])
 
     def update_positioner_models(self) -> None:
         self.view.positionerModelComboBox.clear()
         self.view.positionerModelComboBox.addItems(list(self.positioner_models.keys()))
+        self.view.positionerModelComboBox.setCurrentText(
+            self.settings['positioner-model']
+        )
 
     def jog_az(
         self, dir: Optional[AzJogDir] = None, angle: Optional[float] = None
@@ -355,6 +383,8 @@ class PyChamberCtrl:
             self.analyzer = self.analyzer_models[model](
                 addr, backend=self.settings['backend']
             )
+            self.settings["analyzer-model"] = model
+            self.settings["analyzer-addr"] = addr
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
@@ -393,6 +423,8 @@ class PyChamberCtrl:
         log.info("Connecting to positioner...")
         try:
             self.positioner = self.positioner_models[model](port)
+            self.settings["positioner-model"] = model
+            self.settings["positioner-port"] = port
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
@@ -438,6 +470,7 @@ class PyChamberCtrl:
         val = dialog.get_cal()
         if val:
             self.view.cal_file_name = val[0]
+            self.settings['cal-file'] = val[0]
             self.cal = val[1]
 
     def exec_view_cal_dialog(self) -> None:
@@ -448,6 +481,7 @@ class PyChamberCtrl:
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
             self.view.cal_file_name = file_name
+            self.settings['cal-file'] = file_name
             with open(file_name, 'rb') as f:
                 self.cal_file = pickle.load(f)
                 self.view.calibrationViewButton.setEnabled(True)
@@ -524,47 +558,23 @@ class PyChamberCtrl:
             self.update_polar_plot()
             self.view.polarPlot.auto_scale()
 
-    def export_csv(self) -> None:
-        if len(self.ntwk_models) == 0:
-            PopUpMessage("No data to export")
-            return
-
-        pols = list(self.ntwk_models.keys())
-        which, ok = QInputDialog.getItem(
-            None,
-            "Which Polarization",
-            "Polarizations:",
-            pols,
-            editable=False,  # type: ignore
-        )
-        if not ok:
-            return
-        to_export = self.ntwk_models[which]
-        to_export.write_spreadsheet(file_name='testing.xlsx')
-
-        # save_name, _ = QFileDialog.getSaveFileName()
-        # if save_name != "":
-        #     save_path = pathlib.Path(save_name)
-        #     if save_path.suffix != ".csv":
-        #         save_path = save_path.with_suffix(".csv")
-        #         to_export.write_spreadsheet(save_name)
-
     def show_settings(self) -> None:
         diag = SettingsDialog(self.settings, parent=None)
         diag.exec_()
 
-    def settings_updated(self) -> None:
-        self.update_analyzer_ports()
+    def settings_updated(self, key: str) -> None:
+        if key == "backend":
+            self.update_analyzer_ports()
 
     def show_python(self) -> None:
-        if self.pyconsole is None:
-            self.pyconsole = PythonConsoleWidget()
-            # self.pyconsole.push_vars({'ntwk_models': self.ntwk_models})
+        self.pyconsole = PyConsole(theme=self.settings['python-theme'])
+        self.pyconsole.setMinimumSize(600, 600)
         self.pyconsole.show()
+        self.pyconsole.eval_in_thread()
 
-    # def update_python_widget(self) -> None:
-    #     if self.pyconsole:
-    #         self.pyconsole.push_vars({'ntwk_models': self.ntwk_models})
+    def update_python_with_ntwk_models(self) -> None:
+        if self.pyconsole:
+            self.pyconsole.push_local_ns("measurements", self.ntwk_models)
 
     def about(self) -> None:
         AboutPyChamber.display()
@@ -677,7 +687,7 @@ class PyChamberCtrl:
         self.thread.finished.connect(
             lambda: self.view.python_interpreter.setEnabled(False)
         )
-        # self.thread.finished.connect(self.update_python_widget)
+        self.thread.finished.connect(self.update_python_with_ntwk_models)
         self.thread.finished.connect(
             lambda: self.view.experimentAbortButton.setEnabled(False)
         )

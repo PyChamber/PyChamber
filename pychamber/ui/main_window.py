@@ -28,6 +28,7 @@ from quantiphy import Quantity
 
 from pychamber import utils
 from pychamber.classes.polarization import Polarization
+from pychamber.classes.settings_manager import SettingsManager
 from pychamber.ui import resources_rc
 
 from .freq_spin_box import FrequencySpinBox
@@ -415,8 +416,6 @@ class MainWindow(QMainWindow):
         self.file = self.menu.addMenu("File")
         self.save = self.file.addAction("Save")
         self.load = self.file.addAction("Load")
-        self.export = self.file.addAction("Export")
-        self.export.setDisabled(True)
         self.file.addSeparator()
         self.settings = self.file.addAction("Settings")
         self.file.addSeparator()
@@ -973,6 +972,24 @@ class MainWindow(QMainWindow):
 
         self.analyzerNPointsLineEdit.setValidator(QIntValidator())
 
+    def updateFromSettings(self, settings: SettingsManager) -> None:
+        self.analyzerModelComboBox.setCurrentText(settings["analyzer-model"])
+        self.analyzerAddressComboBox.setCurrentText(settings["analyzer-addr"])
+        self.positionerModelComboBox.setCurrentText(settings["positioner-model"])
+        self.positionerPortComboBox.setCurrentText(settings["positioner-port"])
+
+        self.analyzerPol1LineEdit.setText(settings["pol1-label"])
+        self.analyzerPol1ComboBox.setCurrentText(settings["pol1-param"])
+        self.analyzerPol2LineEdit.setText(settings["pol2-label"])
+        self.analyzerPol2ComboBox.setCurrentText(settings["pol2-param"])
+
+        self.positionerAzExtentStartSpinBox.setValue(float(settings["az-start"]))
+        self.positionerAzExtentStopSpinBox.setValue(float(settings["az-stop"]))
+        self.positionerAzExtentStepSpinBox.setValue(float(settings["az-step"]))
+        self.positionerElExtentStartSpinBox.setValue(float(settings["el-start"]))
+        self.positionerElExtentStopSpinBox.setValue(float(settings["el-stop"]))
+        self.positionerElExtentStepSpinBox.setValue(float(settings["el-step"]))
+
     def initInputs(self) -> None:
         self.positionerAzExtentStartSpinBox.setMinimum(-180.0)
         self.positionerAzExtentStartSpinBox.setMaximum(180.0)
@@ -1011,13 +1028,13 @@ class MainWindow(QMainWindow):
         self.positionerElExtentStepSpinBox.setValue(5.0)
 
         self.jogAzStepSpinBox.setMinimum(0.0)
-        self.jogAzStepSpinBox.setMaximum(90.0)
+        self.jogAzStepSpinBox.setMaximum(180.0)
         self.jogAzStepSpinBox.setSingleStep(0.25)
         self.jogAzStepSpinBox.setDecimals(2)
         self.jogAzStepSpinBox.setValue(0.0)
 
         self.jogElStepSpinBox.setMinimum(0.0)
-        self.jogElStepSpinBox.setMaximum(90.0)
+        self.jogElStepSpinBox.setMaximum(180.0)
         self.jogElStepSpinBox.setSingleStep(0.25)
         self.jogElStepSpinBox.setDecimals(2)
         self.jogElStepSpinBox.setValue(0.0)

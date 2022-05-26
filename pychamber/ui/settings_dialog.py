@@ -1,9 +1,9 @@
 import pathlib
 
-from classes.logger import log
 from classes.settings_manager import SettingsManager
 from PyQt5.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout
 from pyvisa.util import get_system_details
+from ui import pyconsole
 
 
 class SettingsDialog(QDialog):
@@ -30,7 +30,12 @@ class SettingsDialog(QDialog):
             self.backend.addItem(current_backend)
             self.backend.setCurrentIndex(self.backend.count() - 1)
 
+        self.py_theme = QComboBox(self)
+        self.py_theme.addItems(pyconsole.themes.keys())
+        self.py_theme.setCurrentText(self.settings_mgr['python-theme'])
+
         layout.addRow("VISA Backend", self.backend)
+        layout.addRow("Python Console Theme", self.py_theme)
 
         self.setLayout(layout)
 
@@ -43,6 +48,7 @@ class SettingsDialog(QDialog):
 
     def accept(self) -> None:
         self.settings_mgr["backend"] = self.backend.currentText()
+        self.settings_mgr["python-theme"] = self.py_theme.currentText()
         self.close()
 
     def backend_browse(self, text: str) -> None:
