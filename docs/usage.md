@@ -1,7 +1,3 @@
 # Usage
 
-To use PyChamber in a project
-
-```
-import pychamber
-```
+Todo: How to use PyChamber
