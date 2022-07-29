@@ -8,8 +8,20 @@ from skrf.networkSet import NetworkSet
 
 
 class NetworkModel(NetworkSet):
+    """Set of Networks that represent one meausurement.
+
+    Extends scikit-rf's NetworkSet to provide helper functions relevant to
+    chamber measurements.
+
+    Attributes:
+        freqs: List of frequencies in the set
+        azimuths: List of azimuths in the set
+        elevations: List of elevations in the set
+    """
+
     @property
     def freqs(self) -> np.ndarray:
+        """The list of frequencies contained in the set."""
         if len(self) == 0:
             return np.array([])
         else:
@@ -17,6 +29,7 @@ class NetworkModel(NetworkSet):
 
     @property
     def azimuths(self) -> np.ndarray:
+        """The list of azimuths contained in the set."""
         if len(self) == 0:
             return np.array([])
         else:
@@ -26,6 +39,7 @@ class NetworkModel(NetworkSet):
 
     @property
     def elevations(self) -> np.ndarray:
+        """The list of elevations contained in the set."""
         if len(self) == 0:
             return np.array([])
         else:
@@ -50,6 +64,15 @@ class NetworkModel(NetworkSet):
         azimuth: Optional[float] = None,
         elevation: Optional[float] = None,
     ) -> np.ndarray:
+        """Fetches data filtered by the arguments provided.
+
+        Any argument not passed will be interpreted as requesting all values.
+
+        Args:
+            freq: Frequency of interest
+            azimuth: Azimuth of interest
+            elevation: Elevation of interest
+        """
         if len(self) == 0:
             return np.array([])
         else:
@@ -60,7 +83,9 @@ class NetworkModel(NetworkSet):
                 params['elevation'] = elevation
 
             if freq:
-                return np.array([n[freq].s_db for n in self.sel(params)])  # type: ignore
+                return np.array([n[freq].s_db for n in self.sel(params)]).reshape(
+                    -1, 1
+                )  # type: ignore
             else:
                 return self.sel(params)[0].s_db.reshape(-1, 1)  # type: ignore
 

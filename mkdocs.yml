@@ -3,16 +3,26 @@ site_url: https://hrg-lab.github.io/pychamber
 repo_url: https://github.com/hrg-lab/pychamber
 repo_name: hrg-lab/pychamber
 #strict: true
-nav:
-  - Home: index.md
-  - Installation: installation.md
-  - Usage: usage.md
-  - Contributing: contributing.md
-  - Changelog: changelog.md
+plugins:
+  - search:
+      lang: en
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - mkdocstrings:
+      default_handler: python
+      watch:
+        - pychamber
+      handlers:
+        python:
+          paths: [pychamber]
 theme:
   name: material
   language: en
-  #   #logo: assets/logo.png
+  logo: assets/logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -55,13 +65,6 @@ markdown_extensions:
       permalink: true
       slugify: !!python/name:pymdownx.slugs.uslugify
   - meta
-plugins:
-  - include-markdown
-  #   - search:
-  #       lang: en
-  # - mkdocstrings:
-  #     watch:
-  #       - pychamber
 # extra:
 #   social:
 #     - icon: fontawesome/brands/twitter

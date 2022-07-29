@@ -7,7 +7,7 @@ Todo!
 ## From source
 
 The source for PyChamber can be downloaded from
-the [Github repo][].
+the [Github repo](https://github.com/hrg-lab/pychamber/).
 
 You can either clone the public repository:
 
@@ -15,7 +15,7 @@ You can either clone the public repository:
 git clone git://github.com/hrg-lab/pychamber
 ```
 
-Or download the [tarball][]:
+Or download the tarball:
 
 ``` console
 curl -OJL https://github.com/hrg-lab/pychamber/tarball/master

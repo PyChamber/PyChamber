@@ -48,6 +48,10 @@ quantiphy = "^2.17.0"
 pyqtconsole = "^1.2.2"
 mkdocs-material = "^8.2.15"
 mkdocs-include-markdown-plugin = "^3.5.1"
+mkdocstrings = { version = "^0.19.0", extras = ["python"], optional = true }
+mkdocs-gen-files = { version = "^0.3.5", optional = true }
+mkdocs-literate-nav = { version = "^0.4.1", optional = true }
+mkdocs-section-index = { version = "^0.3.4", optional = true }
 
 [tool.poetry.extras]
 test = [
@@ -78,6 +82,9 @@ doc = [
     "mkdocstrings",
     "mkdocs-material-extension",
     "mkdocs-autorefs",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
 ]
 
 [tool.poetry.dev-dependencies]
