@@ -74,6 +74,7 @@ class PyChamberCtrl:
         self.update_positioner_models()
 
         self.view.updateFromSettings(self.settings)
+        self.pyconsole = PyConsole(theme=self.settings['python-theme'])
 
     def connect_signals(self) -> None:
         # Menu
@@ -499,11 +500,10 @@ class PyChamberCtrl:
         idx = (np.abs(array - freq)).argmin()
         freq = array[idx]
 
-        azimuths = np.deg2rad(self.ntwk_models[pol].azimuths.reshape(-1, 1))
+        azimuths = np.deg2rad(self.ntwk_models[pol].azimuths)
         mags = (
             self.ntwk_models[pol]
             .mags(freq=self.view.polar_plot_freq.render(), elevation=0)
-            .reshape(-1, 1)
         )
 
         self.view.update_polar_plot(azimuths, mags)
@@ -560,6 +560,7 @@ class PyChamberCtrl:
             self.view.overFreqPlot.auto_scale()
             self.update_polar_plot()
             self.view.polarPlot.auto_scale()
+            self.update_python_with_ntwk_models()
 
     def show_settings(self) -> None:
         diag = SettingsDialog(self.settings, parent=None)
@@ -570,7 +571,6 @@ class PyChamberCtrl:
             self.update_analyzer_ports()
 
     def show_python(self) -> None:
-        self.pyconsole = PyConsole(theme=self.settings['python-theme'])
         self.pyconsole.setMinimumSize(600, 600)
         self.pyconsole.show()
         self.pyconsole.eval_in_thread()
@@ -586,40 +586,20 @@ class PyChamberCtrl:
         LogViewer.display()
 
     def update_pol1_ntwk_model(self, data: Network) -> None:
+        log.debug("Updating pol1 ntwk data")
         if pol1 := self.view.pol_1:
             label = pol1.label if pol1.label != "" else "Polarization 1"
             if self.cal is not None:
                 data = data - self.cal['data'][label]
-            self.ntwk_models[label].append(data)
-
-            self.update_polar_plot()
-            self.update_over_freq_plot()
+            self.ntwk_models[label] = self.ntwk_models[label].append(data)
 
     def update_pol2_ntwk_model(self, data: Network) -> None:
+        log.debug("Updating pol2 ntwk data")
         if pol2 := self.view.pol_2:
             label = pol2.label if pol2.label != "" else "Polarization 2"
             if self.cal is not None:
                 data = data - self.cal['data'][label]
-            self.ntwk_models[label].append(data)
-
-            self.update_polar_plot()
-            self.update_over_freq_plot()
-
-    def recalc_ntwk_models(self) -> None:
-        # When taking data, we directly append to the internal NetworkSet's
-        # list. This doesn't update the statistics that are generated in
-        # NetworkSet's constructor. This function simply reconstructs the
-        # NetworkModel to generate those statistics for the user.
-        if pol1 := self.view.pol_1:
-            label = pol1.label if pol1.label != "" else "Polarization 1"
-            self.ntwk_models[label] = NetworkModel(self.ntwk_models[label].to_dict())
-
-        if pol2 := self.view.pol_2:
-            label = pol2.label if pol2.label != "" else "Polarization 2"
-            self.ntwk_models[label] = NetworkModel(self.ntwk_models[label].to_dict())
-
-        self.update_polar_plot()
-        self.update_over_freq_plot()
+            self.ntwk_models[label] = self.ntwk_models[label].append(data)
 
     def start_scan_thread(
         self,
@@ -638,11 +618,10 @@ class PyChamberCtrl:
             log.info("No polarizations selected.")
             return
 
-        if len(self.ntwk_models) == 0:
-            self.ntwk_models = {
+        self.ntwk_models = {
                 label1: NetworkModel(),
                 label2: NetworkModel(),
-            }
+        }
 
         self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
@@ -675,6 +654,8 @@ class PyChamberCtrl:
         self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
         self.worker.pol1Acquired.connect(lambda data: self.update_pol1_ntwk_model(data))
         self.worker.pol2Acquired.connect(lambda data: self.update_pol2_ntwk_model(data))
+        self.worker.pol1Acquired.connect(self.update_polar_plot)
+        self.worker.pol1Acquired.connect(self.update_over_freq_plot)
 
         self.thread.start()
 
@@ -706,7 +687,6 @@ class PyChamberCtrl:
         self.thread.finished.connect(
             lambda: self.view.python_interpreter.setEnabled(True)
         )
-        self.thread.finished.connect(self.recalc_ntwk_models)
         self.thread.finished.connect(self.update_python_with_ntwk_models)
         self.thread.finished.connect(
             lambda: self.view.experimentAbortButton.setEnabled(False)

@@ -40,6 +40,7 @@ class ScanWorker(Worker):
         self.abort = False
 
     def run(self) -> None:
+        log.debug("Starting scan worker")
         self.mutex.lock()
         for pol in self.polarizations:
             if pol:
