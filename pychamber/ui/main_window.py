@@ -1,5 +1,6 @@
 import time
 import webbrowser
+from lib2to3.pgen2.token import OP
 from typing import List, Optional, Union
 
 import numpy as np
@@ -281,8 +282,11 @@ class MainWindow(QMainWindow):
         return self.polarPlotPolarizationComboBox.currentText()
 
     @property
-    def polar_plot_freq(self) -> float:
-        return self.polarPlotFreqSpinBox.value()
+    def polar_plot_freq(self) -> Optional[Quantity]:
+        if (f := self.polarPlotFreqLineEdit.text()) != "":
+            return utils.to_freq(f)
+        else:
+            return None
 
     @property
     def polar_plot_min(self) -> float:
@@ -387,21 +391,9 @@ class MainWindow(QMainWindow):
     def disable_experiment(self) -> None:
         self.experimentGroupBox.setEnabled(False)
 
-    def update_polar_plot_freqs(self) -> None:
-        start = self.analyzer_start_freq
-        stop = self.analyzer_start_freq
-        step = self.analyzer_start_freq
-
-        if start:
-            self.polarPlotFreqSpinBox.setMinimum(start)
-        if stop:
-            self.polarPlotFreqSpinBox.setMaximum(stop)
-        if step:
-            self.polarPlotFreqSpinBox.setMinimum(step)
-
     def update_plot_pols(self, pols: List[str]) -> None:
         self.polarPlotPolarizationComboBox.blockSignals(True)
-        self.polarPlotFreqSpinBox.blockSignals(True)
+        self.polarPlotFreqLineEdit.blockSignals(True)
         self.overFreqPlotPolarizationComboBox.blockSignals(True)
 
         self.polarPlotPolarizationComboBox.clear()
@@ -410,7 +402,7 @@ class MainWindow(QMainWindow):
         self.overFreqPlotPolarizationComboBox.addItems(pols)
 
         self.polarPlotPolarizationComboBox.blockSignals(False)
-        self.polarPlotFreqSpinBox.blockSignals(False)
+        self.polarPlotFreqLineEdit.blockSignals(False)
         self.overFreqPlotPolarizationComboBox.blockSignals(False)
 
     def setupMenuBar(self) -> None:
@@ -782,7 +774,7 @@ class MainWindow(QMainWindow):
         self.polarPlotPolarizationComboBox = QComboBox(tab)
         self.polarPlotPolarizationComboBox.addItems(['1', '2'])
         self.polarPlotFreqLabel = QLabel("Frequency", tab)
-        self.polarPlotFreqSpinBox = FrequencySpinBox(tab)
+        self.polarPlotFreqLineEdit = QLineEdit(tab)
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.polarPlotAutoScaleButton = QPushButton("Auto Scale", tab)
         self.polarPlotMinLabel = QLabel("Min", tab)
@@ -795,7 +787,7 @@ class MainWindow(QMainWindow):
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotPolarizationLabel)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotPolarizationComboBox)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotFreqLabel)
-        self.polarPlotSettingsHLayout.addWidget(self.polarPlotFreqSpinBox)
+        self.polarPlotSettingsHLayout.addWidget(self.polarPlotFreqLineEdit)
         self.polarPlotSettingsHLayout.addItem(spacer)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotAutoScaleButton)
         self.polarPlotSettingsHLayout.addWidget(self.polarPlotMinLabel)
@@ -925,8 +917,8 @@ class MainWindow(QMainWindow):
         self.experimentTimeRemainingLabel.setSizePolicy(_SIZE_POLICIES['pref_pref'])
         self.experimentTimeRemainingLineEdit.setSizePolicy(_SIZE_POLICIES['exp_pref'])
 
-        self.polarPlotFreqSpinBox.setSizePolicy(_SIZE_POLICIES['pref_pref'])
-        self.polarPlotFreqSpinBox.setMinimumWidth(100)
+        self.polarPlotFreqLineEdit.setSizePolicy(_SIZE_POLICIES['pref_pref'])
+        self.polarPlotFreqLineEdit.setMinimumWidth(100)
 
     def updateFonts(self) -> None:
         self.positionerAzExtentLabel.setFont(_FONTS["bold_14"])

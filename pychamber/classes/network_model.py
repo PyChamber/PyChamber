@@ -33,6 +33,17 @@ class NetworkModel(NetworkSet):
                 [n.params['elevation'] for n in self.sel({'azimuth': 0})]  # type: ignore
             ).reshape(-1, 1)
 
+    def __str__(self) -> str:
+        if len(self) == 0:
+            return "Empty NetworkModel"
+        else:
+            return (
+                "NetworkModel:\n"
+                f"    {self[0].frequency.f}"  # type: ignore
+                f"    {len(self.elevations)} Elevations"
+                f"    {len(self.azimuths)} Azimuths"
+            )
+
     def mags(
         self,
         freq: Optional[str] = None,

@@ -117,7 +117,6 @@ class PyChamberCtrl:
         self.view.overFreqPlotAutoScaleButton.clicked.connect(self.auto_scale_over_freq)
 
         # SpinBoxes
-        self.view.polarPlotFreqSpinBox.valueChanged.connect(self.update_polar_plot)
         self.view.overFreqPlotAzSpinBox.valueChanged.connect(self.update_over_freq_plot)
         self.view.overFreqPlotElSpinBox.valueChanged.connect(self.update_over_freq_plot)
         self.view.positionerAzExtentStartSpinBox.valueChanged.connect(
@@ -165,6 +164,7 @@ class PyChamberCtrl:
         self.view.analyzerPol2LineEdit.textChanged.connect(
             lambda val: self.settings.setval('pol2-label', val)
         )
+        self.view.polarPlotFreqLineEdit.returnPressed.connect(self.update_polar_plot)
 
         self.settings.settingsChanged.connect(self.settings_updated)
 
@@ -315,7 +315,6 @@ class PyChamberCtrl:
 
         self.view.experimentCutProgressLabel.show()
         self.view.experimentCutProgressBar.show()
-        self.view.update_polar_plot_freqs()
 
         azimuths = np.arange(
             self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
@@ -335,8 +334,6 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
-        self.view.update_polar_plot_freqs()
-
         azimuths = np.arange(
             self.view.az_extent_start,
             self.view.az_extent_stop + self.view.az_extent_step,
@@ -354,8 +351,6 @@ class PyChamberCtrl:
         if not self.positioner:
             PopUpMessage("Not connected")
             return
-
-        self.view.update_polar_plot_freqs()
 
         elevations = np.arange(
             self.view.el_extent_start,
@@ -487,16 +482,29 @@ class PyChamberCtrl:
                 self.view.calibrationViewButton.setEnabled(True)
 
     def update_polar_plot(self) -> None:
-        freq = str(self.view.polar_plot_freq)
-
+        if not self.view.polar_plot_freq:
+            return
         pol = self.view.polar_plot_pol
         if pol not in self.ntwk_models:
             return
         if len(self.ntwk_models[pol]) == 0:
             return
 
+        freq = self.view.polar_plot_freq
+        freqs = self.ntwk_models[pol].freqs
+        if (freq < min(freqs)) or (freq > max(freqs)):
+            return
+
+        array = np.asarray(freqs)
+        idx = (np.abs(array - freq)).argmin()
+        freq = array[idx]
+
         azimuths = np.deg2rad(self.ntwk_models[pol].azimuths.reshape(-1, 1))
-        mags = self.ntwk_models[pol].mags(freq, elevation=0).reshape(-1, 1)
+        mags = (
+            self.ntwk_models[pol]
+            .mags(freq=self.view.polar_plot_freq.render(), elevation=0)
+            .reshape(-1, 1)
+        )
 
         self.view.update_polar_plot(azimuths, mags)
 
@@ -547,11 +555,6 @@ class PyChamberCtrl:
                     return
 
             self.view.update_plot_pols(list(self.ntwk_models.keys()))
-
-            temp = next(iter(val.values()))
-            self.view.polarPlotFreqSpinBox.setMinimum(temp.freqs[0])
-            self.view.polarPlotFreqSpinBox.setMaximum(temp.freqs[-1])
-            self.view.polarPlotFreqSpinBox.setSingleStep(temp.freqs[1] - temp.freqs[0])
 
             self.update_over_freq_plot()
             self.view.overFreqPlot.auto_scale()
