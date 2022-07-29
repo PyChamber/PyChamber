@@ -590,7 +590,7 @@ class PyChamberCtrl:
             label = pol1.label if pol1.label != "" else "Polarization 1"
             if self.cal is not None:
                 data = data - self.cal['data'][label]
-            self.ntwk_models[label] = self.ntwk_models[label].append(data)
+            self.ntwk_models[label].append(data)
 
             self.update_polar_plot()
             self.update_over_freq_plot()
@@ -600,10 +600,26 @@ class PyChamberCtrl:
             label = pol2.label if pol2.label != "" else "Polarization 2"
             if self.cal is not None:
                 data = data - self.cal['data'][label]
-            self.ntwk_models[label] = self.ntwk_models[label].append(data)
+            self.ntwk_models[label].append(data)
 
             self.update_polar_plot()
             self.update_over_freq_plot()
+
+    def recalc_ntwk_models(self) -> None:
+        # When taking data, we directly append to the internal NetworkSet's
+        # list. This doesn't update the statistics that are generated in
+        # NetworkSet's constructor. This function simply reconstructs the
+        # NetworkModel to generate those statistics for the user.
+        if pol1 := self.view.pol_1:
+            label = pol1.label if pol1.label != "" else "Polarization 1"
+            self.ntwk_models[label] = NetworkModel(self.ntwk_models[label].to_dict())
+
+        if pol2 := self.view.pol_2:
+            label = pol2.label if pol2.label != "" else "Polarization 2"
+            self.ntwk_models[label] = NetworkModel(self.ntwk_models[label].to_dict())
+
+        self.update_polar_plot()
+        self.update_over_freq_plot()
 
     def start_scan_thread(
         self,
@@ -688,8 +704,9 @@ class PyChamberCtrl:
             lambda: self.view.experimentElScanButton.setEnabled(True)
         )
         self.thread.finished.connect(
-            lambda: self.view.python_interpreter.setEnabled(False)
+            lambda: self.view.python_interpreter.setEnabled(True)
         )
+        self.thread.finished.connect(self.recalc_ntwk_models)
         self.thread.finished.connect(self.update_python_with_ntwk_models)
         self.thread.finished.connect(
             lambda: self.view.experimentAbortButton.setEnabled(False)
