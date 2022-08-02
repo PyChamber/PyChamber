@@ -19,7 +19,7 @@ log_path = (
     pathlib.Path(tempfile.gettempdir())
     / f"pychamber_{datetime.now().strftime('%y%m%d_%H%M')}.log"
 )
-_formatter = logging.Formatter("[%(levelname)s] - %(module)s: %(message)s")
+_formatter = logging.Formatter("[%(levelname)s] - %(module)s.%(funcName)s: %(message)s")
 
 _stderr_handler = logging.StreamHandler(sys.stderr)
 _stderr_handler.setFormatter(_formatter)

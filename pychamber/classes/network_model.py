@@ -13,6 +13,8 @@ import numpy as np
 from skrf.network import Network
 from skrf.networkSet import NetworkSet
 
+from pychamber.classes.logger import log
+
 
 class NetworkModel(NetworkSet):
     """Set of Networks that represent one meausurement.
@@ -60,8 +62,8 @@ class NetworkModel(NetworkSet):
         else:
             return (
                 "NetworkModel:\n"
-                f"    {self[0].frequency.f}"  # type: ignore
-                f"    {len(self.elevations)} Elevations"
+                f"    {self[0].frequency}\n"  # type: ignore
+                f"    {len(self.elevations)} Elevations\n"
                 f"    {len(self.azimuths)} Azimuths"
             )
 
@@ -71,6 +73,7 @@ class NetworkModel(NetworkSet):
         azimuth: Optional[float] = None,
         elevation: Optional[float] = None,
     ) -> np.ndarray:
+        log.debug("Fetching Mags")
         """Fetches data filtered by the arguments provided.
 
         Any argument not passed will be interpreted as requesting all values of
@@ -113,5 +116,8 @@ class NetworkModel(NetworkSet):
             else:
                 return self.sel(params)[0].s_db.reshape(-1, 1)  # type: ignore
 
-    def append(self, ntwk: Network) -> None:
-        self.ntwk_set.append(ntwk)  # type: ignore
+    def append(self, ntwk: Network) -> NetworkModel:
+        log.debug("Appending to network model")
+        ret = NetworkModel(list(self) + [ntwk])  # type: ignore
+        log.debug(f"{ret=}")
+        return ret
