@@ -45,7 +45,7 @@ The available S-paramenters are dependent on your specific analyzer.
 Here you can change the frequency settings of your analyzer. You can enter
 frequencies as you would imagine, e.g. "650 MHz", "10GHz", "10000000", etc.
 
-!!! warning Important!
+!!! warning "Important!"
     You must press enter to finalize changes and apply them to your analyzer.
 
 ## Calibration
@@ -70,7 +70,7 @@ buttons will return the positioner to its defined 0 position. The step size
 defines how much the positioner will move with each button press, and the "Jog
 To" field allows you to jog the positioner to a specific location.
 
-!!! warning Important!
+!!! warning "Important!"
     You must press the check button to jog. This is intentional to prevent the
     accidental movement of the positioner.
 
