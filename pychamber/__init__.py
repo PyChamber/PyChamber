@@ -5,4 +5,4 @@ __author__ = """Bailey Campbell"""
 __email__ = 'baileycampbell@psu.edu'
 __version__ = version(__name__)
 
-from .lib import load
+from .lib import *

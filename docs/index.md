@@ -1,7 +1,24 @@
-[<img src="./assets/logo.png" width="125" />](./assets/logo.png)
-
 # PyChamber
 
+<img
+    style="display: block;
+           margin-left: auto;
+           margin-right: auto;
+           width: 30%;"
+    src="./assets/logo.png"
+    alt="PyChamber logo">
+</img>
+
 PyChamber is an open-source application written with Qt to take anechoic
-chamber measurements. All measurements are saved as scikit-rf objects
-which greatly simplifies post-processing.
+chamber measurements. All measurements are saved as scikit-rf objects (or
+classes derived from them) which greatly simplifies post-processing.
+
+## Table of Contents
+
+- [Overview](./): This page
+- [Usage](./usage.md): How to use the program
+- [API Reference](./reference/index.md): Documentation of the Python API
+- [Installation](./installation.md): Ways to install PyChamber
+- [Contributing](./contributing.md): How to help with the development of
+  PyChamber
+- [Changelog](./changelog.md): Summaries of each update of PyChamber

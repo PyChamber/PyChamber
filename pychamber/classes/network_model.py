@@ -1,3 +1,10 @@
+"""An extension of scikit-rf's NetworkSet.
+
+This module defines the NetworkModel class which extends scikit-rf's NetworkSet
+to provide helpful functions relevant to chamber measurements.
+
+When taking measurements, each polarization will be a NetworkModel.
+"""
 from __future__ import annotations
 
 from typing import Optional
@@ -66,7 +73,24 @@ class NetworkModel(NetworkSet):
     ) -> np.ndarray:
         """Fetches data filtered by the arguments provided.
 
-        Any argument not passed will be interpreted as requesting all values.
+        Any argument not passed will be interpreted as requesting all values of
+        that type.
+
+        Example:
+        ```py
+        import pychamber
+        data = pychamber.load("/path/to/data")
+        # data = {"Vertical": NetworkModel, "Horizontal": NetworkModel}
+        vert = data["Vertical"]
+        # Retrieve the primary azimuth cut-plane (theta=90) for 2.45GHz
+        cut = vert.mags(freq="2.45 GHz", elevation=0)
+        ```
+
+        This example makes clear that theta in the traditional sense is
+        different from elevation. Elevation is dependent on the positioner, but
+        for the D6050 for example, if boresight is taken as (0 azimuth, 0
+        elevation), then elevation is the angle of rotation of the
+        secondary-axis.
 
         Args:
             freq: Frequency of interest

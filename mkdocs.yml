@@ -2,13 +2,9 @@ site_name: PyChamber
 site_url: https://hrg-lab.github.io/pychamber
 repo_url: https://github.com/hrg-lab/pychamber
 repo_name: hrg-lab/pychamber
-#strict: true
 plugins:
   - search:
       lang: en
-  - gen-files:
-      scripts:
-        - docs/gen_ref_pages.py
   - literate-nav:
       nav_file: SUMMARY.md
   - section-index
@@ -19,6 +15,9 @@ plugins:
       handlers:
         python:
           paths: [pychamber]
+          import:
+            - https://scikit-rf.readthedocs.io/en/latest/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
 theme:
   name: material
   language: en
@@ -43,46 +42,15 @@ theme:
     - navigation.instant
     - navigation.tabs.sticky
 markdown_extensions:
-  #   - pymdownx.emoji:
-  #       emoji_index: !!python/name:materialx.emoji.twemoji
-  #       emoji_generator: !!python/name:materialx.emoji.to_svg
-  #   - pymdownx.critic
-  #   - pymdownx.caret
-  #   - pymdownx.mark
-  #   - pymdownx.tilde
-  #   - pymdownx.tabbed
-  - attr_list
-  #   - pymdownx.arithmatex:
-  #       generic: true
-  #   - pymdownx.highlight:
-  #       linenums: false
-  #   - pymdownx.superfences
-  #   - pymdownx.inlinehilite
-  #   - pymdownx.details
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      linenums: false
+  - pymdownx.superfences
+  - pymdownx.details
   - admonition
   - toc:
       baselevel: 2
       permalink: true
       slugify: !!python/name:pymdownx.slugs.uslugify
   - meta
-# extra:
-#   social:
-#     - icon: fontawesome/brands/twitter
-#       # replace with your own tweet link below
-#       link: https://github.com/waynerv/cookiecutter-pypackage
-#       name: Tweet
-#     - icon: fontawesome/brands/facebook
-#       # replace with your own facebook link below
-#       link: https://github.com/waynerv/cookiecutter-pypackage
-#       name: Facebook
-#     - icon: fontawesome/brands/github
-#       link: https://github.com/cafeclimber/pychamber
-#       name: Github
-#     - icon: material/email
-#       link: "mailto:baileycampbell@psu.edu"
-#   # to enable disqus, uncomment the following and put your disqus id below
-#   # disqus: disqus_id
-# # uncomment the following and put your google tracking id below to enable GA
-# #google_analytics:
-#   #- UA-xxx
-#   #- auto
