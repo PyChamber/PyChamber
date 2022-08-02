@@ -29,6 +29,8 @@ class SettingsManager(QSettings):
         "el-stop": 90,
         "el-step": 5,
         "cal-file": "",
+        "polar-autoscale": True,
+        "overfreq-autoscale": True,
     }
 
     def __init__(self, parent=None) -> None:

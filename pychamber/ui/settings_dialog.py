@@ -1,7 +1,14 @@
 import pathlib
 
 from classes.settings_manager import SettingsManager
-from PyQt5.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFormLayout,
+)
 from pyvisa.util import get_system_details
 from ui import pyconsole
 
@@ -34,8 +41,18 @@ class SettingsDialog(QDialog):
         self.py_theme.addItems(pyconsole.themes.keys())
         self.py_theme.setCurrentText(self.settings_mgr['python-theme'])
 
+        self.polar_autoscale = QCheckBox(self)
+        self.polar_autoscale.setChecked(self.settings_mgr['polar-autoscale'])
+
+        self.overfreq_autoscale = QCheckBox(self)
+        self.overfreq_autoscale.setChecked(self.settings_mgr['overfreq-autoscale'])
+
         layout.addRow("VISA Backend", self.backend)
         layout.addRow("Python Console Theme", self.py_theme)
+        layout.addRow("Auto-scale Polar Plot During Experiment", self.polar_autoscale)
+        layout.addRow(
+            "Auto-scale Over Frequency Plot During Experiment", self.overfreq_autoscale
+        )
 
         self.setLayout(layout)
 

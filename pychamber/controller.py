@@ -482,6 +482,29 @@ class PyChamberCtrl:
                 self.cal_file = pickle.load(f)
                 self.view.calibrationViewButton.setEnabled(True)
 
+    def update_over_freq_plot_lims(self) -> None:
+        azimuths = list(self.ntwk_models.values())[0].azimuths.reshape((-1,))
+        if len(azimuths) > 1:
+            az_step = azimuths[1] - azimuths[0]
+            self.view.overFreqPlotAzSpinBox.setSingleStep(az_step)
+            self.view.overFreqPlotAzSpinBox.setMinimum(azimuths.min())
+            self.view.overFreqPlotAzSpinBox.setMaximum(azimuths.max())
+        else:
+            self.view.overFreqPlotAzSpinBox.setSingleStep(0)
+            self.view.overFreqPlotAzSpinBox.setMinimum(0)
+            self.view.overFreqPlotAzSpinBox.setMaximum(0)
+
+        elevations = list(self.ntwk_models.values())[0].elevations.reshape((-1,))
+        if len(elevations) > 1:
+            el_step = elevations[1] - elevations[0]
+            self.view.overFreqPlotElSpinBox.setSingleStep(el_step)
+            self.view.overFreqPlotElSpinBox.setMinimum(elevations.min())
+            self.view.overFreqPlotElSpinBox.setMaximum(elevations.max())
+        else:
+            self.view.overFreqPlotElSpinBox.setSingleStep(0)
+            self.view.overFreqPlotElSpinBox.setMinimum(0)
+            self.view.overFreqPlotElSpinBox.setMaximum(0)
+
     def update_polar_plot(self) -> None:
         if not self.view.polar_plot_freq:
             return
@@ -501,12 +524,13 @@ class PyChamberCtrl:
         freq = array[idx]
 
         azimuths = np.deg2rad(self.ntwk_models[pol].azimuths)
-        mags = (
-            self.ntwk_models[pol]
-            .mags(freq=self.view.polar_plot_freq.render(), elevation=0)
+        mags = self.ntwk_models[pol].mags(
+            freq=self.view.polar_plot_freq.render(), elevation=0
         )
 
         self.view.update_polar_plot(azimuths, mags)
+        if self.settings['polar-autoscale']:
+            self.auto_scale_polar()
 
     def auto_scale_polar(self) -> None:
         self.view.polarPlot.auto_scale()
@@ -527,6 +551,8 @@ class PyChamberCtrl:
         mags = self.ntwk_models[pol].mags(azimuth=az, elevation=el).reshape(-1, 1)
 
         self.view.update_over_freq_plot(freqs, mags)
+        if self.settings['overfreq-autoscale']:
+            self.auto_scale_over_freq()
 
     def auto_scale_over_freq(self) -> None:
         self.view.overFreqPlot.auto_scale()
@@ -556,10 +582,13 @@ class PyChamberCtrl:
 
             self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
+            self.update_over_freq_plot_lims()
             self.update_over_freq_plot()
-            self.view.overFreqPlot.auto_scale()
+            self.auto_scale_over_freq()
+
+            self.view.polar_plot_freq = list(self.ntwk_models.values())[0].freqs.min()
             self.update_polar_plot()
-            self.view.polarPlot.auto_scale()
+            self.auto_scale_polar()
             self.update_python_with_ntwk_models()
 
     def show_settings(self) -> None:
@@ -571,6 +600,8 @@ class PyChamberCtrl:
             self.update_analyzer_ports()
 
     def show_python(self) -> None:
+        if self.pyconsole is None:
+            self.pyconsole = PyConsole(theme=self.settings['python-theme'])
         self.pyconsole.setMinimumSize(600, 600)
         self.pyconsole.show()
         self.pyconsole.eval_in_thread()
@@ -619,8 +650,8 @@ class PyChamberCtrl:
             return
 
         self.ntwk_models = {
-                label1: NetworkModel(),
-                label2: NetworkModel(),
+            label1: NetworkModel(),
+            label2: NetworkModel(),
         }
 
         self.view.update_plot_pols(list(self.ntwk_models.keys()))
@@ -655,6 +686,7 @@ class PyChamberCtrl:
         self.worker.pol1Acquired.connect(lambda data: self.update_pol1_ntwk_model(data))
         self.worker.pol2Acquired.connect(lambda data: self.update_pol2_ntwk_model(data))
         self.worker.pol1Acquired.connect(self.update_polar_plot)
+        self.worker.pol1Acquired.connect(self.update_over_freq_plot_lims)
         self.worker.pol1Acquired.connect(self.update_over_freq_plot)
 
         self.thread.start()

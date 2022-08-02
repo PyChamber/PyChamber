@@ -61,10 +61,9 @@ class NetworkModel(NetworkSet):
             return "Empty NetworkModel"
         else:
             return (
-                "NetworkModel:\n"
-                f"    {self[0].frequency}\n"  # type: ignore
-                f"    {len(self.elevations)} Elevations\n"
-                f"    {len(self.azimuths)} Azimuths"
+                f"NetworkModel(Frequency: {self[0].frequency},"  # type: ignore
+                f"Azimuths: {len(self.azimuths)} points,"
+                f"Elevations: {len(self.elevations)} points)"
             )
 
     def mags(
@@ -73,7 +72,6 @@ class NetworkModel(NetworkSet):
         azimuth: Optional[float] = None,
         elevation: Optional[float] = None,
     ) -> np.ndarray:
-        log.debug("Fetching Mags")
         """Fetches data filtered by the arguments provided.
 
         Any argument not passed will be interpreted as requesting all values of
@@ -100,15 +98,17 @@ class NetworkModel(NetworkSet):
             azimuth: Azimuth of interest
             elevation: Elevation of interest
         """
+        log.debug("Fetching Mags")
         if len(self) == 0:
             return np.array([])
         else:
             params = dict()
-            if azimuth:
+            if azimuth is not None:
                 params['azimuth'] = azimuth
-            if elevation:
+            if elevation is not None:
                 params['elevation'] = elevation
 
+            log.debug(f"{params=}")
             if freq:
                 return np.array([n[freq].s_db for n in self.sel(params)]).reshape(
                     -1, 1

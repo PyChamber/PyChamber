@@ -288,6 +288,11 @@ class MainWindow(QMainWindow):
         else:
             return None
 
+    @polar_plot_freq.setter
+    def polar_plot_freq(self, freq: str) -> None:
+        f = Quantity(freq, units='Hz')
+        self.polarPlotFreqLineEdit.setText(f.render())
+
     @property
     def polar_plot_min(self) -> float:
         return float(self.polarPlotMinSpinBox.value())
