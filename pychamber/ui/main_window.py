@@ -349,9 +349,17 @@ class MainWindow(QMainWindow):
     def over_freq_plot_az(self) -> float:
         return self.overFreqPlotAzSpinBox.value()
 
+    @over_freq_plot_az.setter
+    def over_freq_plot_az(self, val: float) -> None:
+        self.overFreqPlotAzSpinBox.setValue(val)
+
     @property
     def over_freq_plot_el(self) -> float:
         return self.overFreqPlotElSpinBox.value()
+
+    @over_freq_plot_el.setter
+    def over_freq_plot_el(self, val: float) -> None:
+        self.overFreqPlotElSpinBox.setValue(val)
 
     def enable_jog(self) -> None:
         self.jogGroupBox.setEnabled(True)

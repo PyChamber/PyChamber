@@ -109,7 +109,8 @@ class NetworkModel(NetworkSet):
                 params['elevation'] = elevation
 
             log.debug(f"{params=}")
-            if freq:
+            log.debug(f"{self=}")
+            if freq is not None:
                 return np.array([n[freq].s_db for n in self.sel(params)]).reshape(
                     -1, 1
                 )  # type: ignore

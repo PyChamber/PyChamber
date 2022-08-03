@@ -317,11 +317,20 @@ class PyChamberCtrl:
         self.view.experimentCutProgressLabel.show()
         self.view.experimentCutProgressBar.show()
 
+        self.view.polar_plot_freq = self.view.analyzer_start_freq
         azimuths = np.arange(
             self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
         )
         elevations = np.arange(
             self.view.el_extent_start, self.view.el_extent_stop, self.view.el_extent_step
+        )
+        self.update_over_freq_plot_lims(
+            az_min=azimuths.min(),
+            az_max=azimuths.max(),
+            az_step=self.view.az_extent_step,
+            el_min=elevations.min(),
+            el_max=elevations.max(),
+            el_step=self.view.el_extent_step,
         )
 
         try:
@@ -335,10 +344,14 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
+        self.view.polar_plot_freq = self.view.analyzer_start_freq
         azimuths = np.arange(
             self.view.az_extent_start,
             self.view.az_extent_stop + self.view.az_extent_step,
             self.view.az_extent_step,
+        )
+        self.update_over_freq_plot_lims(
+            az_min=azimuths.min(), az_max=azimuths.max(), az_step=self.view.az_extent_step
         )
 
         try:
@@ -353,10 +366,16 @@ class PyChamberCtrl:
             PopUpMessage("Not connected")
             return
 
+        self.view.polar_plot_freq = self.view.analyzer_start_freq
         elevations = np.arange(
             self.view.el_extent_start,
             self.view.el_extent_stop + self.view.el_extent_step,
             self.view.el_extent_step,
+        )
+        self.update_over_freq_plot_lims(
+            el_min=elevations.min(),
+            el_max=elevations.max(),
+            el_step=self.view.el_extent_step,
         )
 
         try:
@@ -482,28 +501,22 @@ class PyChamberCtrl:
                 self.cal_file = pickle.load(f)
                 self.view.calibrationViewButton.setEnabled(True)
 
-    def update_over_freq_plot_lims(self) -> None:
-        azimuths = list(self.ntwk_models.values())[0].azimuths.reshape((-1,))
-        if len(azimuths) > 1:
-            az_step = azimuths[1] - azimuths[0]
-            self.view.overFreqPlotAzSpinBox.setSingleStep(az_step)
-            self.view.overFreqPlotAzSpinBox.setMinimum(azimuths.min())
-            self.view.overFreqPlotAzSpinBox.setMaximum(azimuths.max())
-        else:
-            self.view.overFreqPlotAzSpinBox.setSingleStep(0)
-            self.view.overFreqPlotAzSpinBox.setMinimum(0)
-            self.view.overFreqPlotAzSpinBox.setMaximum(0)
+    def update_over_freq_plot_lims(
+        self,
+        az_min: float = 0.0,
+        az_max: float = 0.0,
+        az_step: float = 0.0,
+        el_min: float = 0.0,
+        el_max: float = 0.0,
+        el_step: float = 0.0,
+    ) -> None:
+        self.view.overFreqPlotAzSpinBox.setMinimum(az_min)
+        self.view.overFreqPlotAzSpinBox.setMaximum(az_max)
+        self.view.overFreqPlotAzSpinBox.setSingleStep(az_step)
 
-        elevations = list(self.ntwk_models.values())[0].elevations.reshape((-1,))
-        if len(elevations) > 1:
-            el_step = elevations[1] - elevations[0]
-            self.view.overFreqPlotElSpinBox.setSingleStep(el_step)
-            self.view.overFreqPlotElSpinBox.setMinimum(elevations.min())
-            self.view.overFreqPlotElSpinBox.setMaximum(elevations.max())
-        else:
-            self.view.overFreqPlotElSpinBox.setSingleStep(0)
-            self.view.overFreqPlotElSpinBox.setMinimum(0)
-            self.view.overFreqPlotElSpinBox.setMaximum(0)
+        self.view.overFreqPlotElSpinBox.setMinimum(el_min)
+        self.view.overFreqPlotElSpinBox.setMaximum(el_max)
+        self.view.overFreqPlotElSpinBox.setSingleStep(el_step)
 
     def update_polar_plot(self) -> None:
         if not self.view.polar_plot_freq:
@@ -546,7 +559,10 @@ class PyChamberCtrl:
             return
 
         freqs = self.ntwk_models[pol].freqs.reshape(-1, 1)
-        mags = self.ntwk_models[pol].mags(azimuth=az, elevation=el).reshape(-1, 1)
+        try:
+            mags = self.ntwk_models[pol].mags(azimuth=az, elevation=el).reshape(-1, 1)
+        except IndexError:  # FIXME
+            return
 
         self.view.update_over_freq_plot(freqs, mags)
 
@@ -578,7 +594,19 @@ class PyChamberCtrl:
 
             self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
-            self.update_over_freq_plot_lims()
+            azs = list(self.ntwk_models.values())[0].azimuths
+            az_step = (azs[1] - azs[0]) if len(azs) > 1 else 0
+            els = list(self.ntwk_models.values())[0].elevations
+            el_step = (els[1] - els[0]) if len(els) > 1 else 0
+
+            self.update_over_freq_plot_lims(
+                az_min=min(azs),
+                az_max=max(azs),
+                az_step=az_step,
+                el_min=min(els),
+                el_max=max(els),
+                el_step=el_step,
+            )
             self.update_over_freq_plot()
             self.auto_scale_over_freq()
 
@@ -681,14 +709,14 @@ class PyChamberCtrl:
         self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
         self.worker.pol1Acquired.connect(lambda data: self.update_pol1_ntwk_model(data))
         self.worker.pol2Acquired.connect(lambda data: self.update_pol2_ntwk_model(data))
+
         self.worker.pol1Acquired.connect(self.update_polar_plot)
         if self.settings['polar-autoscale']:
             self.worker.pol1Acquired.connect(self.auto_scale_polar)
 
-        self.worker.pol1Acquired.connect(self.update_over_freq_plot_lims)
         self.worker.pol1Acquired.connect(self.update_over_freq_plot)
         if self.settings['overfreq-autoscale']:
-            self.worker.pol1Acquired.connect(self.auto_scale_polar)
+            self.worker.pol1Acquired.connect(self.auto_scale_over_freq)
 
         self.thread.start()
 

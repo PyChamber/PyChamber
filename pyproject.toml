@@ -59,9 +59,6 @@ pyinstaller = { version = "^5.3", optional = true }
 [tool.poetry.extras]
 test = [
     "pytest",
-    "black",
-    "isort",
-    "mypy",
     "flake8",
     "flake8-docstrings",
     "pytest-cov",
@@ -69,6 +66,9 @@ test = [
 
 dev = [
     "tox",
+    "black",
+    "isort",
+    "mypy",
     "pre-commit",
     "virtualenv",
     "pip",
