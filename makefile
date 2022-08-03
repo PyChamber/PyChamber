@@ -29,3 +29,6 @@ clean:
 build:
 	pyrcc5 resources/resources.qrc -o pychamber/ui/resources_rc.py
 	poetry install
+
+package:
+	pyinstaller ./pychamber/launch.py --copy-metadata pychamber --onedir --collect-data skrf --paths=pychamber --hidden-import pyvisa_py -y --clean
