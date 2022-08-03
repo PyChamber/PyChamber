@@ -529,8 +529,6 @@ class PyChamberCtrl:
         )
 
         self.view.update_polar_plot(azimuths, mags)
-        if self.settings['polar-autoscale']:
-            self.auto_scale_polar()
 
     def auto_scale_polar(self) -> None:
         self.view.polarPlot.auto_scale()
@@ -551,8 +549,6 @@ class PyChamberCtrl:
         mags = self.ntwk_models[pol].mags(azimuth=az, elevation=el).reshape(-1, 1)
 
         self.view.update_over_freq_plot(freqs, mags)
-        if self.settings['overfreq-autoscale']:
-            self.auto_scale_over_freq()
 
     def auto_scale_over_freq(self) -> None:
         self.view.overFreqPlot.auto_scale()
@@ -686,8 +682,13 @@ class PyChamberCtrl:
         self.worker.pol1Acquired.connect(lambda data: self.update_pol1_ntwk_model(data))
         self.worker.pol2Acquired.connect(lambda data: self.update_pol2_ntwk_model(data))
         self.worker.pol1Acquired.connect(self.update_polar_plot)
+        if self.settings['polar-autoscale']:
+            self.worker.pol1Acquired.connect(self.auto_scale_polar)
+
         self.worker.pol1Acquired.connect(self.update_over_freq_plot_lims)
         self.worker.pol1Acquired.connect(self.update_over_freq_plot)
+        if self.settings['overfreq-autoscale']:
+            self.worker.pol1Acquired.connect(self.auto_scale_polar)
 
         self.thread.start()
 
