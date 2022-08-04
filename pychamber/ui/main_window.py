@@ -289,7 +289,7 @@ class MainWindow(QMainWindow):
             return None
 
     @polar_plot_freq.setter
-    def polar_plot_freq(self, freq: str) -> None:
+    def polar_plot_freq(self, freq: Union[str, Quantity]) -> None:
         f = Quantity(freq, units='Hz')
         self.polarPlotFreqLineEdit.setText(f.render())
 

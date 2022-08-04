@@ -1,7 +1,7 @@
 import functools
 import itertools
 from enum import Enum, auto
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import cloudpickle as pickle
 import numpy as np
@@ -16,9 +16,11 @@ from pychamber.classes import positioner
 from pychamber.classes.jog_worker import JogAxis, JogWorker, JogZeroWorker
 from pychamber.classes.logger import log
 from pychamber.classes.network_model import NetworkModel
+from pychamber.classes.polarization import Polarization
 from pychamber.classes.positioner import PositionerError
 from pychamber.classes.scan_worker import ScanWorker
 from pychamber.classes.settings_manager import SettingsManager
+from pychamber.lib import load
 from pychamber.ui.about import AboutPyChamber
 from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
 from pychamber.ui.log_viewer import LogViewer
@@ -44,6 +46,12 @@ class FreqSetting(Enum):
     START = auto()
     STOP = auto()
     STEP = auto()
+
+
+class ScanType(Enum):
+    FULL = auto()
+    AZIMUTH = auto()
+    ELEVATION = auto()
 
 
 class PyChamberCtrl:
@@ -88,9 +96,15 @@ class PyChamberCtrl:
         self.view.quit.triggered.connect(self.view.close)
 
         # Buttons
-        self.view.experimentFullScanButton.clicked.connect(self.full_scan)
-        self.view.experimentAzScanButton.clicked.connect(self.az_scan)
-        self.view.experimentElScanButton.clicked.connect(self.el_scan)
+        self.view.experimentFullScanButton.clicked.connect(
+            functools.partial(self.scan, scan_type=ScanType.FULL)
+        )
+        self.view.experimentAzScanButton.clicked.connect(
+            functools.partial(self.scan, scan_type=ScanType.AZIMUTH)
+        )
+        self.view.experimentElScanButton.clicked.connect(
+            functools.partial(self.scan, scan_type=ScanType.ELEVATION)
+        )
         self.view.jogAzLeftButton.clicked.connect(
             functools.partial(self.jog_az, AzJogDir.LEFT)
         )
@@ -227,14 +241,14 @@ class PyChamberCtrl:
                 return
             diff = dir.value * step
             try:
-                self.jog_thread(JogAxis.AZIMUTH, diff, relative=True)
+                self.start_jog_thread(JogAxis.AZIMUTH, diff, relative=True)
             except PositionerError as e:
                 log.error(str(e))
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
         elif angle is not None:
             try:
-                self.jog_thread(JogAxis.AZIMUTH, angle, relative=False)
+                self.start_jog_thread(JogAxis.AZIMUTH, angle, relative=False)
             except PositionerError as e:
                 log.error(str(e))
                 PopUpMessage(str(e), MsgLevel.ERROR)
@@ -253,30 +267,18 @@ class PyChamberCtrl:
                 return
             diff = dir.value * step
             try:
-                self.jog_thread(JogAxis.ELEVATION, diff, relative=True)
+                self.start_jog_thread(JogAxis.ELEVATION, diff, relative=True)
             except PositionerError as e:
                 log.error(str(e))
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
         elif angle is not None:
             try:
-                self.jog_thread(JogAxis.ELEVATION, angle, relative=False)
+                self.start_jog_thread(JogAxis.ELEVATION, angle, relative=False)
             except PositionerError as e:
                 log.error(str(e))
                 PopUpMessage(str(e), MsgLevel.ERROR)
                 return
-
-    def jog_zero(self) -> None:
-        if not self.positioner:
-            PopUpMessage("Positioner not connected")
-            return
-
-        try:
-            self.jog_zero_thread()
-        except PositionerError as e:
-            log.error(str(e))
-            PopUpMessage(str(e), MsgLevel.ERROR)
-            return
 
     def jog_az_to(self) -> None:
         if angle := self.view.az_jog_to:
@@ -303,83 +305,70 @@ class PyChamberCtrl:
         el_not_at_zero = not np.isclose(self.positioner.current_elevation, 0.0)
 
         if az_not_at_zero and el_not_at_zero:
-            self.jog_zero_thread()
+            self.start_jog_zero_thread()
         elif az_not_at_zero:
             self.jog_az(angle=0.0)
         elif el_not_at_zero:
             self.jog_el(angle=0.0)
 
-    def full_scan(self) -> None:
+    def scan(self, scan_type: ScanType) -> None:
         if not self.positioner:
             PopUpMessage("Not connected")
+            return
+
+        self.ntwk_models = {}
+        polarizations: List[Polarization] = []
+
+        if (pol1 := self.view.pol_1) is not None:
+            label = pol1.label if pol1.label != "" else "Polarization 1"
+            self.ntwk_models[label] = NetworkModel()
+            polarizations.append(Polarization(label, pol1.param))
+        if (pol2 := self.view.pol_2) is not None:
+            label = pol2.label if pol2.label != "" else "Polarization 2"
+            self.ntwk_models[label] = NetworkModel()
+            polarizations.append(Polarization(label, pol2.param))
+
+        if pol1 is None and pol2 is None:
+            log.info("No polarizations selected.")
             return
 
         self.view.experimentCutProgressLabel.show()
         self.view.experimentCutProgressBar.show()
+        self.view.update_plot_pols([pol.label for pol in polarizations])
 
-        self.view.polar_plot_freq = self.view.analyzer_start_freq
-        azimuths = np.arange(
-            self.view.az_extent_start, self.view.az_extent_stop, self.view.az_extent_step
-        )
-        elevations = np.arange(
-            self.view.el_extent_start, self.view.el_extent_stop, self.view.el_extent_step
-        )
+        if self.view.analyzer_start_freq is not None:
+            self.view.polar_plot_freq = self.view.analyzer_start_freq
+
+        az_min = az_max = az_step = 0.0
+        el_min = el_max = el_step = 0.0
+        azimuths = np.asarray([0])
+        elevations = np.asarray([0])
+
+        if scan_type == ScanType.FULL or scan_type == ScanType.AZIMUTH:
+            azimuths = np.arange(
+                az_min := self.view.az_extent_start,
+                az_max := self.view.az_extent_stop,
+                az_step := self.view.az_extent_step,
+            )
+
+        if scan_type == ScanType.FULL or scan_type == ScanType.ELEVATION:
+            elevations = np.arange(
+                el_min := self.view.el_extent_start,
+                el_max := self.view.el_extent_stop,
+                el_step := self.view.el_extent_step,
+            )
+
         self.update_over_freq_plot_lims(
-            az_min=azimuths.min(),
-            az_max=azimuths.max(),
-            az_step=self.view.az_extent_step,
-            el_min=elevations.min(),
-            el_max=elevations.max(),
-            el_step=self.view.el_extent_step,
+            az_min=az_min,
+            az_max=az_max,
+            az_step=az_step,
+            el_min=el_min,
+            el_max=el_max,
+            el_step=el_step,
         )
 
         try:
-            self.start_scan_thread(azimuths, elevations)
-        except Exception as e:
-            PopUpMessage(str(e), MsgLevel.ERROR)
-            return
-
-    def az_scan(self) -> None:
-        if not self.positioner:
-            PopUpMessage("Not connected")
-            return
-
-        self.view.polar_plot_freq = self.view.analyzer_start_freq
-        azimuths = np.arange(
-            self.view.az_extent_start,
-            self.view.az_extent_stop + self.view.az_extent_step,
-            self.view.az_extent_step,
-        )
-        self.update_over_freq_plot_lims(
-            az_min=azimuths.min(), az_max=azimuths.max(), az_step=self.view.az_extent_step
-        )
-
-        try:
-            self.start_scan_thread(azimuths=azimuths)
-        except Exception as e:
-            log.error(str(e))
-            PopUpMessage(str(e), MsgLevel.ERROR)
-            return
-
-    def el_scan(self) -> None:
-        if not self.positioner:
-            PopUpMessage("Not connected")
-            return
-
-        self.view.polar_plot_freq = self.view.analyzer_start_freq
-        elevations = np.arange(
-            self.view.el_extent_start,
-            self.view.el_extent_stop + self.view.el_extent_step,
-            self.view.el_extent_step,
-        )
-        self.update_over_freq_plot_lims(
-            el_min=elevations.min(),
-            el_max=elevations.max(),
-            el_step=self.view.el_extent_step,
-        )
-
-        try:
-            self.start_scan_thread(elevations=elevations)
+            self.start_scan_thread(polarizations, azimuths, elevations)
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
@@ -402,7 +391,9 @@ class PyChamberCtrl:
             self.settings["analyzer-addr"] = addr
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
+            self.analyzer = None
             return
+
         try:
             self.view.analyzer_start_freq = self.analyzer.start_freq()
             self.view.analyzer_stop_freq = self.analyzer.stop_freq()
@@ -417,6 +408,7 @@ class PyChamberCtrl:
             )
             self.analyzer = None
             return
+
         ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [
             f"S{p}{p}" for p in ports
         ]
@@ -443,9 +435,10 @@ class PyChamberCtrl:
         except Exception as e:
             PopUpMessage(str(e), MsgLevel.ERROR)
             return
+        log.info("Connected")
+
         self.view.az_pos = self.positioner.azimuth_deg
         self.view.el_pos = self.positioner.elevation_deg
-        log.info("Connected")
         self.view.enable_jog()
         self.view.enable_experiment()
 
@@ -584,13 +577,12 @@ class PyChamberCtrl:
     def load_data(self) -> None:
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
-            with open(file_name, 'rb') as data:
-                try:
-                    val = pickle.load(data)
-                    self.ntwk_models = val
-                except Exception:
-                    PopUpMessage("Invalid file", MsgLevel.ERROR)
-                    return
+            try:
+                val = load(file_name)
+                self.ntwk_models = val
+            except Exception:
+                PopUpMessage("Invalid file", MsgLevel.ERROR)
+                return
 
             self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
@@ -640,52 +632,41 @@ class PyChamberCtrl:
     def show_log(self) -> None:
         LogViewer.display()
 
-    def update_pol1_ntwk_model(self, data: Network) -> None:
-        log.debug("Updating pol1 ntwk data")
-        if pol1 := self.view.pol_1:
-            label = pol1.label if pol1.label != "" else "Polarization 1"
-            if self.cal is not None:
-                data = data - self.cal['data'][label]
-            self.ntwk_models[label] = self.ntwk_models[label].append(data)
+    def receive_experiment_data(self, data: Tuple[str, Network]) -> None:
+        label = data[0]
+        ntwk = data[1]
 
-    def update_pol2_ntwk_model(self, data: Network) -> None:
-        log.debug("Updating pol2 ntwk data")
-        if pol2 := self.view.pol_2:
-            label = pol2.label if pol2.label != "" else "Polarization 2"
-            if self.cal is not None:
-                data = data - self.cal['data'][label]
-            self.ntwk_models[label] = self.ntwk_models[label].append(data)
+        log.debug(f"Updating {label}")
+
+        if self.cal is not None:
+            ntwk = ntwk - self.cal['data'][label]
+        self.ntwk_models[label] = self.ntwk_models[label].append(ntwk)
+
+        if self.view.polar_plot_pol == label:
+            self.update_polar_plot()
+            if self.settings['polar-autoscale']:
+                self.auto_scale_polar()
+
+        if self.view.over_freq_plot_pol == label:
+            self.update_over_freq_plot()
+            if self.settings['overfreq-autoscale']:
+                self.auto_scale_over_freq()
 
     def start_scan_thread(
         self,
-        azimuths: Optional[np.ndarray] = None,
-        elevations: Optional[np.ndarray] = None,
+        polarizations: List[Polarization],
+        azimuths: np.ndarray,
+        elevations: np.ndarray,
     ) -> None:
         assert self.positioner
         assert self.analyzer
-
-        if pol1 := self.view.pol_1:
-            label1 = pol1.label if pol1.label != "" else "Polarization 1"
-        if pol2 := self.view.pol_2:
-            label2 = pol2.label if pol2.label != "" else "Polarization 2"
-
-        if pol1 is None and pol2 is None:
-            log.info("No polarizations selected.")
-            return
-
-        self.ntwk_models = {
-            label1: NetworkModel(),
-            label2: NetworkModel(),
-        }
-
-        self.view.update_plot_pols(list(self.ntwk_models.keys()))
 
         self.thread = QThread()
         self.worker = ScanWorker(
             MUTEX,
             self.positioner,
             self.analyzer,
-            (pol1, pol2),
+            polarizations,
             azimuths,
             elevations,
         )
@@ -698,8 +679,6 @@ class PyChamberCtrl:
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.worker.progress.connect(lambda p: setattr(self.view, 'total_progress', p))
-        self.worker.finished.connect(self.update_polar_plot)
-        self.worker.finished.connect(self.update_over_freq_plot)
         if self.view.experimentCutProgressBar.isVisible():
             self.worker.cutProgress.connect(
                 lambda p: setattr(self.view, 'cut_progress', p)
@@ -707,18 +686,7 @@ class PyChamberCtrl:
         self.worker.timeUpdate.connect(lambda t: setattr(self.view, 'time_remaining', t))
         self.worker.azMoveComplete.connect(lambda p: setattr(self.view, 'az_pos', p))
         self.worker.elMoveComplete.connect(lambda p: setattr(self.view, 'el_pos', p))
-        self.worker.pol1Acquired.connect(lambda data: self.update_pol1_ntwk_model(data))
-        self.worker.pol2Acquired.connect(lambda data: self.update_pol2_ntwk_model(data))
-
-        self.worker.pol1Acquired.connect(self.update_polar_plot)
-        if self.settings['polar-autoscale']:
-            self.worker.pol1Acquired.connect(self.auto_scale_polar)
-
-        self.worker.pol1Acquired.connect(self.update_over_freq_plot)
-        if self.settings['overfreq-autoscale']:
-            self.worker.pol1Acquired.connect(self.auto_scale_over_freq)
-
-        self.thread.start()
+        self.worker.dataAcquired.connect(lambda data: self.receive_experiment_data(data))
 
         self.view.analyzerGroupBox.setEnabled(False)
         self.view.positionerGroupBox.setEnabled(False)
@@ -761,7 +729,9 @@ class PyChamberCtrl:
                 lambda: self.view.experimentCutProgressBar.hide()
             )
 
-    def jog_thread(self, axis: JogAxis, angle: float, relative: bool) -> None:
+        self.thread.start()
+
+    def start_jog_thread(self, axis: JogAxis, angle: float, relative: bool) -> None:
         assert self.positioner
         self.thread = QThread()
         self.worker = JogWorker(MUTEX, axis, angle, self.positioner, relative)
@@ -781,7 +751,7 @@ class PyChamberCtrl:
         self.view.disable_jog_buttons()
         self.thread.finished.connect(self.view.enable_jog_buttons)
 
-    def jog_zero_thread(self) -> None:
+    def start_jog_zero_thread(self) -> None:
         assert self.positioner
 
         self.thread = QThread()
