@@ -38,8 +38,8 @@ class AzJogDir(Enum):
 
 
 class ElJogDir(Enum):
-    DOWN = -1
-    UP = 1
+    CCW = -1
+    CW = 1
 
 
 class FreqSetting(Enum):
@@ -85,6 +85,7 @@ class PyChamberCtrl:
         self.pyconsole = PyConsole(theme=self.settings['python-theme'])
 
     def connect_signals(self) -> None:
+        log.debug("Connecting qt signals")
         # Menu
         self.view.save.triggered.connect(self.save_data)
         self.view.load.triggered.connect(self.load_data)
@@ -113,12 +114,12 @@ class PyChamberCtrl:
             functools.partial(self.jog_az, AzJogDir.RIGHT)
         )
         self.view.jogAzSubmitButton.clicked.connect(self.jog_az_to)
-        self.view.jogElSubmitButton.clicked.connect(
-            functools.partial(self.jog_el, ElJogDir.UP)
+        self.view.jogElCWButton.clicked.connect(
+            functools.partial(self.jog_el, ElJogDir.CW)
         )
         self.view.jogElZeroButton.clicked.connect(functools.partial(self.jog_el, angle=0))
-        self.view.jogElDownButton.clicked.connect(
-            functools.partial(self.jog_el, ElJogDir.DOWN)
+        self.view.jogElCCWButton.clicked.connect(
+            functools.partial(self.jog_el, ElJogDir.CCW)
         )
         self.view.jogElSubmitButton.clicked.connect(self.jog_el_to)
         self.view.setZeroButton.clicked.connect(self.set_zero)
@@ -199,6 +200,7 @@ class PyChamberCtrl:
     def update_positioner_ports(self) -> None:
         self.view.positionerPortComboBox.clear()
         ports = [p.device for p in list_ports.comports()]
+        log.debug("Updating positioner ports with: {ports}")
         self.view.positionerPortComboBox.addItems(ports)
         self.view.positionerPortComboBox.setCurrentText(self.settings['positioner-port'])
 
@@ -213,6 +215,7 @@ class PyChamberCtrl:
         except LibraryError:
             addrs = vna.VNA.available()
 
+        log.debug("Updating analyer ports with: {addrs}")
         self.view.analyzerAddressComboBox.addItems(addrs)
         self.view.analyzerAddressComboBox.setCurrentText(self.settings['analyzer-addr'])
 
@@ -332,8 +335,6 @@ class PyChamberCtrl:
             log.info("No polarizations selected.")
             return
 
-        self.view.experimentCutProgressLabel.show()
-        self.view.experimentCutProgressBar.show()
         self.view.update_plot_pols([pol.label for pol in polarizations])
 
         if self.view.analyzer_start_freq is not None:
@@ -347,16 +348,20 @@ class PyChamberCtrl:
         if scan_type == ScanType.FULL or scan_type == ScanType.AZIMUTH:
             azimuths = np.arange(
                 az_min := self.view.az_extent_start,
-                az_max := self.view.az_extent_stop,
+                az_max := self.view.az_extent_stop + self.view.az_extent_step,
                 az_step := self.view.az_extent_step,
             )
 
         if scan_type == ScanType.FULL or scan_type == ScanType.ELEVATION:
             elevations = np.arange(
                 el_min := self.view.el_extent_start,
-                el_max := self.view.el_extent_stop,
+                el_max := self.view.el_extent_stop + self.view.el_extent_step,
                 el_step := self.view.el_extent_step,
             )
+
+        if scan_type == ScanType.FULL:
+            self.view.experimentCutProgressLabel.show()
+            self.view.experimentCutProgressBar.show()
 
         self.update_over_freq_plot_lims(
             az_min=az_min,
@@ -383,7 +388,7 @@ class PyChamberCtrl:
             return
 
         try:
-            log.info("Connecting to analyzer...")
+            log.info(f"Connecting to analyzer {model} at {addr}")
             self.analyzer = self.analyzer_models[model](
                 addr, backend=self.settings['backend']
             )
@@ -395,6 +400,7 @@ class PyChamberCtrl:
             return
 
         try:
+            log.debug("Updating current analyzer frequency settings")
             self.view.analyzer_start_freq = self.analyzer.start_freq()
             self.view.analyzer_stop_freq = self.analyzer.stop_freq()
             self.view.analyzer_n_points = self.analyzer.npoints()
@@ -427,7 +433,7 @@ class PyChamberCtrl:
         if model == "" or port == "":
             return
 
-        log.info("Connecting to positioner...")
+        log.info(f"Connecting to positioner {model} at {port}")
         try:
             self.positioner = self.positioner_models[model](port)
             self.settings["positioner-model"] = model
@@ -437,8 +443,8 @@ class PyChamberCtrl:
             return
         log.info("Connected")
 
-        self.view.az_pos = self.positioner.azimuth_deg
-        self.view.el_pos = self.positioner.elevation_deg
+        self.view.az_pos = np.round(self.positioner.azimuth_deg, 2)
+        self.view.el_pos = np.round(self.positioner.elevation_deg, 2)
         self.view.enable_jog()
         self.view.enable_experiment()
 
@@ -727,6 +733,9 @@ class PyChamberCtrl:
         if self.view.experimentCutProgressBar.isVisible():
             self.thread.finished.connect(
                 lambda: self.view.experimentCutProgressBar.hide()
+            )
+            self.thread.finished.connect(
+                lambda: self.view.experimentCutProgressLabel.hide()
             )
 
         self.thread.start()

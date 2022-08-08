@@ -39,7 +39,7 @@ class ScanWorker(Worker):
         self.abort = False
 
     def run(self) -> None:
-        log.debug("Starting scan worker")
+        log.info("Starting scan worker")
         self.mutex.lock()
         for pol in self.polarizations:
             self.analyzer.create_measurement(f"ANT_{pol.param}", pol.param)
@@ -60,9 +60,6 @@ class ScanWorker(Worker):
         self.finished.emit()
 
     def _run_scan(self) -> None:
-        assert self.azimuths is not None
-        assert self.elevations is not None
-
         total_iters = len(self.azimuths) * len(self.elevations)
         for i, az in enumerate(self.azimuths):
             self.mutex.lock()
@@ -77,10 +74,9 @@ class ScanWorker(Worker):
                     self.mutex.unlock()
                     break
 
-                pos_meta = {'azimuth': az, 'elevation': el}
-                start = time.time()
                 self.mutex.lock()
-
+                start = time.time()
+                pos_meta = {'azimuth': az, 'elevation': el}
                 self.positioner.move_elevation_absolute(el)
                 pos = self.positioner.current_elevation
                 self.elMoveComplete.emit(pos)
@@ -91,15 +87,15 @@ class ScanWorker(Worker):
                     ntwk.params = pos_meta
                     self.dataAcquired.emit((pol.label, ntwk))
 
-                self.mutex.unlock()
                 end = time.time()
+                self.mutex.unlock()
 
-                completed = i * len(self.azimuths) + j
+                completed = i * len(self.elevations) + j
                 progress = completed * 100 // total_iters
                 self.progress.emit(progress)
                 self.cutProgress.emit(j * 100 // len(self.elevations))
-                single_iter_time = end - start
                 remaining = total_iters - completed
+                single_iter_time = end - start
                 time_remaining = single_iter_time * remaining
                 self.timeUpdate.emit(time_remaining)
 

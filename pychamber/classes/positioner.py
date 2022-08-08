@@ -9,6 +9,8 @@ import serial
 from omegaconf import OmegaConf
 from PyQt5.QtCore import QTimer
 
+from pychamber.classes.logger import log
+
 
 @dataclass
 class BoardResponse:
@@ -132,7 +134,7 @@ class D6050(Positioner):
 
     def write(self, cmd: str) -> Optional[BoardResponse]:
         self.serial.reset_input_buffer()
-        self.serial.write(f"{cmd}\r".encode('ascii'))
+        self.serial.write(command := f"{cmd}\r".encode('ascii'))
         QTimer.singleShot(500, lambda: None)
 
         resp = self.check_response()
@@ -285,10 +287,10 @@ class D6050(Positioner):
     def move(self, axis: str, steps: str) -> None:
         self.write(f"{axis}RN{steps}")
         while True:
-            resp = self.write("")
+            resp = self.write(f"{axis}")
             if not resp:
                 continue
-            if resp.status == 'f':
+            if resp.status == 'f' or resp.status == '>':
                 break
             elif resp.status == 'H':
                 raise PositionerError('Home limit')
@@ -297,11 +299,13 @@ class D6050(Positioner):
 
     def move_azimuth_relative(self, angle: float) -> None:
         steps = -int(self.az_steps_per_deg * angle)
+        log.debug(f"move az relative: {angle} degrees / {steps} steps")
         self.move(self.azimuth, f"{steps:+}")
         self.azimuth_deg += angle
 
     def move_elevation_relative(self, angle: float) -> None:
         steps = -int(self.el_steps_per_deg * angle)
+        log.debug(f"move el relative: {angle} degrees / {steps} steps")
         self.move(self.elevation, f"{steps:+}")
         self.elevation_deg += angle
 

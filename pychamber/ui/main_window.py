@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
 from quantiphy import Quantity
 
 from pychamber import utils
+from pychamber.classes.logger import log
 from pychamber.classes.polarization import Polarization
 from pychamber.classes.settings_manager import SettingsManager
 from pychamber.ui import resources_rc
@@ -372,9 +373,9 @@ class MainWindow(QMainWindow):
         self.jogAzZeroButton.setEnabled(True)
         self.jogAzRightButton.setEnabled(True)
         self.jogAzSubmitButton.setEnabled(True)
-        self.jogElUpButton.setEnabled(True)
+        self.jogElCWButton.setEnabled(True)
         self.jogElZeroButton.setEnabled(True)
-        self.jogElDownButton.setEnabled(True)
+        self.jogElCCWButton.setEnabled(True)
         self.jogElSubmitButton.setEnabled(True)
         self.setZeroButton.setEnabled(True)
         self.returnToZeroButton.setEnabled(True)
@@ -384,9 +385,9 @@ class MainWindow(QMainWindow):
         self.jogAzZeroButton.setEnabled(False)
         self.jogAzRightButton.setEnabled(False)
         self.jogAzSubmitButton.setEnabled(False)
-        self.jogElUpButton.setEnabled(False)
+        self.jogElCWButton.setEnabled(False)
         self.jogElZeroButton.setEnabled(False)
-        self.jogElDownButton.setEnabled(False)
+        self.jogElCCWButton.setEnabled(False)
         self.jogElSubmitButton.setEnabled(False)
         self.setZeroButton.setEnabled(False)
         self.returnToZeroButton.setEnabled(False)
@@ -667,13 +668,13 @@ class MainWindow(QMainWindow):
         self.jogElLabel = QLabel("Elevation", self.jogGroupBox)
         self.jogElStepLabel = QLabel("Step", self.jogGroupBox)
         self.jogElToLabel = QLabel("Jog Elevation To", self.jogGroupBox)
-        self.jogElUpButton = QPushButton("", self.jogGroupBox)
-        self.jogElUpButton.setIcon(QIcon(QPixmap(":/icons/icons/UpArrow.png")))
-        self.jogElUpButton.setIconSize(QSize(32, 32))
+        self.jogElCWButton = QPushButton("", self.jogGroupBox)
+        self.jogElCWButton.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
+        self.jogElCWButton.setIconSize(QSize(32, 32))
         self.jogElZeroButton = QPushButton("0", self.jogGroupBox)
-        self.jogElDownButton = QPushButton("", self.jogGroupBox)
-        self.jogElDownButton.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
-        self.jogElDownButton.setIconSize(QSize(32, 32))
+        self.jogElCCWButton = QPushButton("", self.jogGroupBox)
+        self.jogElCCWButton.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
+        self.jogElCCWButton.setIconSize(QSize(32, 32))
         self.jogElSubmitButton = QPushButton("", self.jogGroupBox)
         self.jogElSubmitButton.setIcon(QIcon(QPixmap(":/icons/icons/Check.png")))
         self.jogElSubmitButton.setIconSize(QSize(32, 32))
@@ -683,9 +684,9 @@ class MainWindow(QMainWindow):
         self.jogButtonsLayout.addWidget(self.jogElLabel, 2, 0, 1, 3)
         self.jogButtonsLayout.addWidget(self.jogElStepLabel, 2, 3, 1, 1)
         self.jogButtonsLayout.addWidget(self.jogElToLabel, 2, 4, 1, 1)
-        self.jogButtonsLayout.addWidget(self.jogElUpButton, 3, 0, 1, 1)
+        self.jogButtonsLayout.addWidget(self.jogElCWButton, 3, 0, 1, 1)
         self.jogButtonsLayout.addWidget(self.jogElZeroButton, 3, 1, 1, 1)
-        self.jogButtonsLayout.addWidget(self.jogElDownButton, 3, 2, 1, 1)
+        self.jogButtonsLayout.addWidget(self.jogElCCWButton, 3, 2, 1, 1)
         self.jogButtonsLayout.addWidget(self.jogElStepSpinBox, 3, 3, 1, 1)
         self.jogButtonsLayout.addWidget(self.jogElToLineEdit, 3, 4, 1, 1)
         self.jogButtonsLayout.addWidget(self.jogElSubmitButton, 3, 5, 1, 1)
@@ -736,6 +737,7 @@ class MainWindow(QMainWindow):
         self.experimentButtonVLayout.addWidget(self.experimentAzScanButton)
         self.experimentButtonVLayout.addWidget(self.experimentElScanButton)
         self.experimentButtonVLayout.addWidget(self.experimentAbortButton)
+        self.experimentAbortButton.setEnabled(False)
 
         self.experimentProgressVLayout = QVBoxLayout()
         self.experimentTotalProgressLabel = QLabel(
@@ -907,9 +909,9 @@ class MainWindow(QMainWindow):
         self.jogElLabel.setSizePolicy(_SIZE_POLICIES['pref_min'])
         self.jogElStepLabel.setSizePolicy(_SIZE_POLICIES['pref_min'])
         self.jogElToLabel.setSizePolicy(_SIZE_POLICIES['pref_min'])
-        self.jogElUpButton.setSizePolicy(_SIZE_POLICIES['min_pref'])
+        self.jogElCWButton.setSizePolicy(_SIZE_POLICIES['min_pref'])
         self.jogElZeroButton.setSizePolicy(_SIZE_POLICIES['min_pref'])
-        self.jogElDownButton.setSizePolicy(_SIZE_POLICIES['min_pref'])
+        self.jogElCCWButton.setSizePolicy(_SIZE_POLICIES['min_pref'])
         self.jogElStepSpinBox.setSizePolicy(_SIZE_POLICIES['min_pref'])
         self.jogElToLineEdit.setSizePolicy(_SIZE_POLICIES['pref_pref'])
         self.jogElSubmitButton.setSizePolicy(_SIZE_POLICIES['min_pref'])
