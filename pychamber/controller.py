@@ -161,6 +161,12 @@ class PyChamberCtrl:
         self.view.overFreqPlotPolarizationComboBox.currentIndexChanged.connect(
             self.update_over_freq_plot
         )
+        self.view.analyzerPol1ComboBox.currentTextChanged.connect(
+            lambda t: setattr(self.settings, "pol1-param", t)
+        )
+        self.view.analyzerPol2ComboBox.currentTextChanged.connect(
+            lambda t: setattr(self.settings, "pol2-param", t)
+        )
 
         # Line Edits
         self.view.analyzerStartFreqLineEdit.returnPressed.connect(
@@ -420,6 +426,8 @@ class PyChamberCtrl:
         ]
         self.view.analyzerPol1ComboBox.addItems(ports)
         self.view.analyzerPol2ComboBox.addItems(ports)
+        self.view.analyzerPol1ComboBox.setCurrentText(self.settings['pol1-param'])
+        self.view.analyzerPol2ComboBox.setCurrentText(self.settings['pol2-param'])
         log.info("Connected")
         self.view.enable_freq()
         self.view.enable_experiment()
