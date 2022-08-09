@@ -34,7 +34,7 @@ from pychamber.classes.settings_manager import SettingsManager
 from pychamber.ui import resources_rc
 
 from .freq_spin_box import FrequencySpinBox
-from .mplwidget import MplPolarWidget, MplRectWidget
+from .mplwidget import Mpl3DWidget, MplPolarWidget, MplRectWidget
 
 _SIZE_POLICIES = {
     'min_min': QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum),
@@ -95,6 +95,7 @@ class MainWindow(QMainWindow):
         self.update_polar_plot = self.polarPlot.update_plot
         self.update_rect_plot = self.rectPlot.update_plot
         self.update_over_freq_plot = self.overFreqPlot.update_plot
+        self.update_3d_plot = self.threeDPlot.update_plot
 
     def center(self):
         qr = self.frameGeometry()
@@ -402,6 +403,22 @@ class MainWindow(QMainWindow):
     @over_freq_plot_el.setter
     def over_freq_plot_el(self, val: float) -> None:
         self.overFreqPlotElSpinBox.setValue(val)
+
+    @property
+    def three_d_plot_pol(self) -> str:
+        return self.threeDPlotPolarizationComboBox.currentText()
+
+    @property
+    def three_d_plot_freq(self) -> Optional[Quantity]:
+        if (f := self.threeDPlotFreqLineEdit.text()) != "":
+            return utils.to_freq(f)
+        else:
+            return None
+
+    @three_d_plot_freq.setter
+    def three_d_plot_freq(self, freq: Union[str, Quantity]) -> None:
+        f = Quantity(freq, units='Hz')
+        self.threeDPlotFreqLineEdit.setText(f.render())
 
     def enable_jog(self) -> None:
         self.jogGroupBox.setEnabled(True)
@@ -816,17 +833,21 @@ class MainWindow(QMainWindow):
 
     def setupTabWidget(self) -> None:
         self.tabWidget = QTabWidget(self.centralwidget)
+
         self.polarPlotTab = QWidget(self.tabWidget)
         self.rectPlotTab = QWidget(self.tabWidget)
         self.overFreqPlotTab = QWidget(self.tabWidget)
+        self.threeDPlotTab = QWidget(self.tabWidget)
 
         self.tabWidget.addTab(self.polarPlotTab, "Polar Plot")
         self.tabWidget.addTab(self.rectPlotTab, "Rectangular Plot")
         self.tabWidget.addTab(self.overFreqPlotTab, "Over Frequency Plot")
+        self.tabWidget.addTab(self.threeDPlotTab, "3D Plot")
 
         self.setupPolarPlotTab()
         self.setupRectPlotTab()
         self.setupOverFreqPlotTab()
+        self.setup3DPlotTab()
 
         self.rightSideLayout.addWidget(self.tabWidget)
 
@@ -949,6 +970,31 @@ class MainWindow(QMainWindow):
         self.overFreqPlot = MplRectWidget('tab:blue', tab)
         self.overFreqPlotTabLayout.addWidget(self.overFreqPlot)
 
+    def setup3DPlotTab(self) -> None:
+        tab = self.threeDPlotTab
+        self.threeDPlotLayout = QVBoxLayout(tab)
+
+        self.threeDPlotPolarizationLabel = QLabel("Polarization", tab)
+        self.threeDPlotPolarizationComboBox = QComboBox(tab)
+        self.threeDPlotPolarizationComboBox.addItems(['1', '2'])
+        self.threeDPlotFreqLabel = QLabel("Frequency", tab)
+        self.threeDPlotFreqLineEdit = QLineEdit(tab)
+        self.threeDPlotRefreshPlotButton = QPushButton("Refresh Plot", tab)
+
+        self.threeDPlotSettingsHLayout = QHBoxLayout()
+        self.threeDPlotSettingsHLayout.addWidget(self.threeDPlotPolarizationLabel)
+        self.threeDPlotSettingsHLayout.addWidget(self.threeDPlotPolarizationComboBox)
+        self.threeDPlotSettingsHLayout.addWidget(self.threeDPlotFreqLabel)
+        self.threeDPlotSettingsHLayout.addWidget(self.threeDPlotFreqLineEdit)
+        self.threeDPlotSettingsHLayout.addWidget(self.threeDPlotRefreshPlotButton)
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.threeDPlotSettingsHLayout.addItem(spacer)
+
+        self.threeDPlotLayout.addLayout(self.threeDPlotSettingsHLayout)
+
+        self.threeDPlot = Mpl3DWidget(tab)
+        self.threeDPlotLayout.addWidget(self.threeDPlot)
+
     def updateSizePolicies(self) -> None:
         self.analyzerModelLabel.setSizePolicy(_SIZE_POLICIES['min_pref'])
         self.analyzerModelComboBox.setSizePolicy(_SIZE_POLICIES['exp_pref'])
@@ -1023,6 +1069,9 @@ class MainWindow(QMainWindow):
 
         self.rectPlotFreqLineEdit.setSizePolicy(_SIZE_POLICIES['pref_pref'])
         self.rectPlotFreqLineEdit.setMinimumWidth(100)
+
+        self.threeDPlotFreqLineEdit.setSizePolicy(_SIZE_POLICIES['pref_pref'])
+        self.threeDPlotFreqLineEdit.setMinimumWidth(100)
 
     def updateFonts(self) -> None:
         self.positionerAzExtentLabel.setFont(_FONTS["bold_14"])

@@ -109,11 +109,11 @@ class NetworkModel(NetworkSet):
                 params['elevation'] = elevation
 
             log.debug(f"{params=}")
-            log.debug(f"{self=}")
             if freq is not None:
-                return np.array([n[freq].s_db for n in self.sel(params)]).reshape(
-                    -1, 1
-                )  # type: ignore
+                ret = np.array([n[freq].s_db for n in self.sel(params)]).reshape(
+                    len(self.azimuths), len(self.elevations)
+                )
+                return ret
             else:
                 return self.sel(params)[0].s_db.reshape(-1, 1)  # type: ignore
 

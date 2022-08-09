@@ -132,6 +132,7 @@ class PyChamberCtrl:
         self.view.polarPlotAutoScaleButton.clicked.connect(self.auto_scale_polar)
         self.view.rectPlotAutoScaleButton.clicked.connect(self.auto_scale_rect)
         self.view.overFreqPlotAutoScaleButton.clicked.connect(self.auto_scale_over_freq)
+        self.view.threeDPlotRefreshPlotButton.clicked.connect(self.update_3d_plot)
 
         # SpinBoxes
         self.view.overFreqPlotAzSpinBox.valueChanged.connect(self.update_over_freq_plot)
@@ -614,6 +615,25 @@ class PyChamberCtrl:
         self.view.over_freq_plot_min = int(self.view.overFreqPlot.ymin)
         self.view.over_freq_plot_max = int(self.view.overFreqPlot.ymax)
         self.view.over_freq_plot_step = int(self.view.overFreqPlot.ystep)
+
+    def update_3d_plot(self) -> None:
+        if not self.view.three_d_plot_freq:
+            return
+        pol = self.view.three_d_plot_pol
+        if pol not in self.ntwk_models:
+            return
+        if len(self.ntwk_models[pol]) == 0:
+            return
+
+        freq = self.view.three_d_plot_freq
+        if freq not in self.ntwk_models[pol].freqs:
+            return
+
+        azimuths = np.deg2rad(self.ntwk_models[pol].azimuths)
+        elevations = np.deg2rad(self.ntwk_models[pol].elevations)
+        mags = self.ntwk_models[pol].mags(freq=freq.render())
+
+        self.view.update_3d_plot(azimuths, elevations, mags)
 
     def save_data(self) -> None:
         if len(self.ntwk_models) == 0:

@@ -8,9 +8,15 @@ from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
 from matplotlib.ticker import EngFormatter
+from matplotlib import cm
+
+from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
+
+from pychamber.classes.logger import log
 
 matplotlib.use('QT5Agg')
 
@@ -87,10 +93,10 @@ class MplRectWidget(MplWidget):
         y = self.artist.get_ydata(orig=True)
         if len(y) <= 1:
             return
-        min = np.floor(np.amin(y))
-        max = np.ceil(np.amax(y))
-        step = np.round((max - min) / 4)
-        self.set_scale(min, max, step)
+        min_ = np.floor(np.amin(y))
+        max_ = np.ceil(np.amax(y))
+        step = np.round((max_ - min_) / 4)
+        self.set_scale(min_, max_, step)  # type: ignore
 
     def set_scale_min(self, min: float) -> None:
         self.ymin = min
@@ -164,10 +170,10 @@ class MplPolarWidget(MplWidget):
         y = self.artist.get_ydata(orig=True)
         if len(y) <= 1:
             return
-        min = np.floor(np.amin(y))
-        max = np.ceil(np.amax(y))
-        step = np.round((max - min) / 4)
-        self.set_scale(min, max, step)
+        min_ = np.floor(np.amin(y))
+        max_ = np.ceil(np.amax(y))
+        step = np.round((max_ - min_) / 4)
+        self.set_scale(min_, max_, step)  # type: ignore
 
     def set_scale_min(self, min: float) -> None:
         self.rmin = min
@@ -186,3 +192,56 @@ class MplPolarWidget(MplWidget):
         self.rmax = max
         self.rstep = step if not np.isclose(step, 0.0) else 1.0
         self.refresh_plot()
+
+
+class Mpl3DWidget(QWidget):
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+        self.canvas = MplCanvas()
+        self.vbl = QVBoxLayout()
+        self.vbl.addWidget(self.canvas)
+        self.setLayout(self.vbl)
+        policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setSizePolicy(policy)
+
+        self.ax_lim = 0.5
+
+        self.ax = self.canvas.fig.add_subplot(projection='3d')
+        self.ax.grid(False)
+        self.ax.set_axis_off()
+        self.ax.set_proj_type('ortho')
+        self.ax.view_init(elev=30, azim=45)
+        self.ax.set_xlim(-1.5, 1.5)
+        self.ax.set_ylim(-1.5, 1.5)
+        self.ax.set_zlim(-1.5, 1.5)
+
+        self.ax.quiver3D(0, 0, 0, self.ax_lim, 0, 0, length=1, colors='r', linewidth=3)
+        self.ax.quiver3D(0, 0, 0, 0, self.ax_lim, 0, length=1, colors='g', linewidth=3)
+        self.ax.quiver3D(0, 0, 0, 0, 0, self.ax_lim, length=1, colors='b', linewidth=3)
+        self.ax.text3D(self.ax_lim, 0, 0, 'X', fontsize=14)
+        self.ax.text3D(0, self.ax_lim, 0, 'Y', fontsize=14)
+        self.ax.text3D(0, 0, self.ax_lim, 'Z', fontsize=14)
+        plt.tight_layout()
+        self.canvas.draw()
+
+    def sizeHint(self) -> QSize:
+        return QSize(500, 300)
+
+    # https://stackoverflow.com/questions/54822873/python-plotting-antenna-radiation-pattern/63059296#63059296
+    def update_plot(
+        self, azimuths: np.ndarray, elevations: np.ndarray, mags: np.ndarray
+    ) -> None:
+        log.debug(f"{mags=}")
+        mesh_az, mesh_el = np.meshgrid(azimuths, elevations)
+
+        # normalize. 3D plots.....don't like negative radii
+        mags = mags / np.max(mags)
+
+        x = mags * np.sin(mesh_el) * np.cos(mesh_az)
+        y = mags * np.sin(mesh_el) * np.sin(mesh_az)
+        z = mags * np.cos(mesh_el)
+
+        self.artist = self.ax.plot_surface(
+            x, y, z, color='viridian', rstride=1, cstride=1, antialiased=True
+        )
+        self.canvas.draw()
