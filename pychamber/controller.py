@@ -130,6 +130,7 @@ class PyChamberCtrl:
         self.view.calibrationButton.clicked.connect(self.exec_cal_dialog)
         self.view.calibrationViewButton.clicked.connect(self.exec_view_cal_dialog)
         self.view.polarPlotAutoScaleButton.clicked.connect(self.auto_scale_polar)
+        self.view.rectPlotAutoScaleButton.clicked.connect(self.auto_scale_rect)
         self.view.overFreqPlotAutoScaleButton.clicked.connect(self.auto_scale_over_freq)
 
         # SpinBoxes
@@ -157,6 +158,9 @@ class PyChamberCtrl:
         # Combo Boxes
         self.view.polarPlotPolarizationComboBox.currentIndexChanged.connect(
             self.update_polar_plot
+        )
+        self.view.rectPlotPolarizationComboBox.currentIndexChanged.connect(
+            self.update_rect_plot
         )
         self.view.overFreqPlotPolarizationComboBox.currentIndexChanged.connect(
             self.update_over_freq_plot
@@ -187,6 +191,7 @@ class PyChamberCtrl:
             lambda val: self.settings.setval('pol2-label', val)
         )
         self.view.polarPlotFreqLineEdit.returnPressed.connect(self.update_polar_plot)
+        self.view.rectPlotFreqLineEdit.returnPressed.connect(self.update_rect_plot)
 
         self.settings.settingsChanged.connect(self.settings_updated)
 
@@ -556,6 +561,37 @@ class PyChamberCtrl:
         self.view.polar_plot_max = int(self.view.polarPlot.rmax)
         self.view.polar_plot_step = int(self.view.polarPlot.rstep)
 
+    def update_rect_plot(self) -> None:
+        if not self.view.rect_plot_freq:
+            return
+        pol = self.view.rect_plot_pol
+        if pol not in self.ntwk_models:
+            return
+        if len(self.ntwk_models[pol]) == 0:
+            return
+
+        freq = self.view.rect_plot_freq
+        freqs = self.ntwk_models[pol].freqs
+        if (freq < min(freqs)) or (freq > max(freqs)):
+            return
+
+        array = np.asarray(freqs)
+        idx = (np.abs(array - freq)).argmin()
+        freq = array[idx]
+
+        azimuths = np.deg2rad(self.ntwk_models[pol].azimuths)
+        mags = self.ntwk_models[pol].mags(
+            freq=self.view.rect_plot_freq.render(), elevation=0
+        )
+
+        self.view.update_rect_plot(azimuths, mags)
+
+    def auto_scale_rect(self) -> None:
+        self.view.rectPlot.auto_scale()
+        self.view.rect_plot_min = int(self.view.rectPlot.ymin)
+        self.view.rect_plot_max = int(self.view.rectPlot.ymax)
+        self.view.rect_plot_step = int(self.view.rectPlot.ystep)
+
     def update_over_freq_plot(self) -> None:
         pol = self.view.over_freq_plot_pol
         az = self.view.over_freq_plot_az
@@ -619,6 +655,11 @@ class PyChamberCtrl:
             self.view.polar_plot_freq = list(self.ntwk_models.values())[0].freqs.min()
             self.update_polar_plot()
             self.auto_scale_polar()
+
+            self.view.rect_plot_freq = list(self.ntwk_models.values())[0].freqs.min()
+            self.update_rect_plot()
+            self.auto_scale_rect()
+
             self.update_python_with_ntwk_models()
 
     def show_settings(self) -> None:
@@ -660,6 +701,11 @@ class PyChamberCtrl:
             self.update_polar_plot()
             if self.settings['polar-autoscale']:
                 self.auto_scale_polar()
+
+        if self.view.rect_plot_pol == label:
+            self.update_rect_plot()
+            if self.settings['rect-autoscale']:
+                self.auto_scale_rect()
 
         if self.view.over_freq_plot_pol == label:
             self.update_over_freq_plot()

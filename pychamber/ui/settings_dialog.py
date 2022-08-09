@@ -44,12 +44,18 @@ class SettingsDialog(QDialog):
         self.polar_autoscale = QCheckBox(self)
         self.polar_autoscale.setChecked(self.settings_mgr['polar-autoscale'])
 
+        self.rect_autoscale = QCheckBox(self)
+        self.rect_autoscale.setChecked(self.settings_mgr['rect-autoscale'])
+
         self.overfreq_autoscale = QCheckBox(self)
         self.overfreq_autoscale.setChecked(self.settings_mgr['overfreq-autoscale'])
 
         layout.addRow("VISA Backend", self.backend)
         layout.addRow("Python Console Theme", self.py_theme)
         layout.addRow("Auto-scale Polar Plot During Experiment", self.polar_autoscale)
+        layout.addRow(
+            "Auto-scale Rectangular Plot During Experiment", self.rect_autoscale
+        )
         layout.addRow(
             "Auto-scale Over Frequency Plot During Experiment", self.overfreq_autoscale
         )

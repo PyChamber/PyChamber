@@ -30,6 +30,7 @@ class SettingsManager(QSettings):
         "el-step": 5,
         "cal-file": "",
         "polar-autoscale": True,
+        "rect-autoscale": True,
         "overfreq-autoscale": True,
     }
 

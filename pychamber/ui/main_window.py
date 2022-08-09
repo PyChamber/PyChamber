@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
 
         # Convenience methods
         self.update_polar_plot = self.polarPlot.update_plot
+        self.update_rect_plot = self.rectPlot.update_plot
         self.update_over_freq_plot = self.overFreqPlot.update_plot
 
     def center(self):
@@ -319,6 +320,46 @@ class MainWindow(QMainWindow):
         self.polarPlotStepSpinBox.setValue(rstep)
 
     @property
+    def rect_plot_pol(self) -> str:
+        return self.rectPlotPolarizationComboBox.currentText()
+
+    @property
+    def rect_plot_freq(self) -> Optional[Quantity]:
+        if (f := self.rectPlotFreqLineEdit.text()) != "":
+            return utils.to_freq(f)
+        else:
+            return None
+
+    @rect_plot_freq.setter
+    def rect_plot_freq(self, freq: Union[str, Quantity]) -> None:
+        f = Quantity(freq, units='Hz')
+        self.rectPlotFreqLineEdit.setText(f.render())
+
+    @property
+    def rect_plot_min(self) -> float:
+        return float(self.rectPlotMinSpinBox.value())
+
+    @rect_plot_min.setter
+    def rect_plot_min(self, rmin: int) -> None:
+        self.rectPlotMinSpinBox.setValue(rmin)
+
+    @property
+    def rect_plot_max(self) -> float:
+        return float(self.rectPlotMaxSpinBox.value())
+
+    @rect_plot_max.setter
+    def rect_plot_max(self, rmax: int) -> None:
+        self.rectPlotMaxSpinBox.setValue(rmax)
+
+    @property
+    def rect_plot_step(self) -> float:
+        return float(self.rectPlotStepSpinBox.value())
+
+    @rect_plot_step.setter
+    def rect_plot_step(self, rstep: int) -> None:
+        self.rectPlotStepSpinBox.setValue(rstep)
+
+    @property
     def over_freq_plot_pol(self) -> str:
         return self.overFreqPlotPolarizationComboBox.currentText()
 
@@ -408,15 +449,21 @@ class MainWindow(QMainWindow):
     def update_plot_pols(self, pols: List[str]) -> None:
         self.polarPlotPolarizationComboBox.blockSignals(True)
         self.polarPlotFreqLineEdit.blockSignals(True)
+        self.rectPlotPolarizationComboBox.blockSignals(True)
+        self.rectPlotFreqLineEdit.blockSignals(True)
         self.overFreqPlotPolarizationComboBox.blockSignals(True)
 
         self.polarPlotPolarizationComboBox.clear()
         self.polarPlotPolarizationComboBox.addItems(pols)
+        self.rectPlotPolarizationComboBox.clear()
+        self.rectPlotPolarizationComboBox.addItems(pols)
         self.overFreqPlotPolarizationComboBox.clear()
         self.overFreqPlotPolarizationComboBox.addItems(pols)
 
         self.polarPlotPolarizationComboBox.blockSignals(False)
         self.polarPlotFreqLineEdit.blockSignals(False)
+        self.rectPlotPolarizationComboBox.blockSignals(False)
+        self.rectPlotFreqLineEdit.blockSignals(False)
         self.overFreqPlotPolarizationComboBox.blockSignals(False)
 
     def setupMenuBar(self) -> None:
@@ -770,12 +817,15 @@ class MainWindow(QMainWindow):
     def setupTabWidget(self) -> None:
         self.tabWidget = QTabWidget(self.centralwidget)
         self.polarPlotTab = QWidget(self.tabWidget)
+        self.rectPlotTab = QWidget(self.tabWidget)
         self.overFreqPlotTab = QWidget(self.tabWidget)
 
         self.tabWidget.addTab(self.polarPlotTab, "Polar Plot")
+        self.tabWidget.addTab(self.rectPlotTab, "Rectangular Plot")
         self.tabWidget.addTab(self.overFreqPlotTab, "Over Frequency Plot")
 
         self.setupPolarPlotTab()
+        self.setupRectPlotTab()
         self.setupOverFreqPlotTab()
 
         self.rightSideLayout.addWidget(self.tabWidget)
@@ -815,6 +865,42 @@ class MainWindow(QMainWindow):
 
         self.polarPlot = MplPolarWidget('tab:blue', tab)
         self.polarPlotTabLayout.addWidget(self.polarPlot)
+
+    def setupRectPlotTab(self) -> None:
+        tab = self.rectPlotTab
+        self.rectPlotLayout = QVBoxLayout(tab)
+
+        self.rectPlotSettingsHLayout = QHBoxLayout()
+        self.rectPlotPolarizationLabel = QLabel("Polarization", tab)
+        self.rectPlotPolarizationComboBox = QComboBox(tab)
+        self.rectPlotPolarizationComboBox.addItems(['1', '2'])
+        self.rectPlotFreqLabel = QLabel("Frequency", tab)
+        self.rectPlotFreqLineEdit = QLineEdit(tab)
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.rectPlotAutoScaleButton = QPushButton("Auto Scale", tab)
+        self.rectPlotMinLabel = QLabel("Min", tab)
+        self.rectPlotMinSpinBox = QSpinBox(tab)
+        self.rectPlotMaxLabel = QLabel("Max", tab)
+        self.rectPlotMaxSpinBox = QSpinBox(tab)
+        self.rectPlotStepLabel = QLabel("dB/div", tab)
+        self.rectPlotStepSpinBox = QSpinBox(tab)
+
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotPolarizationLabel)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotPolarizationComboBox)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotFreqLabel)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotFreqLineEdit)
+        self.rectPlotSettingsHLayout.addItem(spacer)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotAutoScaleButton)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotMinLabel)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotMinSpinBox)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotMaxLabel)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotMaxSpinBox)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotStepLabel)
+        self.rectPlotSettingsHLayout.addWidget(self.rectPlotStepSpinBox)
+        self.rectPlotLayout.addLayout(self.rectPlotSettingsHLayout)
+
+        self.rectPlot = MplRectWidget('tab:blue', tab)
+        self.rectPlotLayout.addWidget(self.rectPlot)
 
     def setupOverFreqPlotTab(self) -> None:
         tab = self.overFreqPlotTab
@@ -934,6 +1020,9 @@ class MainWindow(QMainWindow):
 
         self.polarPlotFreqLineEdit.setSizePolicy(_SIZE_POLICIES['pref_pref'])
         self.polarPlotFreqLineEdit.setMinimumWidth(100)
+
+        self.rectPlotFreqLineEdit.setSizePolicy(_SIZE_POLICIES['pref_pref'])
+        self.rectPlotFreqLineEdit.setMinimumWidth(100)
 
     def updateFonts(self) -> None:
         self.positionerAzExtentLabel.setFont(_FONTS["bold_14"])
@@ -1066,6 +1155,21 @@ class MainWindow(QMainWindow):
         self.polarPlotStepSpinBox.setSingleStep(10)
         self.polarPlotStepSpinBox.setValue(10)
 
+        self.rectPlotMinSpinBox.setMinimum(-100)
+        self.rectPlotMinSpinBox.setMaximum(100)
+        self.rectPlotMinSpinBox.setSingleStep(5)
+        self.rectPlotMinSpinBox.setValue(-30)
+
+        self.rectPlotMaxSpinBox.setMinimum(-100)
+        self.rectPlotMaxSpinBox.setMaximum(100)
+        self.rectPlotMaxSpinBox.setSingleStep(5)
+        self.rectPlotMaxSpinBox.setValue(0)
+
+        self.rectPlotStepSpinBox.setMinimum(1)
+        self.rectPlotStepSpinBox.setMaximum(100)
+        self.rectPlotStepSpinBox.setSingleStep(10)
+        self.rectPlotStepSpinBox.setValue(10)
+
         self.overFreqPlotMinSpinBox.setMinimum(-100)
         self.overFreqPlotMinSpinBox.setMaximum(100)
         self.overFreqPlotMinSpinBox.setSingleStep(5)
@@ -1088,6 +1192,15 @@ class MainWindow(QMainWindow):
         self.polarPlotMinSpinBox.valueChanged.connect(self.polarPlot.set_scale_min)
         self.polarPlotMaxSpinBox.valueChanged.connect(self.polarPlot.set_scale_max)
         self.polarPlotStepSpinBox.valueChanged.connect(self.polarPlot.set_scale_step)
+
+        self.rectPlot.set_xtitle("Frequency")
+        self.rectPlot.set_ytitle("Gain [dB]")
+        self.rectPlot.set_scale(
+            min=self.rect_plot_min, max=self.rect_plot_max, step=self.rect_plot_step
+        )
+        self.rectPlotMinSpinBox.valueChanged.connect(self.rectPlot.set_scale_min)
+        self.rectPlotMaxSpinBox.valueChanged.connect(self.rectPlot.set_scale_max)
+        self.rectPlotStepSpinBox.valueChanged.connect(self.rectPlot.set_scale_step)
 
         self.overFreqPlot.set_xtitle("Frequency")
         self.overFreqPlot.set_ytitle("Gain [dB]")
