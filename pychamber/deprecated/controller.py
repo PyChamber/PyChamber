@@ -12,22 +12,22 @@ from serial.tools import list_ports
 from skrf import Network
 from skrf.vi import vna
 
-from pychamber.classes import positioner
-from pychamber.classes.jog_worker import JogAxis, JogWorker, JogZeroWorker
-from pychamber.classes.logger import log
-from pychamber.classes.network_model import NetworkModel
-from pychamber.classes.polarization import Polarization
-from pychamber.classes.positioner import PositionerError
-from pychamber.classes.scan_worker import ScanWorker
-from pychamber.classes.settings_manager import SettingsManager
+from pychamber.deprecated.about import AboutPyChamber
+from pychamber.deprecated.calibration import CalibrationViewDialog, CalibrationWizard
+from pychamber.deprecated.log_viewer import LogViewer
+from pychamber.deprecated.main_window import MainWindow
+from pychamber.deprecated.pop_ups import MsgLevel, PopUpMessage
+from pychamber.deprecated.pyconsole import PyConsole
+from pychamber.deprecated.settings_dialog import SettingsDialog
 from pychamber.lib import load
-from pychamber.ui.about import AboutPyChamber
-from pychamber.ui.calibration import CalibrationViewDialog, CalibrationWizard
-from pychamber.ui.log_viewer import LogViewer
-from pychamber.ui.main_window import MainWindow
-from pychamber.ui.pop_ups import MsgLevel, PopUpMessage
-from pychamber.ui.pyconsole import PyConsole
-from pychamber.ui.settings_dialog import SettingsDialog
+from pychamber.logger import log
+from pychamber.plugins.positioner import positioner
+from pychamber.plugins.positioner.positioner import PositionerError
+from pychamber.polarization import Polarization
+from pychamber.settings import Settings
+from pychamber.widgets.jog_worker import JogAxis, JogWorker, JogZeroWorker
+from pychamber.widgets.network_model import NetworkModel
+from pychamber.widgets.scan_worker import ScanWorker
 
 MUTEX = QMutex()
 
@@ -72,7 +72,7 @@ class PyChamberCtrl:
         self.analyzer: Optional[vna.VNA] = None
         self.positioner: Optional[positioner.Positioner] = None
 
-        self.settings = SettingsManager()
+        self.settings = Settings()
 
         self.connect_signals()
 

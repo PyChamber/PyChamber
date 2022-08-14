@@ -2,14 +2,26 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from enum import Enum, auto
+from typing import Any, Dict, List, Optional
 
 import pkg_resources  # type: ignore
 import serial
 from omegaconf import OmegaConf
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal
 
-from pychamber.classes.logger import log
+from pychamber.logger import log
+
+
+class JogAxis(Enum):
+    AZIMUTH = auto()
+    ELEVATION = auto()
+
+
+class JogDir(Enum):
+    MINUS = -1
+    ZERO = 0
+    PLUS = -1
 
 
 @dataclass
@@ -34,6 +46,12 @@ class Positioner(ABC):
     positioner using commands determined by a config file.
     """
 
+    # Signals
+    az_move_complete = pyqtSignal(float)
+    el_move_complete = pyqtSignal(float)
+
+    _models: Dict[str, Any] = dict()
+
     def __init__(self, name: str, serial_port: str) -> None:
         """Create a Positioner object.
 
@@ -49,6 +67,19 @@ class Positioner(ABC):
         self.serial = serial.Serial(
             serial_port, self.config.serial.baudrate, timeout=self.config.serial.timeout
         )
+
+    # Register subclasses so we can later call Positioner[<model name>]() to construct
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        cls._models[cls.__name__] = cls
+
+    @classmethod
+    def connect(cls, model: str, serial_port: str) -> Positioner:
+        return cls._models[model](serial_port)
+
+    @classmethod
+    def model_names(cls) -> List[str]:
+        return list(cls._models.keys())
 
     def __enter__(self) -> Positioner:
         return self
@@ -118,7 +149,7 @@ class D6050(Positioner):
     y = "Y0"
 
     def __init__(self, serial_port: str) -> None:
-        super().__init__("D6050", serial_port)
+        super(D6050, self).__init__("D6050", serial_port)
 
         self.az_steps_per_deg = self.config.hardware.steps_per_degree[
             self.config.hardware.azimuth
@@ -134,7 +165,7 @@ class D6050(Positioner):
 
     def write(self, cmd: str) -> Optional[BoardResponse]:
         self.serial.reset_input_buffer()
-        self.serial.write(command := f"{cmd}\r".encode('ascii'))
+        self.serial.write(f"{cmd}\r".encode('ascii'))
         QTimer.singleShot(500, lambda: None)
 
         resp = self.check_response()
@@ -291,7 +322,10 @@ class D6050(Positioner):
             if not resp:
                 continue
             if resp.status == 'f' or resp.status == '>':
-                break
+                if axis == self.x:
+                    self.el_move_complete.emit(self.current_elevation)
+                elif axis == self.y:
+                    self.az_move_complete.emit(self.current_azimuth)
             elif resp.status == 'H':
                 raise PositionerError('Home limit')
             elif resp.status == 'L':

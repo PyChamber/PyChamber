@@ -1,6 +1,3 @@
-import pathlib
-
-from classes.settings_manager import SettingsManager
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -9,12 +6,14 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QFormLayout,
 )
-from pyvisa.util import get_system_details
-from ui import pyconsole
+
+from pychamber.settings import Settings
+
+from . import pyconsole
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, settings_mgr: SettingsManager, parent=None) -> None:
+    def __init__(self, settings_mgr: Settings, parent=None) -> None:
         super().__init__(parent)
         self.settings_mgr = settings_mgr
         self.setup_widgets()

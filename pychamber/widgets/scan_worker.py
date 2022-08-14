@@ -5,10 +5,10 @@ import numpy as np
 from PyQt5.QtCore import QMutex, pyqtSignal
 from skrf.vi import vna
 
-from pychamber.classes.logger import log
-from pychamber.classes.polarization import Polarization
-from pychamber.classes.positioner import Positioner
-from pychamber.classes.worker import Worker
+from pychamber.logger import log
+from pychamber.plugins.positioner.positioner import Positioner
+from pychamber.polarization import Polarization
+from pychamber.widgets.worker import Worker
 
 
 class ScanWorker(Worker):
@@ -76,16 +76,16 @@ class ScanWorker(Worker):
 
                 self.mutex.lock()
                 start = time.time()
-                pos_meta = {'azimuth': az, 'elevation': el}
                 self.positioner.move_elevation_absolute(el)
                 pos = self.positioner.current_elevation
                 self.elMoveComplete.emit(pos)
 
                 for pol in self.polarizations:
+                    pos_meta = {'azimuth': az, 'elevation': el, 'polarization': pol.label}
                     self.analyzer.set_active_measurement(f"ANT_{pol.param}")
                     ntwk = self.analyzer.get_active_trace()
                     ntwk.params = pos_meta
-                    self.dataAcquired.emit((pol.label, ntwk))
+                    self.dataAcquired.emit(ntwk)
 
                 end = time.time()
                 self.mutex.unlock()

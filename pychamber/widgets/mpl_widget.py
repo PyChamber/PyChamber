@@ -8,15 +8,12 @@ from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
 from matplotlib.ticker import EngFormatter
-from matplotlib import cm
-
-from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pychamber.classes.logger import log
+from pychamber.logger import log
 
 matplotlib.use('QT5Agg')
 

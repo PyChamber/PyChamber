@@ -10,10 +10,11 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
+from PyQt5.QtCore import pyqtSignal
 from skrf.network import Network
 from skrf.networkSet import NetworkSet
 
-from pychamber.classes.logger import log
+from pychamber.logger import log
 
 
 class NetworkModel(NetworkSet):
@@ -27,6 +28,8 @@ class NetworkModel(NetworkSet):
         azimuths: List of azimuths in the set
         elevations: List of elevations in the set
     """
+
+    dataChanged = pyqtSignal(object)
 
     @property
     def freqs(self) -> np.ndarray:
@@ -120,5 +123,5 @@ class NetworkModel(NetworkSet):
     def append(self, ntwk: Network) -> NetworkModel:
         log.debug("Appending to network model")
         ret = NetworkModel(list(self) + [ntwk])  # type: ignore
-        log.debug(f"{ret=}")
+        self.dataChanged.emit(ntwk)
         return ret

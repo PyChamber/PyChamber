@@ -23,13 +23,16 @@ repos:
     hooks:
       - id: black
         language_version: python3.10
+        args: [--target-version, py310]
   - repo: https://github.com/pycqa/flake8
     rev: 4.0.1
     hooks:
       - id: flake8
         additional_dependencies: [flake8-typing-imports==1.10.0]
         args: [--config, setup.cfg]
+        language_version: python3.10
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.942
     hooks:
       - id: mypy
+        language_version: python3.10

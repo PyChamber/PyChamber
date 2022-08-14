@@ -4,12 +4,14 @@ from typing import Any
 
 from PyQt5.QtCore import QSettings, pyqtSignal
 
+from pychamber.logger import log
+
 ORG_NAME = "PyChamber"
 APP_NAME = "PyChamber"
 
 
-class SettingsManager(QSettings):
-    settingsChanged = pyqtSignal(str)
+class Settings(QSettings):
+    settings_changed = pyqtSignal(str)
 
     _defaults = {
         "backend": "pyvisa-py",
@@ -28,6 +30,10 @@ class SettingsManager(QSettings):
         "el-start": -90,
         "el-stop": 90,
         "el-step": 5,
+        "jog-az-step": 0.0,
+        "jog-el-step": 0.0,
+        "current-az": 0.0,
+        "current-el": 0.0,
         "cal-file": "",
         "polar-autoscale": True,
         "rect-autoscale": True,
@@ -41,9 +47,13 @@ class SettingsManager(QSettings):
         return self.value(index, self._defaults[index])
 
     def __setitem__(self, key: str, value: Any) -> None:
+        log.debug(f"Updating setting: {key} = {value}")
         self.setValue(key, value)
-        self.settingsChanged.emit(key)
+        self.settings_changed.emit(key)
 
     def setval(self, key: str, value: Any) -> None:
         # needed to call from a lambda in `controller`
         self[key] = value
+
+
+SETTINGS = Settings()

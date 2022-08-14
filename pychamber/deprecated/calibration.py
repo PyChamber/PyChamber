@@ -1,11 +1,9 @@
 import itertools
-import logging
 import pathlib
 import tempfile
 from typing import Dict, List, Optional, Tuple
 
 import cloudpickle as pickle
-import numpy as np
 import pandas as pd
 from pandas.errors import ParserError
 from PyQt5.QtCore import Qt
@@ -29,12 +27,12 @@ from PyQt5.QtWidgets import (
     QWizardPage,
 )
 from quantiphy import Quantity
-from skrf import Frequency, Network
+from skrf import Network
 from skrf.vi import vna
 
-from pychamber.classes.logger import log
-from pychamber.ui.mplwidget import MplRectWidget
-from pychamber.ui.pop_ups import MsgLevel, PopUpMessage
+from pychamber.deprecated.pop_ups import MsgLevel, PopUpMessage
+from pychamber.logger import log
+from pychamber.widgets.mpl_widget import MplRectWidget
 
 _FONTS = {'header': QFont('Roboto', 12, QFont.Bold)}
 
@@ -81,8 +79,8 @@ class SetupPage(QWizardPage):
             <p>First, set up your instrument with the proper configuration
             (e.g. frequencies, power level, IF bandwidth, etc.).
 
-            Next, set up your horns so they are facing each other 
-            and as aligned as possible (a laser is helpful). The 
+            Next, set up your horns so they are facing each other
+            and as aligned as possible (a laser is helpful). The
             more precise this alignment, the better your calibration.</p>
             </html>
             """
@@ -109,9 +107,9 @@ class NotesPage(QWizardPage):
         self.text.setText(
             """
             <html>
-            <p>Here, you can record some notes detailing the setup. 
+            <p>Here, you can record some notes detailing the setup.
             These are optional, but it is highly recommended to take
-            detailed notes on the setup. These notes will be stored 
+            detailed notes on the setup. These notes will be stored
             in the calibration file. Good things to include:<p>
 
             <ul>
@@ -122,7 +120,7 @@ class NotesPage(QWizardPage):
             <li>Links to any relevant datasheets</li>
             </ul>
 
-            <p><b>Note:</b> Frequency information is already stored as a 
+            <p><b>Note:</b> Frequency information is already stored as a
             part of the calibration data. No need to record it.</p>
             </html>
             """

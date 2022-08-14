@@ -1,6 +1,5 @@
 import time
 import webbrowser
-from lib2to3.pgen2.token import OP
 from typing import List, Optional, Union
 
 import numpy as np
@@ -27,14 +26,12 @@ from PyQt5.QtWidgets import (
 )
 from quantiphy import Quantity
 
-from pychamber import utils
-from pychamber.classes.logger import log
-from pychamber.classes.polarization import Polarization
-from pychamber.classes.settings_manager import SettingsManager
+from pychamber.deprecated import utils
+from pychamber.polarization import Polarization
+from pychamber.settings import Settings
 from pychamber.ui import resources_rc
 
-from .freq_spin_box import FrequencySpinBox
-from .mplwidget import Mpl3DWidget, MplPolarWidget, MplRectWidget
+from ..widgets.mpl_widget import Mpl3DWidget, MplPolarWidget, MplRectWidget
 
 _SIZE_POLICIES = {
     'min_min': QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum),
@@ -1119,7 +1116,7 @@ class MainWindow(QMainWindow):
 
         self.analyzerNPointsLineEdit.setValidator(QIntValidator())
 
-    def updateFromSettings(self, settings: SettingsManager) -> None:
+    def updateFromSettings(self, settings: Settings) -> None:
         self.analyzerModelComboBox.setCurrentText(settings["analyzer-model"])
         self.analyzerAddressComboBox.setCurrentText(settings["analyzer-addr"])
         self.positionerModelComboBox.setCurrentText(settings["positioner-model"])

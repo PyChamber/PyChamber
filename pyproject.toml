@@ -57,12 +57,7 @@ mkdocs-section-index = { version = "^0.3.4", optional = true }
 pyinstaller = { version = "^5.3", optional = true }
 
 [tool.poetry.extras]
-test = [
-    "pytest",
-    "flake8",
-    "flake8-docstrings",
-    "pytest-cov",
-]
+test = ["pytest", "flake8", "flake8-docstrings", "pytest-cov"]
 
 dev = [
     "tox",
@@ -98,7 +93,7 @@ black = "^22.3.0"
 [tool.black]
 line-length = 90
 skip-string-normalization = true
-target-version = ['py38', 'py39']
+target-version = ['py38', 'py39', 'py310']
 include = '\.pyi?$'
 exclude = '''
 /(
