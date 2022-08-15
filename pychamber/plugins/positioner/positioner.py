@@ -8,9 +8,10 @@ from typing import Any, Dict, List, Optional
 import pkg_resources  # type: ignore
 import serial
 from omegaconf import OmegaConf
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 from pychamber.logger import log
+from pychamber.settings import SETTINGS
 
 
 class JogAxis(Enum):
@@ -19,9 +20,9 @@ class JogAxis(Enum):
 
 
 class JogDir(Enum):
-    MINUS = -1
-    ZERO = 0
-    PLUS = -1
+    MINUS = -1.0
+    ZERO = 0.0
+    PLUS = 1.0
 
 
 @dataclass
@@ -39,7 +40,7 @@ class PositionerError(RuntimeError):
     pass
 
 
-class Positioner(ABC):
+class Positioner(QObject):
     """A positioner that holds the antenna under test.
 
     Establishes a serial port and issues commands over it to control a
@@ -47,18 +48,19 @@ class Positioner(ABC):
     """
 
     # Signals
-    az_move_complete = pyqtSignal(float)
-    el_move_complete = pyqtSignal(float)
+    az_move_complete = pyqtSignal()
+    el_move_complete = pyqtSignal()
 
     _models: Dict[str, Any] = dict()
 
-    def __init__(self, name: str, serial_port: str) -> None:
+    def __init__(self, name: str, serial_port: str, parent=None) -> None:
         """Create a Positioner object.
 
         Args:
             name: model name of positioner (e.g. D6050)
             serial_port: port name of serial port connection
         """
+        super().__init__(parent)
         yaml_str = pkg_resources.resource_string(__name__, f"configs/{name}.yaml").decode(
             'utf-8'
         )
@@ -92,56 +94,45 @@ class Positioner(ABC):
         self.serial.close()
 
     def zero(self) -> None:
-        self.azimuth_deg = 0.0
-        self.elevation_deg = 0.0
+        SETTINGS["positioner-az-pos"] = 0.0
+        SETTINGS["positioner-el-pos"] = 0.0
 
-    @abstractmethod
     def write(self, cmd: str) -> Optional[BoardResponse]:
-        pass
+        ...
 
-    @abstractmethod
     def query(self, cmd: str) -> str:
-        pass
+        ...
 
-    @abstractmethod
     def abort_all(self) -> None:
-        pass
+        ...
 
     @property  # type: ignore
-    @abstractmethod
     def current_azimuth(self) -> float:
-        pass
+        ...
 
     @current_azimuth.setter  # type: ignore
-    @abstractmethod
     def current_azimuth(self) -> None:
-        pass
+        ...
 
     @property  # type: ignore
-    @abstractmethod
     def current_elevation(self) -> float:
-        pass
+        ...
 
     @current_elevation.setter  # type: ignore
-    @abstractmethod
     def current_elevation(self) -> None:
-        pass
+        ...
 
-    @abstractmethod
     def move_azimuth_relative(self, angle: float) -> None:
-        pass
+        ...
 
-    @abstractmethod
     def move_azimuth_absolute(self, angle: float) -> None:
-        pass
+        ...
 
-    @abstractmethod
     def move_elevation_relative(self, angle: float) -> None:
-        pass
+        ...
 
-    @abstractmethod
     def move_elevation_absolute(self, angle: float) -> None:
-        pass
+        ...
 
 
 class D6050(Positioner):
@@ -160,6 +151,9 @@ class D6050(Positioner):
 
         self.azimuth = self.config.hardware.azimuth.upper() + "0"
         self.elevation = self.config.hardware.elevation.upper() + "0"
+
+        self.current_az: float = float(SETTINGS["positioner-az-pos"])
+        self.current_el: float = float(SETTINGS["positioner-el-pos"])
 
         self.reset()
 
@@ -248,34 +242,35 @@ class D6050(Positioner):
         self.set_move_slope(self.x, self.config.hardware.slope.x)
         self.set_move_slope(self.y, self.config.hardware.slope.y)
 
-        self.zero()
-
     def init(self, axis: str) -> None:
         self.write(f"{axis}N-0cz00")
 
     @property
     def current_az_steps(self) -> int:
-        return int(self.query(f"{self.azimuth}m"))
+        az_steps = self.query(f"{self.azimuth}m")
+        log.debug(f"{az_steps=}")
+        return int(az_steps)
 
     @property
     def current_el_steps(self) -> int:
-        return int(self.query(f"{self.elevation}m"))
+        el_steps = self.query(f"{self.elevation}m")
+        return int(el_steps)
 
     @property
     def current_azimuth(self) -> float:
-        return self.azimuth_deg
+        return float(self.current_az)
 
     @current_azimuth.setter
-    def current_azimuth(self, angle: float) -> None:
-        self.azimuth_deg = angle
+    def current_azimuth(self, val: float) -> None:
+        self.current_az = val
 
     @property
     def current_elevation(self) -> float:
-        return self.elevation_deg
+        return self.current_el
 
     @current_elevation.setter
-    def current_elevation(self, angle: float) -> None:
-        self.elevation_deg = angle
+    def current_elevation(self, val: float) -> None:
+        self.current_el = val
 
     def set_abs_count(self, axis: str, pos: int) -> None:
         self.write(f"{axis}A{pos}")
@@ -323,9 +318,10 @@ class D6050(Positioner):
                 continue
             if resp.status == 'f' or resp.status == '>':
                 if axis == self.x:
-                    self.el_move_complete.emit(self.current_elevation)
+                    self.el_move_complete.emit()
                 elif axis == self.y:
-                    self.az_move_complete.emit(self.current_azimuth)
+                    self.az_move_complete.emit()
+                break
             elif resp.status == 'H':
                 raise PositionerError('Home limit')
             elif resp.status == 'L':
@@ -335,13 +331,13 @@ class D6050(Positioner):
         steps = -int(self.az_steps_per_deg * angle)
         log.debug(f"move az relative: {angle} degrees / {steps} steps")
         self.move(self.azimuth, f"{steps:+}")
-        self.azimuth_deg += angle
+        self.current_az += angle
 
     def move_elevation_relative(self, angle: float) -> None:
         steps = -int(self.el_steps_per_deg * angle)
         log.debug(f"move el relative: {angle} degrees / {steps} steps")
         self.move(self.elevation, f"{steps:+}")
-        self.elevation_deg += angle
+        self.current_el += angle
 
     def move_azimuth_absolute(self, angle: float) -> None:
         diff = angle - self.current_azimuth

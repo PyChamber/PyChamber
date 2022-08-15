@@ -42,15 +42,11 @@ class PositionerPlugin(PyChamberPlugin):
 
         self._positioner: Optional[Positioner] = None
 
-        self.current_az: float = 0.0
-        self.current_el: float = 0.0
         self.jog_az_to: float = 0.0
         self.jog_el_to: float = 0.0
 
         self.jog_thread: QThread = QThread(None)
         self.jog_thread.started.connect(self.jog_started.emit)
-        self.jog_thread.finished.connect(lambda: self.jog_groupbox.setEnabled(True))
-        self.jog_thread.finished.connect(lambda: self.jog_complete.emit())
 
     def setup(self) -> None:
         self._add_widgets()
@@ -61,6 +57,8 @@ class PositionerPlugin(PyChamberPlugin):
         self._connect_signals()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        SETTINGS["polarization-az-pos"] = self._positioner.current_azimuth
+        SETTINGS["polarization-el-pos"] = self._positioner.current_elevation
         self.jog_thread.quit()
         self.jog_thread.wait()
         super().closeEvent(event)
@@ -196,26 +194,16 @@ class PositionerPlugin(PyChamberPlugin):
             )
         )
 
-        self.az_pos_lineedit.textChanged.connect(
-            lambda text: setattr(self, "current_az", text)
-        )
-        self.el_pos_lineedit.textChanged.connect(
-            lambda text: setattr(self, "current_el", text)
-        )
-
         self.set_zero_btn.clicked.connect(self._on_set_zero_clicked)
+        self.positioner_connected.connect(self._on_positioner_connected)
+
+        self.jog_complete.connect(self._on_jog_complete)
 
     def _on_jog_az_to_changed(self, val: str) -> None:
         self.jog_az_to = float(val)
 
     def _on_jog_el_to_changed(self, val: str) -> None:
         self.jog_el_to = float(val)
-
-    def _on_az_pos_changed(self, val: str) -> None:
-        self.current_az = float(val)
-
-    def _on_el_pos_changed(self, val: str) -> None:
-        self.current_el = float(val)
 
     def _on_connect_clicked(self) -> None:
         model = self.model_combobox.currentText()
@@ -233,18 +221,25 @@ class PositionerPlugin(PyChamberPlugin):
         self.az_pos_lineedit.setText("0.0")
         self.el_pos_lineedit.setText("0.0")
 
-    def _on_az_move_complete(self, pos: float) -> None:
-        self.az_pos_lineedit.setText(str(pos))
+    def _on_az_move_complete(self) -> None:
+        self.az_pos_lineedit.setText(str(self._positioner.current_azimuth))
+        self.jog_complete.emit()
 
-    def _on_el_move_complete(self, pos: float) -> None:
-        self.el_pos_lineedit.setText(str(pos))
+    def _on_el_move_complete(self) -> None:
+        self.el_pos_lineedit.setText(str(self._positioner.current_elevation))
+        self.jog_complete.emit()
 
     def _on_positioner_connected(self) -> None:
         assert self._positioner is not None
+        self.set_enabled(True)
+        self.az_pos_lineedit.setText(str(SETTINGS["positioner-az-pos"]))
+        self.el_pos_lineedit.setText(str(SETTINGS["positioner-el-pos"]))
         self._positioner.az_move_complete.connect(self._on_az_move_complete)
-        self._positioner.az_move_complete.connect(self.jog_complete.emit)
         self._positioner.el_move_complete.connect(self._on_el_move_complete)
-        self._positioner.el_move_complete.connect(self.jog_complete.emit)
+
+    def _on_jog_complete(self) -> None:
+        log.debug("Jog complete")
+        self.set_enabled(True)
 
     def _setup_az_extent_widget(self) -> None:
         layout = QVBoxLayout()
@@ -495,13 +490,14 @@ class PositionerPlugin(PyChamberPlugin):
             return
 
         log.debug("Setting up jog thread")
-        self.jog_groupbox.setEnabled(False)
+        self.set_enabled(False)
         match axis:
             case JogAxis.AZIMUTH:
                 if direction == JogDir.ZERO:
                     angle = 0.0
                 elif relative:
-                    angle = self.current_az + (direction.value * SETTINGS["az-step"])
+                    az_step = float(SETTINGS["jog-az-step"])
+                    angle = self._positioner.current_azimuth + (direction.value * float(SETTINGS["jog-az-step"]))
                 else:
                     angle = self.jog_az_to
                 log.debug("Starting azimuth jog thread")
@@ -510,12 +506,13 @@ class PositionerPlugin(PyChamberPlugin):
                 if direction == JogDir.ZERO:
                     angle = 0.0
                 if relative:
-                    angle = self.current_el + (direction.value * SETTINGS["el_step"])
+                    angle = self._positioner.current_elevation + (direction.value * float(SETTINGS["jog-el-step"]))
                 else:
                     angle = self.jog_el_to
                 log.debug("Starting elevation jog thread")
                 self.jog_thread.run = functools.partial(self.jog_el, angle)
 
+        log.debug(f"Jogging angle: {angle}")
         self.jog_thread.start()
 
     # ========== API ==========
@@ -553,22 +550,24 @@ class PositionerPlugin(PyChamberPlugin):
         return np.arange(SETTINGS["el-start"], SETTINGS["el-stop"], SETTINGS["el-step"])
 
     def jog_az(self, angle: float) -> None:
+        log.debug("Jogging azimuth")
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
 
-        if np.isclose(self.current_az, angle):
+        if np.isclose(self._positioner.current_azimuth, angle):
             return
 
         self._positioner.move_azimuth_absolute(angle)
 
     def jog_el(self, angle: float) -> None:
+        log.debug("Jogging elevation")
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
 
-        if np.isclose(self.current_el, angle):
+        if np.isclose(self._positioner.current_elevation, angle):
             return
 
         self._positioner.move_elevation_absolute(angle)
 
     def set_enabled(self, enable: bool) -> None:
-        self.groupbox.setEnabled(enable)
+        self.jog_groupbox.setEnabled(enable)
