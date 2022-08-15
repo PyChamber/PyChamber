@@ -114,7 +114,7 @@ class ExperimentWidget(PyChamberPlugin):
 
         layout.addLayout(vlayout)
 
-        self.groupbox.setEnabled(False)
+        self.set_enabled(False)
         self.cut_progress_label.hide()
         self.cut_progressbar.hide()
 
@@ -137,19 +137,19 @@ class ExperimentWidget(PyChamberPlugin):
         self.cut_progress_updated.connect(self._on_cut_progress_updated)
 
     def _on_start_experiment(self) -> None:
-        self.az_scan_btn.setEnabled(False)
-        self.el_scan_btn.setEnabled(False)
-        self.full_scan_btn.setEnabled(False)
-        self.abort_btn.setEnabled(True)
+        self.set_enabled(False)
 
     def _on_experiment_done(self) -> None:
-        self.az_scan_btn.setEnabled(True)
-        self.el_scan_btn.setEnabled(True)
-        self.full_scan_btn.setEnabled(True)
-        self.abort_btn.setEnabled(False)
+        self.set_enabled(True)
 
     def _on_progress_updated(self, progress: int) -> None:
         self.total_progressbar.setValue(progress)
 
     def _on_cut_progress_updated(self, progress: int) -> None:
         self.cut_progressbar.setValue(progress)
+
+    def set_enabled(self, enable: bool) -> None:
+        self.az_scan_btn.setEnabled(enable)
+        self.el_scan_btn.setEnabled(enable)
+        self.full_scan_btn.setEnabled(enable)
+        self.abort_btn.setEnabled(not enable)

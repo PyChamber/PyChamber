@@ -48,6 +48,8 @@ class PositionerPlugin(PyChamberPlugin):
         self.jog_thread: QThread = QThread(None)
         self.jog_thread.started.connect(self.jog_started.emit)
 
+        self.listen_to_jog_complete_signals = True # FIXME: This is gross
+
     def setup(self) -> None:
         self._add_widgets()
 
@@ -239,7 +241,7 @@ class PositionerPlugin(PyChamberPlugin):
 
     def _on_jog_complete(self) -> None:
         log.debug("Jog complete")
-        self.set_enabled(True)
+        self.set_enabled(True and self.listen_to_jog_complete_signals)
 
     def _setup_az_extent_widget(self) -> None:
         layout = QVBoxLayout()
@@ -451,7 +453,8 @@ class PositionerPlugin(PyChamberPlugin):
         self.az_pos_lineedit = QLineEdit(self.jog_groupbox)
         self.az_pos_lineedit.setReadOnly(True)
         self.az_pos_lineedit.setSizePolicy(size_policy["MIN_PREF"])
-        self.az_pos_lineedit.setFont(font["BOLD_12"])
+        self.az_pos_lineedit.setFont(font["BOLD_20_IBM"])
+        self.az_pos_lineedit.setAlignment(Qt.AlignHCenter)
         az_pos_layout.addWidget(self.az_pos_lineedit)
 
         hlayout.addLayout(az_pos_layout)
@@ -467,6 +470,7 @@ class PositionerPlugin(PyChamberPlugin):
         self.el_pos_lineedit = QLineEdit(self.jog_groupbox)
         self.el_pos_lineedit.setReadOnly(True)
         self.el_pos_lineedit.setSizePolicy(size_policy["MIN_PREF"])
+        self.el_pos_lineedit.setFont(font["BOLD_20_IBM"])
         self.el_pos_lineedit.setAlignment(Qt.AlignHCenter)
         el_pos_layout.addWidget(self.el_pos_lineedit)
 
@@ -544,18 +548,23 @@ class PositionerPlugin(PyChamberPlugin):
         return self._positioner
 
     def az_extents(self) -> np.ndarray:
-        return np.arange(SETTINGS["az-start"], SETTINGS["az-stop"], SETTINGS["az-step"])
+        return np.arange(
+            float(SETTINGS["az-start"]), 
+            float(SETTINGS["az-stop"]) + float(SETTINGS["az-step"]), 
+            float(SETTINGS["az-step"])
+        )
 
     def el_extents(self) -> np.ndarray:
-        return np.arange(SETTINGS["el-start"], SETTINGS["el-stop"], SETTINGS["el-step"])
+        return np.arange(
+            float(SETTINGS["el-start"]), 
+            float(SETTINGS["el-stop"]) + float(SETTINGS["el-step"]), 
+            float(SETTINGS["el-step"])
+        )
 
     def jog_az(self, angle: float) -> None:
         log.debug("Jogging azimuth")
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
-
-        if np.isclose(self._positioner.current_azimuth, angle):
-            return
 
         self._positioner.move_azimuth_absolute(angle)
 
@@ -563,9 +572,6 @@ class PositionerPlugin(PyChamberPlugin):
         log.debug("Jogging elevation")
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
-
-        if np.isclose(self._positioner.current_elevation, angle):
-            return
 
         self._positioner.move_elevation_absolute(angle)
 

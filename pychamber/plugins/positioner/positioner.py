@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import pkg_resources  # type: ignore
 import serial
 from omegaconf import OmegaConf
@@ -328,12 +329,18 @@ class D6050(Positioner):
                 raise PositionerError('Max limit')
 
     def move_azimuth_relative(self, angle: float) -> None:
+        if np.isclose(angle, 0.0):
+            self.az_move_complete.emit()
+            return
         steps = -int(self.az_steps_per_deg * angle)
         log.debug(f"move az relative: {angle} degrees / {steps} steps")
         self.move(self.azimuth, f"{steps:+}")
         self.current_az += angle
 
     def move_elevation_relative(self, angle: float) -> None:
+        if np.isclose(angle, 0.0):
+            self.el_move_complete.emit()
+            return
         steps = -int(self.el_steps_per_deg * angle)
         log.debug(f"move el relative: {angle} degrees / {steps} steps")
         self.move(self.elevation, f"{steps:+}")

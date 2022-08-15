@@ -199,6 +199,13 @@ class AnalyzerPlugin(PyChamberPlugin):
         )
         self.connect_btn.clicked.connect(self._on_connect_clicked)
 
+        self.pol1_combobox.currentTextChanged.connect(
+            lambda text: SETTINGS.setval("pol1-param", text)
+        )
+        self.pol2_combobox.currentTextChanged.connect(
+            lambda text: SETTINGS.setval("pol2-param", text)
+        )
+
         self.start_freq_lineedit.textChanged.connect(self._on_start_freq_changed)
         self.stop_freq_lineedit.textChanged.connect(self._on_stop_freq_changed)
         self.freq_step_lineedit.textChanged.connect(self._on_freq_step_changed)
@@ -207,19 +214,17 @@ class AnalyzerPlugin(PyChamberPlugin):
         # editingFinished is only emitted if the input is acceptable, so these
         # class variables should never be None, hence the type: ignores
         self.start_freq_lineedit.editingFinished.connect(
-            functools.partial(self.set_start_freq, self.start_freq)  # type: ignore
+            self._on_start_freq_editing_finished
         )
         self.stop_freq_lineedit.editingFinished.connect(
-            functools.partial(self.set_start_freq, self.stop_freq)  # type: ignore
+            self._on_stop_freq_editing_finished
         )
         self.freq_step_lineedit.editingFinished.connect(
-            functools.partial(self.set_start_freq, self.freq_step)  # type: ignore
+            self._on_freq_step_editing_finished
         )
-        self.n_points_lineedit.editingFinished.connect(
-            functools.partial(self.set_start_freq, self.n_points)  # type: ignore
-        )
+        self.n_points_lineedit.editingFinished.connect(self._on_n_points_editing_finished)
 
-        self.analyzer_connected.connect(lambda: self.freq_groupbox.setEnabled(True))
+        self.analyzer_connected.connect(lambda: self.set_enabled(True))
 
     def _on_start_freq_changed(self, text: str) -> None:
         if self.start_freq_lineedit.hasAcceptableInput():
@@ -241,9 +246,21 @@ class AnalyzerPlugin(PyChamberPlugin):
 
     def _on_n_points_changed(self, text: str) -> None:
         if self.n_points_lineedit.hasAcceptableInput():
-            self.start_freq = Quantity(text)
+            self.n_points = int(text)
         else:
             self.n_points = None
+
+    def _on_start_freq_editing_finished(self) -> None:
+        self.set_start_freq(self.start_freq)
+
+    def _on_stop_freq_editing_finished(self) -> None:
+        self.set_stop_freq(self.stop_freq)
+
+    def _on_freq_step_editing_finished(self) -> None:
+        self.set_freq_step(self.freq_step)
+
+    def _on_n_points_editing_finished(self) -> None:
+        self.set_n_points(self.n_points)
 
     def _on_connect_clicked(self) -> None:
         model = self.model_combobox.currentText()
@@ -292,10 +309,14 @@ class AnalyzerPlugin(PyChamberPlugin):
         ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [
             f"S{p}{p}" for p in ports
         ]
+        self.pol1_combobox.blockSignals(True)
+        self.pol2_combobox.blockSignals(True)
         self.pol1_combobox.addItems(ports)
         self.pol1_combobox.setCurrentText(SETTINGS['pol1-param'])
         self.pol2_combobox.addItems(ports)
         self.pol2_combobox.setCurrentText(SETTINGS['pol2-param'])
+        self.pol1_combobox.blockSignals(False)
+        self.pol2_combobox.blockSignals(False)
         log.info("Connected")
         self.analyzer_connected.emit()
 
@@ -345,6 +366,7 @@ class AnalyzerPlugin(PyChamberPlugin):
             raise RuntimeError("Analyzer not connected.")
 
         self._analyzer.set_freq_step(f.real)
+        self.n_points_lineedit.setText(str(self._analyzer.npoints()))
 
     def set_n_points(self, n: int) -> None:
         log.debug(f"Setting n points to {n}")
@@ -352,9 +374,10 @@ class AnalyzerPlugin(PyChamberPlugin):
             raise RuntimeError("Analyzer not connected.")
 
         self._analyzer.set_npoints(n)
+        self.freq_step_lineedit.setText(str(self._analyzer.freq_step()))
 
     def set_enabled(self, enable: bool) -> None:
-        self.groupbox.setEnabled(enable)
+        self.freq_groupbox.setEnabled(enable)
 
     def get_data(self, measurement_name: str) -> skrf.Network:
         if self._analyzer is None:

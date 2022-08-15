@@ -187,9 +187,7 @@ class MainWindow(QMainWindow):
     def _enable_experiment(self) -> None:
         if self.analyzer_connected and self.positioner_connected:
             log.debug("Enabling experiment")
-            experiment = self.findChild(ExperimentWidget, name="experiment")
-            if experiment is not None:
-                experiment.setEnabled(True)
+            self.experiment_widget.set_enabled(True)
 
     def _on_start_experiment(self, experiment_type: ExperimentType) -> None:
         log.debug(f"Running experiment {experiment_type}")
@@ -241,6 +239,8 @@ class MainWindow(QMainWindow):
         positioner.set_enabled(False)
         analyzer.set_enabled(False)
 
+        positioner.listen_to_jog_complete_signals = False
+
         params = {}
         # Now we can use move_spy.wait() to ensure we wait
         # for the move to finish before taking data
@@ -256,15 +256,18 @@ class MainWindow(QMainWindow):
                 analyzer.create_measurement(f"ANT_{pol.param}", pol.param)
 
             for i, azimuth in enumerate(azimuths):
+                log.debug(f"Azimuth: {azimuth}")
                 if self.abort:
                     self.statusBar().showMessage("Experiment aborted!", 4000)
                     break
 
                 params["azimuth"] = azimuth
                 positioner.jog_az(azimuth)
+                log.debug("Waiting for azimuth jog to finish...")
                 move_spy.wait()
 
                 for j, elevation in enumerate(elevations):
+                    log.debug(f"Elevation: {elevation}")
                     iter_start = time.time()
                     if self.abort:
                         self.statusBar().showMessage("Experiment aborted!", 4000)
@@ -272,6 +275,7 @@ class MainWindow(QMainWindow):
 
                     params["elevation"] = elevation
                     positioner.jog_el(elevation)
+                    log.debug("Waiting for elevation jog to finish...")
                     move_spy.wait()
 
                     for pol in polarizations:
@@ -296,3 +300,6 @@ class MainWindow(QMainWindow):
         finally:
             for pol in polarizations:
                 analyzer.delete_measurement(f"ANT_{pol.param}")
+            positioner.listen_to_jog_complete_signals = True
+            positioner.set_enabled(True)
+                

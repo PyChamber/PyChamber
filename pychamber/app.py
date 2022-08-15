@@ -19,8 +19,8 @@ def run(args: Dict):
     main = MainWindow()
     main.setup()
     main.show()
-    main.post_visible_setup()
     main.center()
+    main.post_visible_setup()
 
     try:
         app.exec_()
