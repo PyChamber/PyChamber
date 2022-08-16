@@ -32,7 +32,7 @@ from skrf.vi import vna
 
 from pychamber.deprecated.pop_ups import MsgLevel, PopUpMessage
 from pychamber.logger import log
-from pychamber.widgets.mpl_widget import MplRectWidget
+from pychamber.widgets.plots.mpl_widget import MplRectWidget
 
 _FONTS = {'header': QFont('Roboto', 12, QFont.Bold)}
 

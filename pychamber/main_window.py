@@ -25,6 +25,8 @@ from pychamber.ui import resources_rc, size_policy  # noqa: F401
 from pychamber.widgets import ExperimentWidget, PlotsWidget
 from pychamber.widgets.experiment import ExperimentType
 
+from .models.ntwk_model import NetworkModel
+
 
 class MainWindow(QMainWindow):
     # Signals
@@ -49,6 +51,8 @@ class MainWindow(QMainWindow):
 
         self.experiment_thread: QThread = QThread(None)
         self.abort = False
+
+        self.ntwk_model: NetworkModel = NetworkModel()
 
     def setup(self) -> None:
         self._setup_menu()
@@ -183,6 +187,8 @@ class MainWindow(QMainWindow):
             self.experiment_widget.experiment_done.emit
         )
         self.experiment_thread.finished.connect(lambda: setattr(self, "abort", False))
+        self.experiment_widget.data_acquired.connect(self.ntwk_model.add_data)
+        self.ntwk_model.data_added.connect(self.plots_widget.rx_updated_data)
 
     def _enable_experiment(self) -> None:
         if self.analyzer_connected and self.positioner_connected:
@@ -191,6 +197,9 @@ class MainWindow(QMainWindow):
 
     def _on_start_experiment(self, experiment_type: ExperimentType) -> None:
         log.debug(f"Running experiment {experiment_type}")
+
+        self.ntwk_model.reset()
+
         match experiment_type:
             case ExperimentType.AZIMUTH:
                 az_extents = self.core_plugins["positioner"].az_extents()  # type: ignore
@@ -302,4 +311,3 @@ class MainWindow(QMainWindow):
                 analyzer.delete_measurement(f"ANT_{pol.param}")
             positioner.listen_to_jog_complete_signals = True
             positioner.set_enabled(True)
-                

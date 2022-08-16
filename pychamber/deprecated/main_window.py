@@ -31,7 +31,7 @@ from pychamber.polarization import Polarization
 from pychamber.settings import Settings
 from pychamber.ui import resources_rc
 
-from ..widgets.mpl_widget import Mpl3DWidget, MplPolarWidget, MplRectWidget
+from ..widgets.plots.mpl_widget import Mpl3DWidget, MplPolarWidget, MplRectWidget
 
 _SIZE_POLICIES = {
     'min_min': QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum),

@@ -145,17 +145,10 @@ class MplPolarWidget(MplWidget):
         self._ticks = setting
 
     def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
-        self.ax.cla()
-        self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
-        if not self.ticks:
-            self.ax.set_xticklabels([])
-            self.ax.set_yticklabels([])
-        self.ax.grid(self.grid)
-        self.ax.set_theta_zero_location('N')
-        self.ax.set_xticks(np.deg2rad(np.arange(-180, 180, 30)))
-        self.ax.set_thetalim(-np.pi, np.pi)
-        self.ax.set_rlim(self.rmin, self.rmax)
-        self.ax.set_rticks(np.arange(self.rmin, self.rmax + 1, self.rstep))
+        thetas = np.hstack((self.artist.get_xdata(orig=True), xdata))
+        rs = np.hstack((self.artist.get_ydata(orig=True), ydata))
+
+        self.artist.set_data(thetas, rs)
         self.canvas.draw()
 
     def refresh_plot(self) -> None:

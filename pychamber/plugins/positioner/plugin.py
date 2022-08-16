@@ -48,7 +48,7 @@ class PositionerPlugin(PyChamberPlugin):
         self.jog_thread: QThread = QThread(None)
         self.jog_thread.started.connect(self.jog_started.emit)
 
-        self.listen_to_jog_complete_signals = True # FIXME: This is gross
+        self.listen_to_jog_complete_signals = True  # FIXME: This is gross
 
     def setup(self) -> None:
         self._add_widgets()
@@ -59,8 +59,9 @@ class PositionerPlugin(PyChamberPlugin):
         self._connect_signals()
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        SETTINGS["polarization-az-pos"] = self._positioner.current_azimuth
-        SETTINGS["polarization-el-pos"] = self._positioner.current_elevation
+        if self._positioner is not None:
+            SETTINGS["polarization-az-pos"] = self._positioner.current_azimuth
+            SETTINGS["polarization-el-pos"] = self._positioner.current_elevation
         self.jog_thread.quit()
         self.jog_thread.wait()
         super().closeEvent(event)
@@ -224,10 +225,12 @@ class PositionerPlugin(PyChamberPlugin):
         self.el_pos_lineedit.setText("0.0")
 
     def _on_az_move_complete(self) -> None:
+        assert self._positioner is not None
         self.az_pos_lineedit.setText(str(self._positioner.current_azimuth))
         self.jog_complete.emit()
 
     def _on_el_move_complete(self) -> None:
+        assert self._positioner is not None
         self.el_pos_lineedit.setText(str(self._positioner.current_elevation))
         self.jog_complete.emit()
 
@@ -500,8 +503,9 @@ class PositionerPlugin(PyChamberPlugin):
                 if direction == JogDir.ZERO:
                     angle = 0.0
                 elif relative:
-                    az_step = float(SETTINGS["jog-az-step"])
-                    angle = self._positioner.current_azimuth + (direction.value * float(SETTINGS["jog-az-step"]))
+                    angle = self._positioner.current_azimuth + (
+                        direction.value * float(SETTINGS["jog-az-step"])
+                    )
                 else:
                     angle = self.jog_az_to
                 log.debug("Starting azimuth jog thread")
@@ -510,7 +514,9 @@ class PositionerPlugin(PyChamberPlugin):
                 if direction == JogDir.ZERO:
                     angle = 0.0
                 if relative:
-                    angle = self._positioner.current_elevation + (direction.value * float(SETTINGS["jog-el-step"]))
+                    angle = self._positioner.current_elevation + (
+                        direction.value * float(SETTINGS["jog-el-step"])
+                    )
                 else:
                     angle = self.jog_el_to
                 log.debug("Starting elevation jog thread")
@@ -549,16 +555,16 @@ class PositionerPlugin(PyChamberPlugin):
 
     def az_extents(self) -> np.ndarray:
         return np.arange(
-            float(SETTINGS["az-start"]), 
-            float(SETTINGS["az-stop"]) + float(SETTINGS["az-step"]), 
-            float(SETTINGS["az-step"])
+            float(SETTINGS["az-start"]),
+            float(SETTINGS["az-stop"]) + float(SETTINGS["az-step"]),
+            float(SETTINGS["az-step"]),
         )
 
     def el_extents(self) -> np.ndarray:
         return np.arange(
-            float(SETTINGS["el-start"]), 
-            float(SETTINGS["el-stop"]) + float(SETTINGS["el-step"]), 
-            float(SETTINGS["el-step"])
+            float(SETTINGS["el-start"]),
+            float(SETTINGS["el-stop"]) + float(SETTINGS["el-step"]),
+            float(SETTINGS["el-step"]),
         )
 
     def jog_az(self, angle: float) -> None:

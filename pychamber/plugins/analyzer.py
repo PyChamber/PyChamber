@@ -1,4 +1,3 @@
-import functools
 import itertools
 from typing import List, Optional
 
@@ -211,8 +210,6 @@ class AnalyzerPlugin(PyChamberPlugin):
         self.freq_step_lineedit.textChanged.connect(self._on_freq_step_changed)
         self.n_points_lineedit.textChanged.connect(self._on_n_points_changed)
 
-        # editingFinished is only emitted if the input is acceptable, so these
-        # class variables should never be None, hence the type: ignores
         self.start_freq_lineedit.editingFinished.connect(
             self._on_start_freq_editing_finished
         )
@@ -250,17 +247,19 @@ class AnalyzerPlugin(PyChamberPlugin):
         else:
             self.n_points = None
 
+    # editingFinished is only emitted if the input is acceptable, so these
+    # class variables should never be None, hence the type: ignores
     def _on_start_freq_editing_finished(self) -> None:
-        self.set_start_freq(self.start_freq)
+        self.set_start_freq(self.start_freq)  # type: ignore
 
     def _on_stop_freq_editing_finished(self) -> None:
-        self.set_stop_freq(self.stop_freq)
+        self.set_stop_freq(self.stop_freq)  # type: ignore
 
     def _on_freq_step_editing_finished(self) -> None:
-        self.set_freq_step(self.freq_step)
+        self.set_freq_step(self.freq_step)  # type: ignore
 
     def _on_n_points_editing_finished(self) -> None:
-        self.set_n_points(self.n_points)
+        self.set_n_points(self.n_points)  # type: ignore
 
     def _on_connect_clicked(self) -> None:
         model = self.model_combobox.currentText()
