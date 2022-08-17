@@ -43,7 +43,7 @@ class PlotsWidget(PyChamberPlugin):
         self.add_plot(PolarPlot, "Polar Plot")
         self.add_plot(RectangularPlot, "Rectangular Plot")
         self.add_plot(OverFreqPlot, "Over Frequency Plot")
-        self.add_plot(ThreeDPlot, "3D Plot")
+        # self.add_plot(ThreeDPlot, "3D Plot")
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         for plot in self._plots:

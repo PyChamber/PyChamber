@@ -5,6 +5,8 @@ import skrf
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
+from pychamber.logger import log
+
 
 @dataclass
 class PlotControls:
@@ -15,7 +17,7 @@ class PlotControls:
 
 
 class PyChamberPlot(QWidget):
-    controls_changed = pyqtSignal(PlotControls)
+    new_data_requested = pyqtSignal(PlotControls)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -23,6 +25,10 @@ class PyChamberPlot(QWidget):
     def setup(self) -> None:
         self._add_widgets()
         self._connect_signals()
+        self.reset()
+
+    def reset(self) -> None:
+        ...
 
     def _connect_signals(self) -> None:
         ...

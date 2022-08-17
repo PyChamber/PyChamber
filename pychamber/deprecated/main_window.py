@@ -1232,7 +1232,7 @@ class MainWindow(QMainWindow):
         self.overFreqPlotStepSpinBox.setValue(10)
 
     def initPlots(self) -> None:
-        self.polarPlot.set_scale(
+        self.polarPlot.update_scale(
             min=self.polar_plot_min, max=self.polar_plot_max, step=self.polar_plot_step
         )
         self.polarPlotMinSpinBox.valueChanged.connect(self.polarPlot.set_scale_min)
@@ -1241,7 +1241,7 @@ class MainWindow(QMainWindow):
 
         self.rectPlot.set_xtitle("Frequency")
         self.rectPlot.set_ytitle("Gain [dB]")
-        self.rectPlot.set_scale(
+        self.rectPlot.update_scale(
             min=self.rect_plot_min, max=self.rect_plot_max, step=self.rect_plot_step
         )
         self.rectPlotMinSpinBox.valueChanged.connect(self.rectPlot.set_scale_min)
@@ -1250,7 +1250,7 @@ class MainWindow(QMainWindow):
 
         self.overFreqPlot.set_xtitle("Frequency")
         self.overFreqPlot.set_ytitle("Gain [dB]")
-        self.overFreqPlot.set_scale(
+        self.overFreqPlot.update_scale(
             min=self.over_freq_plot_min,
             max=self.over_freq_plot_max,
             step=self.over_freq_plot_step,

@@ -124,10 +124,6 @@ class MainWindow(QMainWindow):
     def _add_widgets(self) -> None:
         log.debug("Setting up widgets...")
 
-        self.core_plugins["analyzer"] = AnalyzerPlugin(self.centralWidget())
-        self.core_plugins["calibration"] = CalibrationPlugin(self.centralWidget())
-        self.core_plugins["positioner"] = PositionerPlugin(self.centralWidget())
-
         self.experiment_widget = ExperimentWidget(self.centralWidget())
         self.plots_widget = PlotsWidget(self.centralWidget())
 
@@ -137,9 +133,12 @@ class MainWindow(QMainWindow):
         self.ctrl_widget = QWidget()
         self.ctrl_scroll_area.setWidget(self.ctrl_widget)
         self.ctrl_layout = QVBoxLayout(self.ctrl_widget)
-        self.ctrl_scroll_area.setSizePolicy(size_policy["EXP_PREF"])
         self.ctrl_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.ctrl_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.core_plugins["analyzer"] = AnalyzerPlugin(self.ctrl_widget)
+        self.core_plugins["calibration"] = CalibrationPlugin(self.ctrl_widget)
+        self.core_plugins["positioner"] = PositionerPlugin(self.ctrl_widget)
 
         right_side_layout = QVBoxLayout()
 
@@ -157,14 +156,12 @@ class MainWindow(QMainWindow):
         self.plots_widget.setup()
         right_side_layout.addWidget(self.plots_widget)
 
-        self.ctrl_scroll_area.setMinimumWidth(
-            self.ctrl_widget.sizeHint().width()
+        self.ctrl_layout.addStretch()
+
+        self.ctrl_scroll_area.setFixedWidth(
+            self.ctrl_widget.minimumSizeHint().width()
             + self.ctrl_scroll_area.verticalScrollBar().sizeHint().width()
         )
-
-        self.ctrl_layout.addStretch()
-        self.main_layout.setStretch(0, 1)
-        self.main_layout.setStretch(1, 2)
 
     def _connect_signals(self) -> None:
         log.debug("Connecting signals...")

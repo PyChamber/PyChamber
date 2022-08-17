@@ -22,7 +22,6 @@ class CalibrationPlugin(PyChamberPlugin):
 
         self.setObjectName('calibration')
         self.setLayout(QVBoxLayout())
-        self.setSizePolicy(size_policy["PREF_PREF"])
 
     def setup(self) -> None:
         self._add_widgets()

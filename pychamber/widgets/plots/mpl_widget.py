@@ -28,17 +28,26 @@ class MplCanvas(Canvas):
 
 class MplWidget(QWidget):
     def __init__(self, color: str, parent=None):
-        QWidget.__init__(self, parent)
+        log.debug("Creating plot...")
+        super().__init__(parent)
+
         self.canvas = MplCanvas()
         self.vbl = QVBoxLayout()
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
         policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        policy.setHeightForWidth(True)
         self.setSizePolicy(policy)
 
         self._grid = True
         self.color = color
+
+        self._autoscale: bool = False
+
+    def reset_plot(self) -> None:
+        ...
+
+    def update_scale(self) -> None:
+        ...
 
     @property
     def grid(self) -> bool:
@@ -48,145 +57,136 @@ class MplWidget(QWidget):
     def grid(self, setting: bool) -> None:
         self._grid = setting
 
+    @property
+    def autoscale(self) -> bool:
+        return self._autoscale
+
+    @autoscale.setter
+    def autoscale(self, set: bool) -> None:
+        self._autoscale = set
+
+    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
+        self.artist.set_xdata(np.append(self.artist.get_xdata(), xdata))
+        self.artist.set_ydata(np.append(self.artist.get_ydata(), ydata))
+
+        self.canvas.draw()
+
     def sizeHint(self) -> QSize:
         return QSize(300, 300)
 
 
 class MplRectWidget(MplWidget):
-    def __init__(self, color: str, parent=None):
-        super(MplRectWidget, self).__init__(color, parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.ax = self.canvas.fig.add_subplot()
-        self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]), color=self.color)
+        self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]))
         self.ax.grid(self.grid)
+
         self.xformatter = EngFormatter(unit='Hz')
-        self.xtitle = ""
-        self.ytitle = ""
 
-        # Semi-sensible defaults
-        self.ymin = -30.0
-        self.ymax = 0.0
-        self.ystep = 10.0
+        self._ymin = -30
+        self._ymax = 0
+        self._ystep = 10
 
-    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
-        self.ax.cla()
-        self.artist, *_ = self.ax.plot(xdata, ydata, color=self.color)
-        self.ax.grid(self.grid)
-        self.ax.xaxis.set_major_formatter(self.xformatter)
-        if len(xdata) > 1:
-            self.ax.set_xlim(np.amin(xdata), np.amax(xdata))
-        self.ax.set_xlabel(self.xtitle)
-        self.ax.set_ylabel(self.ytitle)
-        self.ax.set_ylim(self.ymin, self.ymax)
-        self.ax.set_yticks(np.arange(self.ymin, self.ymax + 1, self.ystep))
+    @property
+    def ymin(self) -> int:
+        return self._ymin
+
+    @ymin.setter
+    def ymin(self, val: int) -> None:
+        self._ymin = val
+        self.update_scale()
+
+    @property
+    def ymax(self) -> int:
+        return self._ymax
+
+    @ymax.setter
+    def ymax(self, val: int) -> None:
+        self._ymax = val
+        self.update_scale()
+
+    @property
+    def ystep(self) -> int:
+        return self._ystep
+
+    @ystep.setter
+    def ystep(self, val: int) -> None:
+        self._ystep = val
+        self.update_scale()
+
+    def reset_plot(self) -> None:
+        self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
+        self._ymin = -30
+        self._ymax = 0
+        self._ystep = 10
+        self.update_scale()
+
+    def update_scale(self) -> None:
+        self.ax.set_ybound(self._ymin, self._ymax)
+        self.ax.set_yticks(np.arange(self._ymin, self._ymax, self._ystep))
         self.canvas.draw()
-
-    def refresh_plot(self) -> None:
-        x = self.artist.get_xdata(orig=True)
-        y = self.artist.get_ydata(orig=True)
-        self.update_plot(x, y)
-
-    def auto_scale(self) -> None:
-        y = self.artist.get_ydata(orig=True)
-        if len(y) <= 1:
-            return
-        min_ = np.floor(np.amin(y))
-        max_ = np.ceil(np.amax(y))
-        step = np.round((max_ - min_) / 4)
-        self.set_scale(min_, max_, step)  # type: ignore
-
-    def set_scale_min(self, min: float) -> None:
-        self.ymin = min
-        self.refresh_plot()
-
-    def set_scale_max(self, max: float) -> None:
-        self.ymax = max
-        self.refresh_plot()
-
-    def set_scale_step(self, step: float) -> None:
-        self.ystep = step
-        self.refresh_plot()
-
-    def set_scale(self, min: float, max: float, step: float) -> None:
-        self.ymin = min
-        self.ymax = max
-        self.ystep = step
-        self.refresh_plot()
-
-    def set_xtitle(self, text: str) -> None:
-        self.xtitle = text
-
-    def set_ytitle(self, text: str) -> None:
-        self.ytitle = text
 
 
 class MplPolarWidget(MplWidget):
-    def __init__(self, color: str, parent=None):
-        super(MplPolarWidget, self).__init__(color, parent)
-
-        self._ticks = True
-        # Semi-sensible defaults
-        self.rmin = -30.0
-        self.rmax = 0.0
-        self.rstep = 10.0
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.ax = self.canvas.fig.add_subplot(projection='polar')
         self.ax.set_theta_zero_location('N')
         self.ax.set_thetagrids(np.arange(0, 360, 30))
-        self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]), color=self.color)
+        self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
         self.canvas.draw()
+
+        self._rmin = -30
+        self._rmax = 0
+        self._rstep = 10
 
     @property
-    def ticks(self) -> bool:
-        return self._ticks
+    def rmin(self) -> int:
+        return self._rmin
 
-    @ticks.setter
-    def ticks(self, setting: bool) -> None:
-        self._ticks = setting
+    @rmin.setter
+    def rmin(self, val: int) -> None:
+        self._rmin = val
+        self.update_scale()
 
-    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
-        thetas = np.hstack((self.artist.get_xdata(orig=True), xdata))
-        rs = np.hstack((self.artist.get_ydata(orig=True), ydata))
+    @property
+    def rmax(self) -> int:
+        return self._rmax
 
-        self.artist.set_data(thetas, rs)
+    @rmax.setter
+    def rmax(self, val: int) -> None:
+        self._rmax = val
+        self.update_scale()
+
+    @property
+    def rstep(self) -> int:
+        return self._rstep
+
+    @rstep.setter
+    def rstep(self, val: int) -> None:
+        self._rstep = val
+        self.update_scale()
+
+    def reset_plot(self) -> None:
+        self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
+        self._rmin = -30
+        self._rmax = 0
+        self._rstep = 10
+        self.update_scale()
+
+    def update_scale(self) -> None:
+        self.ax.set_rlim(self._rmin, self._rmax)
+        self.ax.set_rticks(np.arange(self._rmin, self._rmax, self._rstep))
         self.canvas.draw()
 
-    def refresh_plot(self) -> None:
-        x = self.artist.get_xdata(orig=True)
-        y = self.artist.get_ydata(orig=True)
-        self.update_plot(x, y)
 
-    def auto_scale(self) -> None:
-        y = self.artist.get_ydata(orig=True)
-        if len(y) <= 1:
-            return
-        min_ = np.floor(np.amin(y))
-        max_ = np.ceil(np.amax(y))
-        step = np.round((max_ - min_) / 4)
-        self.set_scale(min_, max_, step)  # type: ignore
-
-    def set_scale_min(self, min: float) -> None:
-        self.rmin = min
-        self.refresh_plot()
-
-    def set_scale_max(self, max: float) -> None:
-        self.rmax = max
-        self.refresh_plot()
-
-    def set_scale_step(self, step: float) -> None:
-        self.rstep = step
-        self.refresh_plot()
-
-    def set_scale(self, min: float, max: float, step: float) -> None:
-        self.rmin = min
-        self.rmax = max
-        self.rstep = step if not np.isclose(step, 0.0) else 1.0
-        self.refresh_plot()
-
-
+# TODO: 3D plotting needs some work...
 class Mpl3DWidget(QWidget):
     def __init__(self, parent=None):
-        QWidget.__init__(self, parent)
+        super().__init__(parent)
         self.canvas = MplCanvas()
         self.vbl = QVBoxLayout()
         self.vbl.addWidget(self.canvas)

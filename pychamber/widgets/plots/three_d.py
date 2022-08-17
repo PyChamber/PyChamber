@@ -34,7 +34,7 @@ class ThreeDPlot(PyChamberPlot):
         freq = self.freq_lineedit.text()
 
         ctrl = PlotControls(polarization=pol, frequency=freq)
-        self.controls_changed.emit(ctrl)
+        self.new_data_requested.emit(ctrl)
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         pass

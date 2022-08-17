@@ -26,9 +26,19 @@ class PolarPlot(PyChamberPlot):
     def update(self) -> None:
         pass
 
+    def reset(self) -> None:
+        self.plot.reset_plot()
+        self.min_spinbox.setValue(self.plot.rmin)
+        self.max_spinbox.setValue(self.plot.rmax)
+        self.step_spinbox.setValue(self.plot.rstep)
+
     def _connect_signals(self) -> None:
         self.pol_combobox.currentTextChanged.connect(self._send_controls_state)
         self.freq_lineedit.editingFinished.connect(self._send_controls_state)
+
+        self.min_spinbox.valueChanged.connect(self._on_plot_min_changed)
+        self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
+        self.step_spinbox.valueChanged.connect(self._on_plot_step_changed)
 
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
@@ -36,7 +46,22 @@ class PolarPlot(PyChamberPlot):
         freq = self.freq_lineedit.text()
 
         ctrl = PlotControls(polarization=pol, frequency=freq, elevation=0.0)
-        self.controls_changed.emit(ctrl)
+        self.new_data_requested.emit(ctrl)
+
+    def _on_plot_min_changed(self, val: int) -> None:
+        if val >= self.max_spinbox.value():
+            return
+
+        self.plot.rmin = val
+
+    def _on_plot_max_changed(self, val: int) -> None:
+        if val <= self.min_spinbox.value():
+            return
+
+        self.plot.rmax = val
+
+    def _on_plot_step_changed(self, val: int) -> None:
+        self.plot.rstep = val
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         log.debug("Got new data. Updating...")
@@ -98,7 +123,7 @@ class PolarPlot(PyChamberPlot):
 
         self.step_spinbox = QSpinBox(self)
         self.step_spinbox.setRange(1, 100)
-        self.step_spinbox.setSingleStep(10)
+        self.step_spinbox.setSingleStep(5)
         hlayout.addWidget(self.step_spinbox)
 
         self.autoscale_btn = QPushButton("Auto Scale", self)
@@ -109,5 +134,5 @@ class PolarPlot(PyChamberPlot):
 
         layout.addLayout(hlayout)
 
-        self.plot = MplPolarWidget('tab:blue', self)
+        self.plot = MplPolarWidget(self)
         layout.addWidget(self.plot)

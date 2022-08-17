@@ -38,7 +38,6 @@ class PositionerPlugin(PyChamberPlugin):
 
         self.setObjectName('positioner')
         self.setLayout(QVBoxLayout())
-        self.setSizePolicy(size_policy["PREF_PREF"])
 
         self._positioner: Optional[Positioner] = None
 
@@ -75,23 +74,18 @@ class PositionerPlugin(PyChamberPlugin):
         hlayout = QHBoxLayout()
 
         model_label = QLabel("Model", self.groupbox)
-        model_label.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(model_label)
 
         self.model_combobox = QComboBox(self.groupbox)
-        self.model_combobox.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.model_combobox)
 
         port_label = QLabel("Port", self.groupbox)
-        port_label.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(port_label)
 
         self.port_combobox = QComboBox(self.groupbox)
-        self.port_combobox.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.port_combobox)
 
         self.connect_btn = QPushButton("Connect", self.groupbox)
-        self.connect_btn.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(self.connect_btn)
 
         self.groupbox_layout.addLayout(hlayout)
@@ -258,7 +252,6 @@ class PositionerPlugin(PyChamberPlugin):
         az_start_label = QLabel("Start", self.extents_groupbox)
         hlayout.addWidget(az_start_label)
         self.az_start_spinbox = QDoubleSpinBox(self.extents_groupbox)
-        self.az_start_spinbox.setSizePolicy(size_policy["EXP_PREF"])
         self.az_start_spinbox.setRange(-180.0, 180.0)
         self.az_start_spinbox.setSingleStep(1.0)
         self.az_start_spinbox.setDecimals(2)
@@ -268,7 +261,6 @@ class PositionerPlugin(PyChamberPlugin):
         hlayout = QHBoxLayout()
         az_stop_label = QLabel("Stop", self.extents_groupbox)
         self.az_stop_spinbox = QDoubleSpinBox(self.extents_groupbox)
-        self.az_stop_spinbox.setSizePolicy(size_policy["EXP_PREF"])
         self.az_stop_spinbox.setRange(-180.0, 180.0)
         self.az_stop_spinbox.setSingleStep(1.0)
         self.az_stop_spinbox.setDecimals(2)
@@ -279,7 +271,6 @@ class PositionerPlugin(PyChamberPlugin):
         hlayout = QHBoxLayout()
         az_step_label = QLabel("Step", self.extents_groupbox)
         self.az_step_spinbox = QDoubleSpinBox(self.extents_groupbox)
-        self.az_step_spinbox.setSizePolicy(size_policy["EXP_PREF"])
         self.az_step_spinbox.setRange(-180.0, 180.0)
         self.az_step_spinbox.setSingleStep(1.0)
         self.az_step_spinbox.setDecimals(2)
@@ -301,7 +292,6 @@ class PositionerPlugin(PyChamberPlugin):
         el_start_label = QLabel("Start", self.extents_groupbox)
         hlayout.addWidget(el_start_label)
         self.el_start_spinbox = QDoubleSpinBox(self.extents_groupbox)
-        self.el_start_spinbox.setSizePolicy(size_policy["EXP_PREF"])
         self.el_start_spinbox.setRange(-180.0, 180.0)
         self.el_start_spinbox.setSingleStep(1.0)
         self.el_start_spinbox.setDecimals(2)
@@ -312,7 +302,6 @@ class PositionerPlugin(PyChamberPlugin):
         el_stop_label = QLabel("Stop", self.extents_groupbox)
         hlayout.addWidget(el_stop_label)
         self.el_stop_spinbox = QDoubleSpinBox(self.extents_groupbox)
-        self.el_stop_spinbox.setSizePolicy(size_policy["EXP_PREF"])
         self.el_stop_spinbox.setRange(-180.0, 180.0)
         self.el_stop_spinbox.setSingleStep(1.0)
         self.el_stop_spinbox.setDecimals(2)
@@ -323,7 +312,6 @@ class PositionerPlugin(PyChamberPlugin):
         el_step_label = QLabel("Step", self.extents_groupbox)
         hlayout.addWidget(el_step_label)
         self.el_step_spinbox = QDoubleSpinBox(self.extents_groupbox)
-        self.el_step_spinbox.setSizePolicy(size_policy["EXP_PREF"])
         self.el_step_spinbox.setRange(-180.0, 180.0)
         self.el_step_spinbox.setSingleStep(1.0)
         self.el_step_spinbox.setDecimals(2)
@@ -336,19 +324,16 @@ class PositionerPlugin(PyChamberPlugin):
         layout = QGridLayout()
 
         jog_az_label = QLabel("Azimuth", self.jog_groupbox)
-        jog_az_label.setSizePolicy(size_policy["PREF_MIN"])
         jog_az_label.setFont(font["BOLD_12"])
         jog_az_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_az_label, 0, 0, 1, 3)
 
         jog_az_step_label = QLabel("Step", self.jog_groupbox)
-        jog_az_step_label.setSizePolicy(size_policy["PREF_MIN"])
         jog_az_step_label.setFont(font["BOLD_12"])
         jog_az_step_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_az_step_label, 0, 3, 1, 1)
 
         jog_az_to_label = QLabel("Jog Azimuth To", self.jog_groupbox)
-        jog_az_to_label.setSizePolicy(size_policy["PREF_MIN"])
         jog_az_to_label.setFont(font["BOLD_12"])
         jog_az_to_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_az_to_label, 0, 4, 1, 1)
@@ -356,52 +341,43 @@ class PositionerPlugin(PyChamberPlugin):
         self.jog_az_left_btn = QPushButton(self.jog_groupbox)
         self.jog_az_left_btn.setIcon(QIcon(QPixmap(":/icons/icons/LeftArrow.png")))
         self.jog_az_left_btn.setIconSize(QSize(32, 32))
-        self.jog_az_left_btn.setSizePolicy(size_policy["MIN_PREF"])
         layout.addWidget(self.jog_az_left_btn, 1, 0, 1, 1)
 
         self.jog_az_zero_btn = QPushButton("0", self.jog_groupbox)
-        self.jog_az_zero_btn.setSizePolicy(size_policy["MIN_PREF"])
         self.jog_az_zero_btn.setFont(font["BOLD_20"])
         layout.addWidget(self.jog_az_zero_btn, 1, 1, 1, 1)
 
         self.jog_az_right_btn = QPushButton(self.jog_groupbox)
         self.jog_az_right_btn.setIcon(QIcon(QPixmap(":/icons/icons/RightArrow.png")))
         self.jog_az_right_btn.setIconSize(QSize(32, 32))
-        self.jog_az_right_btn.setSizePolicy(size_policy["MIN_PREF"])
         layout.addWidget(self.jog_az_right_btn, 1, 2, 1, 1)
 
         self.jog_az_submit_btn = QPushButton(self.jog_groupbox)
         self.jog_az_submit_btn.setIcon(QIcon(QPixmap(":/icons/icons/Check.png")))
         self.jog_az_submit_btn.setIconSize(QSize(32, 32))
-        self.jog_az_submit_btn.setSizePolicy(size_policy["MIN_PREF"])
         layout.addWidget(self.jog_az_submit_btn, 1, 5, 1, 1)
 
         self.jog_az_step_spinbox = QDoubleSpinBox(self.jog_groupbox)
-        self.jog_az_step_spinbox.setSizePolicy(size_policy["MIN_PREF"])
         self.jog_az_step_spinbox.setRange(0.0, 180.0)
         self.jog_az_step_spinbox.setSingleStep(0.5)
         self.jog_az_step_spinbox.setDecimals(2)
         layout.addWidget(self.jog_az_step_spinbox, 1, 3, 1, 1)
 
         self.jog_az_to_lineedit = QLineEdit(self.jog_groupbox)
-        self.jog_az_to_lineedit.setSizePolicy(size_policy["PREF_PREF"])
         self.jog_az_to_lineedit.setPlaceholderText("0.0")
         layout.addWidget(self.jog_az_to_lineedit, 1, 4, 1, 1)
 
         jog_el_label = QLabel("Elevation", self.jog_groupbox)
-        jog_el_label.setSizePolicy(size_policy["PREF_MIN"])
         jog_el_label.setFont(font["BOLD_12"])
         jog_el_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_el_label, 2, 0, 1, 3)
 
         jog_el_step_label = QLabel("Step", self.jog_groupbox)
-        jog_el_step_label.setSizePolicy(size_policy["PREF_MIN"])
         jog_el_step_label.setFont(font["BOLD_12"])
         jog_el_step_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_el_step_label, 2, 3, 1, 1)
 
         jog_el_to_label = QLabel("Jog Elevation To", self.jog_groupbox)
-        jog_el_to_label.setSizePolicy(size_policy["PREF_MIN"])
         jog_el_to_label.setFont(font["BOLD_12"])
         jog_el_to_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_el_to_label, 2, 4, 1, 1)
@@ -409,35 +385,29 @@ class PositionerPlugin(PyChamberPlugin):
         self.jog_el_cw_btn = QPushButton("", self.jog_groupbox)
         self.jog_el_cw_btn.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
         self.jog_el_cw_btn.setIconSize(QSize(32, 32))
-        self.jog_el_cw_btn.setSizePolicy(size_policy["MIN_PREF"])
         layout.addWidget(self.jog_el_cw_btn, 3, 0, 1, 1)
 
         self.jog_el_zero_btn = QPushButton("0", self.jog_groupbox)
-        self.jog_el_zero_btn.setSizePolicy(size_policy["MIN_PREF"])
         self.jog_el_zero_btn.setFont(font["BOLD_20"])
         layout.addWidget(self.jog_el_zero_btn, 3, 1, 1, 1)
 
         self.jog_el_ccw_btn = QPushButton("", self.jog_groupbox)
         self.jog_el_ccw_btn.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
         self.jog_el_ccw_btn.setIconSize(QSize(32, 32))
-        self.jog_el_ccw_btn.setSizePolicy(size_policy["MIN_PREF"])
         layout.addWidget(self.jog_el_ccw_btn, 3, 2, 1, 1)
 
         self.jog_el_submit_btn = QPushButton("", self.jog_groupbox)
         self.jog_el_submit_btn.setIcon(QIcon(QPixmap(":/icons/icons/Check.png")))
         self.jog_el_submit_btn.setIconSize(QSize(32, 32))
-        self.jog_el_submit_btn.setSizePolicy(size_policy["MIN_PREF"])
         layout.addWidget(self.jog_el_submit_btn, 3, 5, 1, 1)
 
         self.jog_el_step_spinbox = QDoubleSpinBox(self.jog_groupbox)
-        self.jog_el_step_spinbox.setSizePolicy(size_policy["MIN_PREF"])
         self.jog_el_step_spinbox.setRange(0.0, 180.0)
         self.jog_el_step_spinbox.setSingleStep(0.5)
         self.jog_el_step_spinbox.setDecimals(2)
         layout.addWidget(self.jog_el_step_spinbox, 3, 3, 1, 1)
 
         self.jog_el_to_lineedit = QLineEdit(self.jog_groupbox)
-        self.jog_el_to_lineedit.setSizePolicy(size_policy["PREF_PREF"])
         self.jog_el_to_lineedit.setPlaceholderText("0.0")
         layout.addWidget(self.jog_el_to_lineedit, 3, 4, 1, 1)
 
@@ -448,14 +418,12 @@ class PositionerPlugin(PyChamberPlugin):
         az_pos_layout = QVBoxLayout()
 
         az_pos_label = QLabel("Azimuth", self.jog_groupbox)
-        az_pos_label.setSizePolicy(size_policy["PREF_PREF"])
         az_pos_label.setFont(font["BOLD_12"])
         az_pos_label.setAlignment(Qt.AlignHCenter)
         az_pos_layout.addWidget(az_pos_label)
 
         self.az_pos_lineedit = QLineEdit(self.jog_groupbox)
         self.az_pos_lineedit.setReadOnly(True)
-        self.az_pos_lineedit.setSizePolicy(size_policy["MIN_PREF"])
         self.az_pos_lineedit.setFont(font["BOLD_20_IBM"])
         self.az_pos_lineedit.setAlignment(Qt.AlignHCenter)
         az_pos_layout.addWidget(self.az_pos_lineedit)
@@ -465,14 +433,12 @@ class PositionerPlugin(PyChamberPlugin):
         el_pos_layout = QVBoxLayout()
 
         el_pos_label = QLabel("Elevation", self.jog_groupbox)
-        el_pos_label.setSizePolicy(size_policy["PREF_PREF"])
         el_pos_label.setFont(font["BOLD_12"])
         el_pos_label.setAlignment(Qt.AlignHCenter)
         el_pos_layout.addWidget(el_pos_label)
 
         self.el_pos_lineedit = QLineEdit(self.jog_groupbox)
         self.el_pos_lineedit.setReadOnly(True)
-        self.el_pos_lineedit.setSizePolicy(size_policy["MIN_PREF"])
         self.el_pos_lineedit.setFont(font["BOLD_20_IBM"])
         self.el_pos_lineedit.setAlignment(Qt.AlignHCenter)
         el_pos_layout.addWidget(self.el_pos_lineedit)

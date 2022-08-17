@@ -44,7 +44,6 @@ class AnalyzerPlugin(PyChamberPlugin):
 
         self.setObjectName("analyzer")
         self.setLayout(QVBoxLayout())
-        self.setSizePolicy(size_policy["PREF_PREF"])
 
         self._analyzer: Optional[vna.VNA] = None
 
@@ -70,30 +69,24 @@ class AnalyzerPlugin(PyChamberPlugin):
 
         hlayout = QHBoxLayout()
         model_label = QLabel("Model", self.groupbox)
-        model_label.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(model_label)
 
         self.model_combobox = QComboBox(self.groupbox)
-        self.model_combobox.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.model_combobox)
 
         address_label = QLabel("Address", self.groupbox)
-        address_label.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(address_label)
 
         self.address_combobox = QComboBox(self.groupbox)
-        self.address_combobox.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.address_combobox)
 
         self.connect_btn = QPushButton("Connect", self.groupbox)
-        self.connect_btn.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(self.connect_btn)
 
         layout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
         pol1_label = QLabel("Polarization 1:", self.groupbox)
-        pol1_label.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(pol1_label)
 
         self.pol1_lineedit = QLineEdit(self.groupbox)
@@ -101,13 +94,11 @@ class AnalyzerPlugin(PyChamberPlugin):
         hlayout.addWidget(self.pol1_lineedit)
 
         self.pol1_combobox = QComboBox(self.groupbox)
-        self.pol1_combobox.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.pol1_combobox)
         layout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
         pol2_label = QLabel("Polarization 2:", self.groupbox)
-        pol2_label.setSizePolicy(size_policy["MIN_PREF"])
         hlayout.addWidget(pol2_label)
 
         self.pol2_lineedit = QLineEdit(self.groupbox)
@@ -115,46 +106,36 @@ class AnalyzerPlugin(PyChamberPlugin):
         hlayout.addWidget(self.pol2_lineedit)
 
         self.pol2_combobox = QComboBox(self.groupbox)
-        self.pol2_combobox.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.pol2_combobox)
 
         layout.addLayout(hlayout)
 
         self.freq_groupbox = QGroupBox("Frequency", self.groupbox)
-        self.freq_groupbox.setSizePolicy(size_policy["MIN_PREF"])
         freq_layout = QGridLayout(self.freq_groupbox)
 
         start_freq_label = QLabel("Start", self.freq_groupbox)
-        start_freq_label.setSizePolicy(size_policy["PREF_PREF"])
         freq_layout.addWidget(start_freq_label, 0, 0, 1, 1)
 
         self.start_freq_lineedit = FrequencyLineEdit(self.freq_groupbox)
-        self.start_freq_lineedit.setSizePolicy(size_policy["EXP_PREF"])
         freq_layout.addWidget(self.start_freq_lineedit, 0, 1, 1, 1)
 
         stop_freq_label = QLabel("Stop", self.freq_groupbox)
-        stop_freq_label.setSizePolicy(size_policy["PREF_PREF"])
         freq_layout.addWidget(stop_freq_label, 1, 0, 1, 1)
 
         self.stop_freq_lineedit = FrequencyLineEdit(self.freq_groupbox)
-        self.stop_freq_lineedit.setSizePolicy(size_policy["EXP_PREF"])
         freq_layout.addWidget(self.stop_freq_lineedit, 1, 1, 1, 1)
 
         step_freq_label = QLabel("Step", self.freq_groupbox)
-        step_freq_label.setSizePolicy(size_policy["PREF_PREF"])
         freq_layout.addWidget(step_freq_label, 2, 0, 1, 1)
 
         self.freq_step_lineedit = FrequencyLineEdit(self.freq_groupbox)
-        self.freq_step_lineedit.setSizePolicy(size_policy["EXP_PREF"])
         freq_layout.addWidget(self.freq_step_lineedit, 2, 1, 1, 1)
 
         n_points_label = QLabel("Number of Points", self.freq_groupbox)
-        n_points_label.setSizePolicy(size_policy["PREF_PREF"])
         freq_layout.addWidget(n_points_label, 3, 0, 1, 1)
 
         self.n_points_lineedit = QLineEdit(self.freq_groupbox)
         self.n_points_lineedit.setValidator(QIntValidator(self.n_points_lineedit))
-        self.n_points_lineedit.setSizePolicy(size_policy["EXP_PREF"])
         freq_layout.addWidget(self.n_points_lineedit, 3, 1, 1, 1)
 
         layout.addWidget(self.freq_groupbox)

@@ -25,9 +25,19 @@ class RectangularPlot(PyChamberPlot):
     def update(self) -> None:
         pass
 
+    def reset(self) -> None:
+        self.plot.reset_plot()
+        self.min_spinbox.setValue(self.plot.ymin)
+        self.max_spinbox.setValue(self.plot.ymax)
+        self.step_spinbox.setValue(self.plot.ystep)
+
     def _connect_signals(self) -> None:
         self.pol_combobox.currentTextChanged.connect(self._send_controls_state)
         self.freq_lineedit.editingFinished.connect(self._send_controls_state)
+
+        self.min_spinbox.valueChanged.connect(self._on_plot_min_changed)
+        self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
+        self.step_spinbox.valueChanged.connect(self._on_plot_step_changed)
 
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
@@ -35,7 +45,22 @@ class RectangularPlot(PyChamberPlot):
         freq = self.freq_lineedit.text()
 
         ctrl = PlotControls(polarization=pol, frequency=freq, elevation=0.0)
-        self.controls_changed.emit(ctrl)
+        self.new_data_requested.emit(ctrl)
+
+    def _on_plot_min_changed(self, val: int) -> None:
+        if val >= self.max_spinbox.value():
+            return
+
+        self.plot.ymin = val
+
+    def _on_plot_max_changed(self, val: int) -> None:
+        if val <= self.min_spinbox.value():
+            return
+
+        self.plot.ymax = val
+
+    def _on_plot_step_changed(self, val: int) -> None:
+        self.plot.ystep = val
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         log.debug("Got new data. Updating...")
@@ -94,7 +119,7 @@ class RectangularPlot(PyChamberPlot):
 
         self.step_spinbox = QSpinBox(self)
         self.step_spinbox.setRange(1, 100)
-        self.step_spinbox.setSingleStep(10)
+        self.step_spinbox.setSingleStep(5)
         hlayout.addWidget(self.step_spinbox)
 
         self.autoscale_btn = QPushButton("Auto Scale", self)
@@ -105,5 +130,5 @@ class RectangularPlot(PyChamberPlot):
 
         layout.addLayout(hlayout)
 
-        self.plot = MplRectWidget('tab:blue', self)
+        self.plot = MplRectWidget(self)
         layout.addWidget(self.plot)
