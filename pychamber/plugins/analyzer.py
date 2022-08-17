@@ -1,6 +1,7 @@
 import itertools
 from typing import List, Optional
 
+import numpy as np
 import pyvisa
 import skrf
 from PyQt5.QtCore import pyqtSignal
@@ -321,6 +322,12 @@ class AnalyzerPlugin(PyChamberPlugin):
             pols.append(Polarization(pol2_label, pol2_param))
 
         return pols
+
+    def frequencies(self) -> np.ndarray:
+        if self._analyzer is None:
+            raise RuntimeError("Analyzer not connected.")
+
+        return self._analyzer.frequency().f
 
     def set_start_freq(self, f: Quantity) -> None:
         log.debug(f"Setting start freq to {f}")

@@ -1,4 +1,5 @@
 import skrf
+from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -21,8 +22,8 @@ class OverFreqPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def update(self) -> None:
-        pass
+    def set_polarization_model(self, model: QStringListModel) -> None:
+        self.pol_combobox.setModel(model)
 
     def reset(self) -> None:
         self.plot.reset_plot()
@@ -87,7 +88,6 @@ class OverFreqPlot(PyChamberPlot):
         hlayout.addWidget(pol_label)
 
         self.pol_combobox = QComboBox(self)
-        self.pol_combobox.addItems(['1', '2'])
         hlayout.addWidget(self.pol_combobox)
 
         az_label = QLabel("Azimuth", self)

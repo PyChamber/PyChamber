@@ -199,8 +199,6 @@ class MainWindow(QMainWindow):
     def _on_start_experiment(self, experiment_type: ExperimentType) -> None:
         log.debug(f"Running experiment {experiment_type}")
 
-        self.ntwk_model.reset()
-
         match experiment_type:
             case ExperimentType.AZIMUTH:
                 az_extents = self.core_plugins["positioner"].az_extents()  # type: ignore
@@ -216,6 +214,14 @@ class MainWindow(QMainWindow):
         if len(pols) == 0:
             log.debug("No polarizations. No experiment to run")
             return
+
+        self.ntwk_model.reset()
+        self.plots_widget.set_polarizations([p.label for p in pols])
+        self.plots_widget.init_plots(
+            frequencies=self.core_plugins["analyzer"].frequencies(),
+            azimuths=az_extents,
+            elevations=el_extents,
+        )
 
         self.experiment_thread.run = functools.partial(
             self.run_experiment,

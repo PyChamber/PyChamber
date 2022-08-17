@@ -1,5 +1,6 @@
 import numpy as np
 import skrf
+from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -15,6 +16,7 @@ from pychamber.logger import log
 from pychamber.ui import size_policy
 from pychamber.widgets import FrequencyLineEdit
 
+from ..freq_spin_box import FrequencySpinBox
 from .mpl_widget import MplPolarWidget
 from .pychamber_plot import PlotControls, PyChamberPlot
 
@@ -23,8 +25,11 @@ class PolarPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def update(self) -> None:
+    def init_from_experiment(self, **kwargs) -> None:
         pass
+
+    def set_polarization_model(self, model: QStringListModel) -> None:
+        self.pol_combobox.setModel(model)
 
     def reset(self) -> None:
         self.plot.reset_plot()
@@ -34,7 +39,7 @@ class PolarPlot(PyChamberPlot):
 
     def _connect_signals(self) -> None:
         self.pol_combobox.currentTextChanged.connect(self._send_controls_state)
-        self.freq_lineedit.editingFinished.connect(self._send_controls_state)
+        self.freq_spinbox.editingFinished.connect(self._send_controls_state)
 
         self.min_spinbox.valueChanged.connect(self._on_plot_min_changed)
         self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
@@ -43,7 +48,7 @@ class PolarPlot(PyChamberPlot):
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
-        freq = self.freq_lineedit.text()
+        freq = self.freq_spinbox.text()
 
         ctrl = PlotControls(polarization=pol, frequency=freq, elevation=0.0)
         self.new_data_requested.emit(ctrl)
@@ -66,16 +71,14 @@ class PolarPlot(PyChamberPlot):
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         log.debug("Got new data. Updating...")
         pol = self.pol_combobox.currentText()
-        freq = self.freq_lineedit.text()
+        freq = self.freq_spinbox.text()
         if ntwk.params['polarization'] != pol:
             return
 
-        theta = np.deg2rad(ntwk.params['azimuth'])
+        theta = np.deg2rad(float(ntwk.params['azimuth']))
         r = ntwk[freq].s_db  # type: ignore
 
         self.plot.update_plot(theta, r)
-
-        # send to MplWidget
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)
@@ -86,16 +89,15 @@ class PolarPlot(PyChamberPlot):
         hlayout.addWidget(pol_label)
 
         self.pol_combobox = QComboBox(self)
-        self.pol_combobox.addItems(['1', '2'])
         hlayout.addWidget(self.pol_combobox)
 
         freq_label = QLabel("Frequency", self)
         hlayout.addWidget(freq_label)
 
-        self.freq_lineedit = FrequencyLineEdit(self)
-        self.freq_lineedit.setSizePolicy(size_policy["PREF_PREF"])
-        self.freq_lineedit.setMinimumWidth(100)
-        hlayout.addWidget(self.freq_lineedit)
+        self.freq_spinbox = FrequencySpinBox(self)
+        self.freq_spinbox.setSizePolicy(size_policy["PREF_PREF"])
+        self.freq_spinbox.setMinimumWidth(100)
+        hlayout.addWidget(self.freq_spinbox)
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         hlayout.addItem(spacer)

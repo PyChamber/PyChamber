@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import skrf
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import QStringListModel, pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from pychamber.logger import log
@@ -26,6 +26,12 @@ class PyChamberPlot(QWidget):
         self._add_widgets()
         self._connect_signals()
         self.reset()
+
+    def init_from_experiment(self, **kwargs) -> None:
+        ...
+
+    def set_polarization_model(self, model: QStringListModel) -> None:
+        ...
 
     def reset(self) -> None:
         ...
