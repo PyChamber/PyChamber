@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
@@ -159,6 +161,8 @@ class MainWindow(QMainWindow):
             self.ctrl_widget.sizeHint().width()
             + self.ctrl_scroll_area.verticalScrollBar().sizeHint().width()
         )
+
+        self.ctrl_layout.addStretch()
         self.main_layout.setStretch(0, 1)
         self.main_layout.setStretch(1, 2)
 

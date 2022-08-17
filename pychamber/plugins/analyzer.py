@@ -160,10 +160,6 @@ class AnalyzerPlugin(PyChamberPlugin):
         layout.addWidget(self.freq_groupbox)
         self.freq_groupbox.setEnabled(False)
 
-        self.layout().addItem(
-            QSpacerItem(100, 100, QSizePolicy.Expanding, QSizePolicy.Expanding)
-        )
-
     def _init_inputs(self) -> None:
         log.debug("Populating models...")
         self.model_combobox.clear()
