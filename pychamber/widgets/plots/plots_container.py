@@ -54,6 +54,7 @@ class PlotsWidget(PyChamberPlugin):
     def init_plots(self, **kwargs) -> None:
         for plot in self._plots:
             plot.init_from_experiment(**kwargs)
+            plot.reset()
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         for plot in self._plots:

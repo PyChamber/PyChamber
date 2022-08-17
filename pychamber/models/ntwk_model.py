@@ -57,7 +57,7 @@ class NetworkModel(QObject):
         self._azimuths.add(ntwk.params['azimuth'])
         self._elevations.add(ntwk.params['elevation'])
 
-        self._data = NetworkModel(list(self._data) + [ntwk])  # type: ignore
+        self._data = skrf.NetworkSet(list(self._data) + [ntwk])  # type: ignore
         self.data_added.emit(ntwk)
 
     def mags(

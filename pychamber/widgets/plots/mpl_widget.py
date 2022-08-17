@@ -83,11 +83,30 @@ class MplRectWidget(MplWidget):
         self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]))
         self.ax.grid(self.grid)
 
-        self.xformatter = EngFormatter(unit='Hz')
+        self._xmin = 0
+        self._xmax = 1
 
         self._ymin = -30
         self._ymax = 0
         self._ystep = 10
+
+    @property
+    def xmin(self) -> int:
+        return self._xmin
+
+    @xmin.setter
+    def xmin(self, val: int) -> None:
+        self._xmin = val
+        self.update_scale()
+
+    @property
+    def xmax(self) -> int:
+        return self._xmax
+
+    @xmax.setter
+    def xmax(self, val: int) -> None:
+        self._xmax = val
+        self.update_scale()
 
     @property
     def ymin(self) -> int:
@@ -124,6 +143,8 @@ class MplRectWidget(MplWidget):
         self.update_scale()
 
     def update_scale(self) -> None:
+        self.ax.set_xbound(self._xmin, self._xmax)
+        self.ax.set_xticks(np.linspace(self._xmin, self._xmax, 12))
         self.ax.set_ybound(self._ymin, self._ymax)
         self.ax.set_yticks(np.arange(self._ymin, self._ymax, self._ystep))
         self.canvas.draw()
@@ -137,6 +158,10 @@ class MplPolarWidget(MplWidget):
         self.ax.set_theta_zero_location('N')
         self.ax.set_thetagrids(np.arange(0, 360, 30))
         self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
+
+        self.ax.set_xticks(np.deg2rad(np.arange(-180, 180, 30)))
+        self.ax.set_thetalim(-np.pi, np.pi)
+
         self.canvas.draw()
 
         self._rmin = -30

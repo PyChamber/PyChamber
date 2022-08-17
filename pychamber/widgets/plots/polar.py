@@ -26,7 +26,9 @@ class PolarPlot(PyChamberPlot):
         super().__init__(parent)
 
     def init_from_experiment(self, **kwargs) -> None:
-        pass
+        freqs = kwargs.get('frequencies')
+        self.freq_spinbox.setRange(freqs.min(), freqs.max())
+        self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
 
     def set_polarization_model(self, model: QStringListModel) -> None:
         self.pol_combobox.setModel(model)
@@ -78,6 +80,7 @@ class PolarPlot(PyChamberPlot):
         theta = np.deg2rad(float(ntwk.params['azimuth']))
         r = ntwk[freq].s_db  # type: ignore
 
+        log.debug(f"Updating polar plot with {theta=} {r=}")
         self.plot.update_plot(theta, r)
 
     def _add_widgets(self) -> None:

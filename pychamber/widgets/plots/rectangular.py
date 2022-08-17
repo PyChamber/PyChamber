@@ -1,3 +1,4 @@
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import skrf
 from PyQt5.QtCore import QStringListModel
@@ -14,7 +15,6 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.ui import size_policy
-from pychamber.widgets import FrequencyLineEdit
 
 from ..freq_spin_box import FrequencySpinBox
 from .mpl_widget import MplRectWidget
@@ -26,7 +26,10 @@ class RectangularPlot(PyChamberPlot):
         super().__init__(parent)
 
     def init_from_experiment(self, **kwargs) -> None:
-        azimuths = kwargs.get('azimuths', np.arange(-np.pi, np.pi, np.pi / 180))
+        azimuths = np.deg2rad(kwargs.get('azimuths', np.arange(-180, 180, 1)))
+        freqs = kwargs.get('frequencies')
+        self.freq_spinbox.setRange(freqs.min(), freqs.max())
+        self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
         log.debug(f"Setting xlimits to {azimuths}")
         self.plot.xmin = azimuths.min()
         self.plot.xmax = azimuths.max()
@@ -142,4 +145,7 @@ class RectangularPlot(PyChamberPlot):
         layout.addLayout(hlayout)
 
         self.plot = MplRectWidget(self)
+        self.plot.ax.xaxis.set_major_formatter(
+            FuncFormatter(lambda x, pos: f"{np.rad2deg(x):.0f}")
+        )
         layout.addWidget(self.plot)
