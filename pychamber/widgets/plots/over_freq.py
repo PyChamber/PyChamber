@@ -1,6 +1,7 @@
 import skrf
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QHBoxLayout,
@@ -14,13 +15,17 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 
-from .mpl_widget import MplRectWidget
+from .mpl_widget import MplRectWidget, PlotLimits
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 
 class OverFreqPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+
+    def post_visible_setup(self) -> None:
+        self.plot.set_xlabel("Frequency [Hz]")
+        self.plot.set_ylabel("Power [dB]")
 
     def set_polarization_model(self, model: QStringListModel) -> None:
         self.pol_combobox.setModel(model)
@@ -39,6 +44,8 @@ class OverFreqPlot(PyChamberPlot):
         self.min_spinbox.valueChanged.connect(self._on_plot_min_changed)
         self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
         self.step_spinbox.valueChanged.connect(self._on_plot_step_changed)
+
+        self.autoscale_chkbox.stateChanged.connect(self._on_autoscale_toggle_changed)
 
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
@@ -63,6 +70,20 @@ class OverFreqPlot(PyChamberPlot):
 
     def _on_plot_step_changed(self, val: int) -> None:
         self.plot.ystep = val
+
+    def _on_autoscale_toggle_changed(self, val: bool) -> None:
+        self.plot.autoscale = val
+
+    def _on_autoscaled(self, lims: PlotLimits) -> None:
+        self.min_spinbox.blockSignals(True)
+        self.max_spinbox.blockSignals(True)
+        self.step_spinbox.blockSignals(True)
+        self.min_spinbox.setValue(int(lims.min_))
+        self.max_spinbox.setValue(int(lims.max_))
+        self.step_spinbox.setValue(int(lims.step))
+        self.min_spinbox.blockSignals(False)
+        self.max_spinbox.blockSignals(False)
+        self.step_spinbox.blockSignals(False)
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         log.debug("Got new data. Updating...")
@@ -130,6 +151,9 @@ class OverFreqPlot(PyChamberPlot):
         self.step_spinbox.setRange(1, 100)
         self.step_spinbox.setSingleStep(5)
         hlayout.addWidget(self.step_spinbox)
+
+        self.autoscale_chkbox = QCheckBox(self)
+        hlayout.addWidget(self.autoscale_chkbox)
 
         self.autoscale_btn = QPushButton("Auto Scale", self)
         hlayout.addWidget(self.autoscale_btn)

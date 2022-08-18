@@ -3,7 +3,9 @@
     isort:skip_file
 """
 
-from PyQt5.QtCore import QSize
+from dataclasses import dataclass
+from typing import Optional
+from PyQt5.QtCore import QSize, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
@@ -18,6 +20,13 @@ from pychamber.logger import log
 matplotlib.use('QT5Agg')
 
 
+@dataclass
+class PlotLimits:
+    min_: float
+    max_: float
+    step: float
+
+
 class MplCanvas(Canvas):
     def __init__(self):
         self.fig = Figure()
@@ -27,6 +36,8 @@ class MplCanvas(Canvas):
 
 
 class MplWidget(QWidget):
+    autoscaled = pyqtSignal(object)
+
     def __init__(self, color: str, parent=None):
         log.debug("Creating plot...")
         super().__init__(parent)
@@ -64,10 +75,28 @@ class MplWidget(QWidget):
     @autoscale.setter
     def autoscale(self, set: bool) -> None:
         self._autoscale = set
+        self.autoscale_plot()
+
+    def autoscale_plot(self) -> None:
+        ...
+
+    def redraw_plot(
+        self, xdata: Optional[np.ndarray] = None, ydata: Optional[np.ndarray] = None
+    ) -> None:
+        if xdata is None:
+            xdata = self.artist.get_xdata()
+        if ydata is None:
+            ydata = self.artist.get_ydata()
+
+        self.artist.set_xdata(xdata)
+        self.artist.set_ydata(ydata)
+        self.canvas.draw()
 
     def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         self.artist.set_xdata(np.append(self.artist.get_xdata(), xdata))
         self.artist.set_ydata(np.append(self.artist.get_ydata(), ydata))
+        if self.autoscale:
+            self.autoscale_plot()
 
         self.canvas.draw()
 
@@ -135,11 +164,21 @@ class MplRectWidget(MplWidget):
         self._ystep = val
         self.update_scale()
 
+    def autoscale_plot(self) -> None:
+        if len(y := self.artist.get_ydata()) > 0:
+            self._ymin = min(y)
+            self._ymax = max(y)
+            self.update_scale()
+            self.autoscaled.emit(PlotLimits(self.ymin, self.ymax, self.ystep))
+
+    def set_xlabel(self, label: str) -> None:
+        self.ax.set_xlabel(label)
+
+    def set_ylabel(self, label: str) -> None:
+        self.ax.set_ylabel(label)
+
     def reset_plot(self) -> None:
         self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
-        self._ymin = -30
-        self._ymax = 0
-        self._ystep = 10
         self.update_scale()
 
     def update_scale(self) -> None:
@@ -147,7 +186,9 @@ class MplRectWidget(MplWidget):
         self.ax.set_xticks(np.linspace(self._xmin, self._xmax, 12))
         self.ax.set_ybound(self._ymin, self._ymax)
         self.ax.set_yticks(np.arange(self._ymin, self._ymax, self._ystep))
-        self.canvas.draw()
+        xdata = self.artist.get_xdata()
+        ydata = self.artist.get_ydata()
+        self.redraw_plot(xdata, ydata)
 
 
 class MplPolarWidget(MplWidget):
@@ -195,17 +236,23 @@ class MplPolarWidget(MplWidget):
         self._rstep = val
         self.update_scale()
 
+    def autoscale_plot(self) -> None:
+        if len(y := self.artist.get_ydata()) > 0:
+            self._rmin = min(y)
+            self._rmax = max(y)
+            self.update_scale()
+            self.autoscaled.emit(PlotLimits(self.rmin, self.rmax, self.rstep))
+
     def reset_plot(self) -> None:
         self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
-        self._rmin = -30
-        self._rmax = 0
-        self._rstep = 10
         self.update_scale()
 
     def update_scale(self) -> None:
         self.ax.set_rlim(self._rmin, self._rmax)
         self.ax.set_rticks(np.arange(self._rmin, self._rmax, self._rstep))
-        self.canvas.draw()
+        xdata = self.artist.get_xdata()
+        ydata = self.artist.get_ydata()
+        self.redraw_plot(xdata, ydata)
 
 
 # TODO: 3D plotting needs some work...

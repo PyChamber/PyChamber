@@ -35,9 +35,6 @@ class Settings(QSettings):
         "jog-az-step": 0.0,
         "jog-el-step": 0.0,
         "cal-file": "",
-        "polar-autoscale": True,
-        "rect-autoscale": True,
-        "overfreq-autoscale": True,
     }
 
     def __init__(self, parent=None) -> None:

@@ -51,6 +51,10 @@ class PlotsWidget(PyChamberPlugin):
         self.add_plot(OverFreqPlot, "Over Frequency Plot")
         # self.add_plot(ThreeDPlot, "3D Plot")
 
+    def post_visible_setup(self) -> None:
+        for plot in self._plots:
+            plot.post_visible_setup()
+
     def init_plots(self, **kwargs) -> None:
         for plot in self._plots:
             plot.init_from_experiment(**kwargs)

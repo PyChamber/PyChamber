@@ -98,6 +98,9 @@ class Positioner(QObject):
         SETTINGS["positioner-az-pos"] = 0.0
         SETTINGS["positioner-el-pos"] = 0.0
 
+        self.current_azimuth = 0.0
+        self.current_elevation = 0.0
+
     def write(self, cmd: str) -> Optional[BoardResponse]:
         ...
 
@@ -155,6 +158,8 @@ class D6050(Positioner):
 
         self.current_az: float = float(SETTINGS["positioner-az-pos"])
         self.current_el: float = float(SETTINGS["positioner-el-pos"])
+        log.debug(f"{self.current_az=}")
+        log.debug(f"{self.current_el=}")
 
         self.reset()
 

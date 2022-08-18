@@ -27,6 +27,9 @@ class PyChamberPlot(QWidget):
         self._connect_signals()
         self.reset()
 
+    def post_visible_setup(self) -> None:
+        pass
+
     def init_from_experiment(self, **kwargs) -> None:
         ...
 

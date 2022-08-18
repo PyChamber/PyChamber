@@ -157,8 +157,8 @@ class PositionerPlugin(PyChamberPlugin):
             lambda val: SETTINGS.setval("jog-el-step", val)
         )
 
-        self.jog_az_to_lineedit.textChanged.connect(self._on_jog_az_to_changed)
-        self.jog_el_to_lineedit.textChanged.connect(self._on_jog_el_to_changed)
+        self.jog_az_to_lineedit.editingFinished.connect(self._on_jog_az_to_changed)
+        self.jog_el_to_lineedit.editingFinished.connect(self._on_jog_el_to_changed)
 
         self.jog_az_left_btn.clicked.connect(
             functools.partial(
@@ -196,10 +196,12 @@ class PositionerPlugin(PyChamberPlugin):
 
         self.jog_complete.connect(self._on_jog_complete)
 
-    def _on_jog_az_to_changed(self, val: str) -> None:
+    def _on_jog_az_to_changed(self) -> None:
+        val = self.jog_az_to_lineedit.text()
         self.jog_az_to = float(val)
 
-    def _on_jog_el_to_changed(self, val: str) -> None:
+    def _on_jog_el_to_changed(self) -> None:
+        val = self.jog_el_to_lineedit.text()
         self.jog_el_to = float(val)
 
     def _on_connect_clicked(self) -> None:
@@ -220,12 +222,14 @@ class PositionerPlugin(PyChamberPlugin):
 
     def _on_az_move_complete(self) -> None:
         assert self._positioner is not None
-        self.az_pos_lineedit.setText(str(self._positioner.current_azimuth))
+        SETTINGS["positioner-az-pos"] = self._positioner.current_azimuth
+        self.az_pos_lineedit.setText(str(SETTINGS["positioner-az-pos"]))
         self.jog_complete.emit()
 
     def _on_el_move_complete(self) -> None:
         assert self._positioner is not None
-        self.el_pos_lineedit.setText(str(self._positioner.current_elevation))
+        SETTINGS["positioner-el-pos"] = self._positioner.current_elevation
+        self.el_pos_lineedit.setText(str(SETTINGS["positioner-el-pos"]))
         self.jog_complete.emit()
 
     def _on_positioner_connected(self) -> None:

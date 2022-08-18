@@ -3,6 +3,7 @@ import numpy as np
 import skrf
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -17,13 +18,20 @@ from pychamber.logger import log
 from pychamber.ui import size_policy
 
 from ..freq_spin_box import FrequencySpinBox
-from .mpl_widget import MplRectWidget
+from .mpl_widget import MplRectWidget, PlotLimits
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 
 class RectangularPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+
+    def post_visible_setup(self) -> None:
+        self.plot.ax.xaxis.set_major_formatter(
+            FuncFormatter(lambda x, pos: f"{np.rad2deg(x):.0f}")
+        )
+        self.plot.set_xlabel("Azimuth [deg]")
+        self.plot.set_ylabel("Power [dB]")
 
     def init_from_experiment(self, **kwargs) -> None:
         azimuths = np.deg2rad(kwargs.get('azimuths', np.arange(-180, 180, 1)))
@@ -51,6 +59,9 @@ class RectangularPlot(PyChamberPlot):
         self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
         self.step_spinbox.valueChanged.connect(self._on_plot_step_changed)
 
+        self.autoscale_chkbox.stateChanged.connect(self._on_autoscale_toggle_changed)
+        self.plot.autoscaled.connect(self._on_autoscaled)
+
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
@@ -73,6 +84,20 @@ class RectangularPlot(PyChamberPlot):
 
     def _on_plot_step_changed(self, val: int) -> None:
         self.plot.ystep = val
+
+    def _on_autoscale_toggle_changed(self, val: bool) -> None:
+        self.plot.autoscale = val
+
+    def _on_autoscaled(self, lims: PlotLimits) -> None:
+        self.min_spinbox.blockSignals(True)
+        self.max_spinbox.blockSignals(True)
+        self.step_spinbox.blockSignals(True)
+        self.min_spinbox.setValue(int(lims.min_))
+        self.max_spinbox.setValue(int(lims.max_))
+        self.step_spinbox.setValue(int(lims.step))
+        self.min_spinbox.blockSignals(False)
+        self.max_spinbox.blockSignals(False)
+        self.step_spinbox.blockSignals(False)
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         log.debug("Got new data. Updating...")
@@ -136,6 +161,9 @@ class RectangularPlot(PyChamberPlot):
         self.step_spinbox.setSingleStep(5)
         hlayout.addWidget(self.step_spinbox)
 
+        self.autoscale_chkbox = QCheckBox(self)
+        hlayout.addWidget(self.autoscale_chkbox)
+
         self.autoscale_btn = QPushButton("Auto Scale", self)
         hlayout.addWidget(self.autoscale_btn)
 
@@ -145,7 +173,4 @@ class RectangularPlot(PyChamberPlot):
         layout.addLayout(hlayout)
 
         self.plot = MplRectWidget(self)
-        self.plot.ax.xaxis.set_major_formatter(
-            FuncFormatter(lambda x, pos: f"{np.rad2deg(x):.0f}")
-        )
         layout.addWidget(self.plot)
