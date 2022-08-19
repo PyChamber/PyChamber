@@ -1,5 +1,6 @@
 import dataclasses
 import functools
+import pickle
 import time
 import webbrowser
 from typing import Dict, List, Tuple
@@ -10,6 +11,7 @@ from PyQt5.QtGui import QCloseEvent, QIcon
 from PyQt5.QtTest import QSignalSpy
 from PyQt5.QtWidgets import (
     QDesktopWidget,
+    QFileDialog,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -28,7 +30,7 @@ from pychamber.plugins import (
 from pychamber.plugins.base import PyChamberPlugin
 from pychamber.polarization import Polarization
 from pychamber.ui import resources_rc, size_policy  # noqa: F401
-from pychamber.widgets import ExperimentWidget
+from pychamber.widgets import AboutPyChamberDialog, ExperimentWidget, SettingsDialog
 from pychamber.widgets.experiment import ExperimentType
 
 from .models.ntwk_model import NetworkModel
@@ -56,7 +58,6 @@ class MainWindow(QMainWindow):
         self.positioner_connected = False
 
         self.experiment_thread: QThread = QThread(None)
-        self.abort = False
 
         self.ntwk_model: NetworkModel = NetworkModel()
 
@@ -121,8 +122,15 @@ class MainWindow(QMainWindow):
         self.file.addSeparator()
         self.quit = self.file.addAction("Quit")
 
+        self.save.triggered.connect(self._on_save_triggered)
+        self.load.triggered.connect(self._on_load_triggered)
+        self.settings.triggered.connect(self._on_settings_triggered)
+        self.quit.triggered.connect(self.close)
+
         self.tools = self.menu.addMenu("Tools")
         self.python_interpreter = self.tools.addAction("Python Terminal")
+
+        self.python_interpreter.triggered.connect(self._on_python_interpreter_triggered)
 
         self.help = self.menu.addMenu("Help")
         self.bug = self.help.addAction("Submit a Bug")
@@ -132,6 +140,51 @@ class MainWindow(QMainWindow):
 
         bug_report_url = "https://github.com/HRG-Lab/PyChamber/issues/new"
         self.bug.triggered.connect(lambda: webbrowser.open(bug_report_url))
+        self.about.triggered.connect(AboutPyChamberDialog.display)
+        self.log.triggered.connect(self._on_log_triggered)
+
+    def _on_save_triggered(self) -> None:
+        log.debug("Launching save dialog...")
+        if len(self.ntwk_model) == 0:
+            QMessageBox.warning(
+                self, "No data", "No data to save. Run an experiment first."
+            )
+            return
+        to_save = self.ntwk_model.data()
+
+        save_name, _ = QFileDialog.getSaveFileName()
+        if save_name != "":
+            with open(save_name, 'wb') as save_file:
+                pickle.dump(to_save, save_file)
+
+    def _on_load_triggered(self) -> None:
+        # TODO: Handle NetworkModel.data_loaded
+        log.debug("Launching load dialog...")
+        file_name, _ = QFileDialog.getOpenFileName()
+        if file_name != "":
+            try:
+                log.debug(f"Loading {file_name}")
+                with open(file_name, 'rb') as ff:
+                    data = pickle.load(ff)
+                    self.ntwk_model.load_data(data)
+            except Exception:
+                QMessageBox.critical(
+                    self, "Invalid File", "The specified file is invalid"
+                )
+                return
+
+    def _on_settings_triggered(self) -> None:
+        log.debug("Launching settings dialog...")
+        SettingsDialog.display()
+
+    def _on_python_interpreter_triggered(self) -> None:
+        log.debug("Launching Python interpreter...")
+
+    def _on_about_triggered(self) -> None:
+        log.debug("Launching about window...")
+
+    def _on_log_triggered(self) -> None:
+        log.debug("Launching log viewer...")
 
     def _add_widgets(self) -> None:
         log.debug("Setting up widgets...")
@@ -198,10 +251,10 @@ class MainWindow(QMainWindow):
         positioner.positioner_connected.connect(self._enable_experiment)
 
         experiment.start_experiment.connect(self._on_start_experiment)
+        experiment.abort_btn.clicked.connect(self._on_abort_experiment)
         self.experiment_thread.finished.connect(
             self.experiment_widget.experiment_done.emit
         )
-        self.experiment_thread.finished.connect(lambda: setattr(self, "abort", False))
         self.experiment_widget.data_acquired.connect(self.ntwk_model.add_data)
         self.ntwk_model.data_added.connect(plots.rx_updated_data)
         plots.new_data_requested.connect(self.respond_to_widget_data_request)
@@ -247,6 +300,11 @@ class MainWindow(QMainWindow):
         )
         self.experiment_thread.start()
 
+    def _on_abort_experiment(self) -> None:
+        log.debug("Aborting experiment...")
+        if self.experiment_thread.isRunning():
+            self.experiment_thread.requestInterruption()
+
     def run_experiment(
         self,
         polarizations: List[Polarization],
@@ -289,7 +347,7 @@ class MainWindow(QMainWindow):
 
             for i, azimuth in enumerate(azimuths):
                 log.debug(f"Azimuth: {azimuth}")
-                if self.abort:
+                if self.experiment_thread.isInterruptionRequested():
                     self.statusBar().showMessage("Experiment aborted!", 4000)
                     break
 

@@ -9,6 +9,7 @@ from pychamber.logger import log
 
 class NetworkModel(QObject):
     data_added = pyqtSignal(skrf.Network)
+    data_loaded = pyqtSignal()
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -65,6 +66,10 @@ class NetworkModel(QObject):
 
     def get_data(self, **kwargs) -> None:
         self._data.sel(kwargs)
+
+    def load_data(self, data: skrf.NetworkSet) -> None:
+        self._data = data
+        self.data_loaded.emit()
 
     def mags(
         self,

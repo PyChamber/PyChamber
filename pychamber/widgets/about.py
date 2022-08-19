@@ -2,10 +2,10 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout
 
 import pychamber
-from pychamber.ui import resources_rc
+from pychamber.ui import resources_rc  # noqa: F401
 
 
-class AboutPyChamber(QDialog):
+class AboutPyChamberDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout()
