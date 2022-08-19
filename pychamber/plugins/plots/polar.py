@@ -1,9 +1,9 @@
+import numpy as np
 import skrf
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -14,62 +14,65 @@ from PyQt5.QtWidgets import (
 )
 
 from pychamber.logger import log
+from pychamber.ui import size_policy
+from pychamber.widgets import FrequencySpinBox
 
-from .mpl_widget import MplRectWidget, PlotLimits
+from .mpl_widget import MplPolarWidget, PlotLimits
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 
-class OverFreqPlot(PyChamberPlot):
+class PolarPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def post_visible_setup(self) -> None:
-        self.plot.set_xlabel("Frequency [Hz]")
-        self.plot.set_ylabel("Power [dB]")
+    def init_from_experiment(self, **kwargs) -> None:
+        freqs: np.ndarray = kwargs.get('frequencies')
+        self.freq_spinbox.setRange(freqs.min(), freqs.max())
+        self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
 
     def set_polarization_model(self, model: QStringListModel) -> None:
         self.pol_combobox.setModel(model)
 
     def reset(self) -> None:
         self.plot.reset_plot()
-        self.min_spinbox.setValue(self.plot.ymin)
-        self.max_spinbox.setValue(self.plot.ymax)
-        self.step_spinbox.setValue(self.plot.ystep)
+        self.min_spinbox.setValue(self.plot.rmin)
+        self.max_spinbox.setValue(self.plot.rmax)
+        self.step_spinbox.setValue(self.plot.rstep)
 
     def _connect_signals(self) -> None:
         self.pol_combobox.currentTextChanged.connect(self._send_controls_state)
-        self.az_spinbox.valueChanged.connect(self._send_controls_state)
-        self.el_spinbox.valueChanged.connect(self._send_controls_state)
+        self.freq_spinbox.valueChanged.connect(self._send_controls_state)
 
         self.min_spinbox.valueChanged.connect(self._on_plot_min_changed)
         self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
         self.step_spinbox.valueChanged.connect(self._on_plot_step_changed)
 
         self.autoscale_chkbox.stateChanged.connect(self._on_autoscale_toggle_changed)
+        self.autoscale_btn.clicked.connect(self.plot.autoscale_plot)
+        self.plot.autoscaled.connect(self._on_autoscaled)
 
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
-        az = self.az_spinbox.value()
-        el = self.el_spinbox.value()
+        freq = self.freq_spinbox.text()
 
-        ctrl = PlotControls(polarization=pol, azimuth=az, elevation=el)
+        ctrl = PlotControls(polarization=pol, frequency=freq, elevation=0.0)
         self.new_data_requested.emit(ctrl)
 
     def _on_plot_min_changed(self, val: int) -> None:
         if val >= self.max_spinbox.value():
             return
 
-        self.plot.ymin = val
+        self.plot.rmin = val
 
     def _on_plot_max_changed(self, val: int) -> None:
         if val <= self.min_spinbox.value():
             return
 
-        self.plot.ymax = val
+        self.plot.rmax = val
 
     def _on_plot_step_changed(self, val: int) -> None:
-        self.plot.ystep = val
+        self.plot.rstep = val
 
     def _on_autoscale_toggle_changed(self, val: bool) -> None:
         self.plot.autoscale = val
@@ -88,17 +91,15 @@ class OverFreqPlot(PyChamberPlot):
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         log.debug("Got new data. Updating...")
         pol = self.pol_combobox.currentText()
-        az = self.az_spinbox.value()
-        el = self.el_spinbox.value()
-
-        if (
-            ntwk.params['polarization'] != pol
-            or ntwk.params['azimuth'] != az
-            or ntwk.params['elevation'] != el
-        ):
+        freq = self.freq_spinbox.text()
+        if ntwk.params['polarization'] != pol:
             return
 
-        # send to MplWidget
+        theta = np.deg2rad(float(ntwk.params['azimuth']))
+        r = ntwk[freq].s_db  # type: ignore
+
+        log.debug(f"Updating polar plot with {theta=} {r=}")
+        self.plot.update_plot(theta, r)
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)
@@ -111,17 +112,13 @@ class OverFreqPlot(PyChamberPlot):
         self.pol_combobox = QComboBox(self)
         hlayout.addWidget(self.pol_combobox)
 
-        az_label = QLabel("Azimuth", self)
-        hlayout.addWidget(az_label)
+        freq_label = QLabel("Frequency", self)
+        hlayout.addWidget(freq_label)
 
-        self.az_spinbox = QDoubleSpinBox(self)
-        hlayout.addWidget(self.az_spinbox)
-
-        el_label = QLabel("Elevation", self)
-        hlayout.addWidget(el_label)
-
-        self.el_spinbox = QDoubleSpinBox(self)
-        hlayout.addWidget(self.el_spinbox)
+        self.freq_spinbox = FrequencySpinBox(self)
+        self.freq_spinbox.setSizePolicy(size_policy["PREF_PREF"])
+        self.freq_spinbox.setMinimumWidth(100)
+        hlayout.addWidget(self.freq_spinbox)
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         hlayout.addItem(spacer)
@@ -163,5 +160,5 @@ class OverFreqPlot(PyChamberPlot):
 
         layout.addLayout(hlayout)
 
-        self.plot = MplRectWidget(self)
+        self.plot = MplPolarWidget(self)
         layout.addWidget(self.plot)

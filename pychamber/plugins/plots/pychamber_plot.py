@@ -5,7 +5,7 @@ import skrf
 from PyQt5.QtCore import QStringListModel, pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
-from pychamber.logger import log
+from pychamber.logger import log  # noqa: F401
 
 
 @dataclass
@@ -49,4 +49,7 @@ class PyChamberPlot(QWidget):
         ...
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
+        ...
+
+    def plot_new_data(self, data: skrf.NetworkSet) -> None:
         ...

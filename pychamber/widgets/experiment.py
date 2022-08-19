@@ -17,8 +17,6 @@ from PyQt5.QtWidgets import (
 from pychamber.logger import log
 from pychamber.ui.ui import font, size_policy
 
-from ..plugins.base import PyChamberPlugin
-
 
 class ExperimentType(Enum):
     AZIMUTH = auto()
@@ -26,7 +24,7 @@ class ExperimentType(Enum):
     FULL = auto()
 
 
-class ExperimentWidget(PyChamberPlugin):
+class ExperimentWidget(QWidget):
     # Signals
     start_experiment = pyqtSignal(object)
     experiment_done = pyqtSignal()

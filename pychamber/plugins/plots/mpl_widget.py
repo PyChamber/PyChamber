@@ -9,7 +9,6 @@ from PyQt5.QtCore import QSize, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-from matplotlib.ticker import EngFormatter
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -36,9 +35,10 @@ class MplCanvas(Canvas):
 
 
 class MplWidget(QWidget):
+    artist: plt.Line2D
     autoscaled = pyqtSignal(object)
 
-    def __init__(self, color: str, parent=None):
+    def __init__(self, parent=None):
         log.debug("Creating plot...")
         super().__init__(parent)
 
@@ -50,7 +50,6 @@ class MplWidget(QWidget):
         self.setSizePolicy(policy)
 
         self._grid = True
-        self.color = color
 
         self._autoscale: bool = False
 

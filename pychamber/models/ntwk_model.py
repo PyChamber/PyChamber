@@ -21,6 +21,9 @@ class NetworkModel(QObject):
     def __str__(self) -> str:
         return str(self._data)
 
+    def __len__(self) -> int:
+        return len(self._data)
+
     @property
     def frequencies(self) -> np.ndarray:
         return self._data[0].frequency.f  # type: ignore
@@ -59,6 +62,9 @@ class NetworkModel(QObject):
 
         self._data = skrf.NetworkSet(list(self._data) + [ntwk])  # type: ignore
         self.data_added.emit(ntwk)
+
+    def get_data(self, **kwargs) -> None:
+        self._data.sel(kwargs)
 
     def mags(
         self,

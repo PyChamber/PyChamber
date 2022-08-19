@@ -16,6 +16,7 @@ from pychamber.deprecated.about import AboutPyChamber
 from pychamber.deprecated.calibration import CalibrationViewDialog, CalibrationWizard
 from pychamber.deprecated.log_viewer import LogViewer
 from pychamber.deprecated.main_window import MainWindow
+from pychamber.deprecated.network_model import NetworkModel
 from pychamber.deprecated.pop_ups import MsgLevel, PopUpMessage
 from pychamber.deprecated.pyconsole import PyConsole
 from pychamber.deprecated.settings_dialog import SettingsDialog
@@ -26,7 +27,6 @@ from pychamber.plugins.positioner.positioner import PositionerError
 from pychamber.polarization import Polarization
 from pychamber.settings import Settings
 from pychamber.widgets.jog_worker import JogAxis, JogWorker, JogZeroWorker
-from pychamber.widgets.network_model import NetworkModel
 from pychamber.widgets.scan_worker import ScanWorker
 
 MUTEX = QMutex()

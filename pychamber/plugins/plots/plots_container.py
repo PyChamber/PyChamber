@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import TYPE_CHECKING, List, Optional, Type
+    from pychamber.main_window import MainWindow
 
-import numpy as np
 import skrf
-from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QWidget
+from PyQt5.QtCore import QStringListModel, pyqtSignal
+from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
 
 from pychamber.logger import log
 from pychamber.plugins.base import PyChamberPlugin
@@ -16,13 +16,14 @@ from pychamber.ui import size_policy
 
 from .over_freq import OverFreqPlot
 from .polar import PolarPlot
-from .pychamber_plot import PyChamberPlot
+from .pychamber_plot import PlotControls, PyChamberPlot
 from .rectangular import RectangularPlot
-from .three_d import ThreeDPlot
 
 
-class PlotsWidget(PyChamberPlugin):
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+class PlotsPlugin(PyChamberPlugin):
+    new_data_requested = pyqtSignal(object)
+
+    def __init__(self, parent: Optional[MainWindow] = None) -> None:
         super().__init__(parent)
 
         self.setObjectName('plots')
@@ -54,6 +55,11 @@ class PlotsWidget(PyChamberPlugin):
     def post_visible_setup(self) -> None:
         for plot in self._plots:
             plot.post_visible_setup()
+            plot.new_data_requested.connect(self._on_new_data_requested)
+
+    def _on_new_data_requested(self, ctrls: PlotControls) -> None:
+        plot = self.sender()
+        self.new_data_requested.emit((plot, ctrls))
 
     def init_plots(self, **kwargs) -> None:
         for plot in self._plots:

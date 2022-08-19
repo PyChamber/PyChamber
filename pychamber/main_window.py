@@ -1,7 +1,8 @@
+import dataclasses
 import functools
 import time
 import webbrowser
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
@@ -13,18 +14,21 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QScrollArea,
-    QSizePolicy,
-    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
 
 from pychamber.logger import log
-from pychamber.plugins import AnalyzerPlugin, CalibrationPlugin, PositionerPlugin
+from pychamber.plugins import (
+    AnalyzerPlugin,
+    CalibrationPlugin,
+    PlotsPlugin,
+    PositionerPlugin,
+)
 from pychamber.plugins.base import PyChamberPlugin
 from pychamber.polarization import Polarization
 from pychamber.ui import resources_rc, size_policy  # noqa: F401
-from pychamber.widgets import ExperimentWidget, PlotsWidget
+from pychamber.widgets import ExperimentWidget
 from pychamber.widgets.experiment import ExperimentType
 
 from .models.ntwk_model import NetworkModel
@@ -67,7 +71,6 @@ class MainWindow(QMainWindow):
             plugin.post_visible_setup()
 
         self.experiment_widget.post_visible_setup()
-        self.plots_widget.post_visible_setup()
 
         self._connect_signals()
 
@@ -97,6 +100,15 @@ class MainWindow(QMainWindow):
             log.debug("Close event canceled")
             event.ignore()
 
+    def respond_to_widget_data_request(self, args: Tuple) -> None:
+        plot, ctrl = args
+        log.debug(f"{plot} requested new data with {ctrl}")
+        if len(self.ntwk_model) == 0:
+            return
+
+        data = self.ntwk_model.get_data(**dataclasses.asdict(ctrl))
+        plot.plot_new_data(data)
+
     def _setup_menu(self) -> None:
         log.debug("Setting up menu...")
         self.menu = self.menuBar()
@@ -125,7 +137,6 @@ class MainWindow(QMainWindow):
         log.debug("Setting up widgets...")
 
         self.experiment_widget = ExperimentWidget(self.centralWidget())
-        self.plots_widget = PlotsWidget(self.centralWidget())
 
         # Add loading of optional_plugins here
 
@@ -139,6 +150,7 @@ class MainWindow(QMainWindow):
         self.core_plugins["analyzer"] = AnalyzerPlugin(self.ctrl_widget)
         self.core_plugins["calibration"] = CalibrationPlugin(self.ctrl_widget)
         self.core_plugins["positioner"] = PositionerPlugin(self.ctrl_widget)
+        self.core_plugins["plots"] = PlotsPlugin(self)
 
         right_side_layout = QVBoxLayout()
 
@@ -149,15 +161,16 @@ class MainWindow(QMainWindow):
 
         for plugin in to_init:
             plugin.setup()
-            self.ctrl_layout.addWidget(plugin)
+
+        self.ctrl_layout.addWidget(self.core_plugins["analyzer"])
+        self.ctrl_layout.addWidget(self.core_plugins["calibration"])
+        self.ctrl_layout.addWidget(self.core_plugins["positioner"])
 
         self.experiment_widget.setup()
         right_side_layout.addWidget(self.experiment_widget)
-        self.plots_widget.setup()
-        right_side_layout.addWidget(self.plots_widget)
+        right_side_layout.addWidget(self.core_plugins["plots"])
 
         self.ctrl_layout.addStretch()
-
         self.ctrl_scroll_area.setFixedWidth(
             self.ctrl_widget.minimumSizeHint().width()
             + self.ctrl_scroll_area.verticalScrollBar().sizeHint().width()
@@ -168,6 +181,7 @@ class MainWindow(QMainWindow):
         analyzer: AnalyzerPlugin = self.core_plugins["analyzer"]  # type: ignore
         positioner: PositionerPlugin = self.core_plugins["positioner"]  # type: ignore
         experiment: ExperimentWidget = self.experiment_widget
+        plots: PlotsPlugin = self.core_plugins["plots"]  # type: ignore
 
         analyzer.analyzer_connected.connect(
             lambda: setattr(self, "analyzer_connected", True)
@@ -189,7 +203,8 @@ class MainWindow(QMainWindow):
         )
         self.experiment_thread.finished.connect(lambda: setattr(self, "abort", False))
         self.experiment_widget.data_acquired.connect(self.ntwk_model.add_data)
-        self.ntwk_model.data_added.connect(self.plots_widget.rx_updated_data)
+        self.ntwk_model.data_added.connect(plots.rx_updated_data)
+        plots.new_data_requested.connect(self.respond_to_widget_data_request)
 
     def _enable_experiment(self) -> None:
         if self.analyzer_connected and self.positioner_connected:
@@ -198,6 +213,7 @@ class MainWindow(QMainWindow):
 
     def _on_start_experiment(self, experiment_type: ExperimentType) -> None:
         log.debug(f"Running experiment {experiment_type}")
+        plots: PlotsPlugin = self.core_plugins["plots"]  # type: ignore
 
         match experiment_type:
             case ExperimentType.AZIMUTH:
@@ -216,8 +232,8 @@ class MainWindow(QMainWindow):
             return
 
         self.ntwk_model.reset()
-        self.plots_widget.set_polarizations([p.label for p in pols])
-        self.plots_widget.init_plots(
+        plots.set_polarizations([p.label for p in pols])
+        plots.init_plots(
             frequencies=self.core_plugins["analyzer"].frequencies(),
             azimuths=az_extents,
             elevations=el_extents,

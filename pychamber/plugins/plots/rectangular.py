@@ -1,6 +1,6 @@
-from matplotlib.ticker import FuncFormatter
 import numpy as np
 import skrf
+from matplotlib.ticker import FuncFormatter
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -16,8 +16,8 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.ui import size_policy
+from pychamber.widgets import FrequencySpinBox
 
-from ..freq_spin_box import FrequencySpinBox
 from .mpl_widget import MplRectWidget, PlotLimits
 from .pychamber_plot import PlotControls, PyChamberPlot
 
@@ -35,7 +35,7 @@ class RectangularPlot(PyChamberPlot):
 
     def init_from_experiment(self, **kwargs) -> None:
         azimuths = np.deg2rad(kwargs.get('azimuths', np.arange(-180, 180, 1)))
-        freqs = kwargs.get('frequencies')
+        freqs: np.ndarray = kwargs.get('frequencies')
         self.freq_spinbox.setRange(freqs.min(), freqs.max())
         self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
         log.debug(f"Setting xlimits to {azimuths}")
@@ -53,13 +53,14 @@ class RectangularPlot(PyChamberPlot):
 
     def _connect_signals(self) -> None:
         self.pol_combobox.currentTextChanged.connect(self._send_controls_state)
-        self.freq_spinbox.editingFinished.connect(self._send_controls_state)
+        self.freq_spinbox.valueChanged.connect(self._send_controls_state)
 
         self.min_spinbox.valueChanged.connect(self._on_plot_min_changed)
         self.max_spinbox.valueChanged.connect(self._on_plot_max_changed)
         self.step_spinbox.valueChanged.connect(self._on_plot_step_changed)
 
         self.autoscale_chkbox.stateChanged.connect(self._on_autoscale_toggle_changed)
+        self.autoscale_btn.clicked.connect(self.plot.autoscale_plot)
         self.plot.autoscaled.connect(self._on_autoscaled)
 
     def _send_controls_state(self) -> None:
@@ -110,6 +111,9 @@ class RectangularPlot(PyChamberPlot):
         mag = ntwk[freq].s_db  # type: ignore
 
         self.plot.update_plot(theta, mag)
+
+    def plot_new_data(self, data: skrf.NetworkSet) -> None:
+        pass
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)
