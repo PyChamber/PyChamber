@@ -1,5 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import List, Optional
+    from pychamber.main_window import MainWindow
+
 import itertools
-from typing import List, Optional
 
 import numpy as np
 import pyvisa
@@ -15,10 +22,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSizePolicy,
-    QSpacerItem,
     QVBoxLayout,
-    QWidget,
 )
 from quantiphy import Quantity
 from skrf.vi import vna
@@ -26,13 +30,23 @@ from skrf.vi import vna
 from pychamber.logger import log
 from pychamber.polarization import Polarization
 from pychamber.settings import SETTINGS
-from pychamber.ui import size_policy
 from pychamber.widgets import FrequencyLineEdit
 
-from .base import PyChamberPlugin
+from .base import PyChamberPanelPlugin
 
 
-class AnalyzerPlugin(PyChamberPlugin):
+class AnalyzerPlugin(PyChamberPanelPlugin):
+    NAME = "analyzer"
+    CONFIG = {
+        "backend": "",
+        "model": "",
+        "addr": "",
+        "pol1-label": "",
+        "pol1-param": "",
+        "pol2-label": "",
+        "pol2-param": "",
+    }
+
     model = {
         "Keysight PNA": vna.PNA,
     }
@@ -40,7 +54,7 @@ class AnalyzerPlugin(PyChamberPlugin):
     # Signals
     analyzer_connected = pyqtSignal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: MainWindow) -> None:
         super().__init__(parent)
 
         self.setObjectName("analyzer")
@@ -53,11 +67,11 @@ class AnalyzerPlugin(PyChamberPlugin):
         self.freq_step: Optional[Quantity] = None
         self.n_points: Optional[int] = None
 
-    def setup(self) -> None:
+    def _setup(self) -> None:
         log.debug("Creating Analyzer widget...")
         self._add_widgets()
 
-    def post_visible_setup(self) -> None:
+    def _post_visible_setup(self) -> None:
         log.debug("Post-visible setup")
         self._init_inputs()
         self._connect_signals()
@@ -151,36 +165,36 @@ class AnalyzerPlugin(PyChamberPlugin):
         self.address_combobox.clear()
         # If we can't find the library, default to pyvisa-py
         try:
-            addrs = vna.VNA.available(backend=SETTINGS["backend"])
+            addrs = vna.VNA.available(backend=SETTINGS["analyzer/backend"])
         except pyvisa.errors.LibraryError:
             addrs = vna.VNA.available()
 
         self.address_combobox.addItems(addrs)
 
         log.debug("Updating inputs from settings...")
-        self.model_combobox.setCurrentText(SETTINGS['analyzer-model'])
-        self.address_combobox.setCurrentText(SETTINGS['analyzer-addr'])
-        self.pol1_lineedit.setText(SETTINGS["pol1-label"])
-        self.pol1_combobox.setCurrentText(SETTINGS["pol1-param"])
-        self.pol2_lineedit.setText(SETTINGS["pol2-label"])
-        self.pol2_combobox.setCurrentText(SETTINGS["pol2-param"])
+        self.model_combobox.setCurrentText(SETTINGS['analyzer/model'])
+        self.address_combobox.setCurrentText(SETTINGS['analyzer/addr'])
+        self.pol1_lineedit.setText(SETTINGS["analyzer/pol1-label"])
+        self.pol1_combobox.setCurrentText(SETTINGS["analyzer/pol1-param"])
+        self.pol2_lineedit.setText(SETTINGS["analyzer/pol2-label"])
+        self.pol2_combobox.setCurrentText(SETTINGS["analyzer/pol2-param"])
 
     def _connect_signals(self) -> None:
         log.debug("Connecting signals...")
 
         self.model_combobox.currentTextChanged.connect(
-            lambda val: SETTINGS.setval("analyzer-model", val)
+            lambda val: SETTINGS.setval("analyzer/model", val)
         )
         self.address_combobox.currentTextChanged.connect(
-            lambda val: SETTINGS.setval("analyzer-addr", val)
+            lambda val: SETTINGS.setval("analyzer/addr", val)
         )
         self.connect_btn.clicked.connect(self._on_connect_clicked)
 
         self.pol1_combobox.currentTextChanged.connect(
-            lambda text: SETTINGS.setval("pol1-param", text)
+            lambda text: SETTINGS.setval("analzyer/pol1-param", text)
         )
         self.pol2_combobox.currentTextChanged.connect(
-            lambda text: SETTINGS.setval("pol2-param", text)
+            lambda text: SETTINGS.setval("analyzer/pol2-param", text)
         )
 
         self.start_freq_lineedit.textChanged.connect(self._on_start_freq_changed)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import TYPE_CHECKING, List, Optional, Type
+    from typing import Dict, List, Type
     from pychamber.main_window import MainWindow
 
 import skrf
@@ -11,7 +11,7 @@ from PyQt5.QtCore import QStringListModel, pyqtSignal
 from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
 
 from pychamber.logger import log
-from pychamber.plugins.base import PyChamberPlugin
+from pychamber.plugins import PyChamberPlugin
 from pychamber.ui import size_policy
 
 from .over_freq import OverFreqPlot
@@ -21,9 +21,12 @@ from .rectangular import RectangularPlot
 
 
 class PlotsPlugin(PyChamberPlugin):
+    NAME = "plots"
+    CONFIG: Dict = {}
+
     new_data_requested = pyqtSignal(object)
 
-    def __init__(self, parent: Optional[MainWindow] = None) -> None:
+    def __init__(self, parent: MainWindow) -> None:
         super().__init__(parent)
 
         self.setObjectName('plots')
@@ -41,7 +44,7 @@ class PlotsPlugin(PyChamberPlugin):
     def set_polarizations(self, pols: List[str]) -> None:
         self._pol_model.setStringList(pols)
 
-    def setup(self) -> None:
+    def _setup(self) -> None:
         log.debug("Creating Plots widget...")
         self.tab_widget = QTabWidget(self)
         self.layout().addWidget(self.tab_widget)
@@ -52,7 +55,7 @@ class PlotsPlugin(PyChamberPlugin):
         self.add_plot(OverFreqPlot, "Over Frequency Plot")
         # self.add_plot(ThreeDPlot, "3D Plot")
 
-    def post_visible_setup(self) -> None:
+    def _post_visible_setup(self) -> None:
         for plot in self._plots:
             plot.post_visible_setup()
             plot.new_data_requested.connect(self._on_new_data_requested)

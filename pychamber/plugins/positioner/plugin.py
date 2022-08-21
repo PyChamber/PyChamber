@@ -1,5 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Optional
+    from pychamber.main_window import MainWindow
+
 import functools
-from typing import Optional
 
 import numpy as np
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal
@@ -15,25 +22,40 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPushButton,
     QVBoxLayout,
-    QWidget,
 )
 from serial.tools import list_ports
 
 from pychamber.logger import log
-from pychamber.plugins.positioner.positioner import JogAxis, JogDir, Positioner
+from pychamber.plugins import PyChamberPanelPlugin
 from pychamber.settings import SETTINGS
-from pychamber.ui import font, size_policy
+from pychamber.ui import font
 
-from ..base import PyChamberPlugin
+from .positioner import JogAxis, JogDir, Positioner
 
 
-class PositionerPlugin(PyChamberPlugin):
+class PositionerPlugin(PyChamberPanelPlugin):
+    NAME = "positioner"
+    CONFIG = {
+        "model": "",
+        "port": "",
+        "az-pos": 0.0,
+        "el-pos": 0.0,
+        "az-start": -90,
+        "az-stop": 90,
+        "az-step": 5,
+        "el-start": -90,
+        "el-stop": 90,
+        "el-step": 5,
+        "jog-az-step": 0.0,
+        "jog-el-step": 0.0,
+    }
+
     # Signals
     positioner_connected = pyqtSignal()
     jog_started = pyqtSignal()
     jog_complete = pyqtSignal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: MainWindow) -> None:
         super().__init__(parent)
 
         self.setObjectName('positioner')
@@ -49,18 +71,18 @@ class PositionerPlugin(PyChamberPlugin):
 
         self.listen_to_jog_complete_signals = True  # FIXME: This is gross
 
-    def setup(self) -> None:
+    def _setup(self) -> None:
         self._add_widgets()
 
-    def post_visible_setup(self) -> None:
+    def _post_visible_setup(self) -> None:
         log.debug("Post-visible setup...")
         self._init_inputs()
         self._connect_signals()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._positioner is not None:
-            SETTINGS["polarization-az-pos"] = self._positioner.current_azimuth
-            SETTINGS["polarization-el-pos"] = self._positioner.current_elevation
+            SETTINGS["polarization/az-pos"] = self._positioner.current_azimuth
+            SETTINGS["polarization/el-pos"] = self._positioner.current_elevation
         self.jog_thread.quit()
         self.jog_thread.wait()
         super().closeEvent(event)
@@ -112,49 +134,49 @@ class PositionerPlugin(PyChamberPlugin):
         self.port_combobox.addItems(ports)
 
         log.debug("Updating inputs from settings...")
-        self.model_combobox.setCurrentText(SETTINGS['positioner-model'])
-        self.port_combobox.setCurrentText(SETTINGS['positioner-port'])
-        self.az_start_spinbox.setValue(float(SETTINGS["az-start"]))
-        self.az_stop_spinbox.setValue(float(SETTINGS["az-stop"]))
-        self.az_step_spinbox.setValue(float(SETTINGS["az-step"]))
-        self.el_start_spinbox.setValue(float(SETTINGS["el-start"]))
-        self.el_stop_spinbox.setValue(float(SETTINGS["el-stop"]))
-        self.el_step_spinbox.setValue(float(SETTINGS["el-step"]))
+        self.model_combobox.setCurrentText(SETTINGS['positioner/model'])
+        self.port_combobox.setCurrentText(SETTINGS['positioner/port'])
+        self.az_start_spinbox.setValue(float(SETTINGS["positioner/az-start"]))
+        self.az_stop_spinbox.setValue(float(SETTINGS["positioner/az-stop"]))
+        self.az_step_spinbox.setValue(float(SETTINGS["positioner/az-step"]))
+        self.el_start_spinbox.setValue(float(SETTINGS["positioner/el-start"]))
+        self.el_stop_spinbox.setValue(float(SETTINGS["positioner/el-stop"]))
+        self.el_step_spinbox.setValue(float(SETTINGS["positioner/el-step"]))
 
     def _connect_signals(self) -> None:
         self.model_combobox.currentTextChanged.connect(
-            lambda text: SETTINGS.setval("positioner-model", text)
+            lambda text: SETTINGS.setval("positioner/model", text)
         )
         self.port_combobox.currentTextChanged.connect(
-            lambda text: SETTINGS.setval("positioner-port", text)
+            lambda text: SETTINGS.setval("positioner/port", text)
         )
         self.connect_btn.clicked.connect(self._on_connect_clicked)
 
         self.az_start_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("az-start", val)
+            lambda val: SETTINGS.setval("positioner/az-start", val)
         )
         self.az_step_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("az-step", val)
+            lambda val: SETTINGS.setval("positioner/az-step", val)
         )
         self.az_stop_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("az-stop", val)
+            lambda val: SETTINGS.setval("positioner/az-stop", val)
         )
 
         self.el_start_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("el-start", val)
+            lambda val: SETTINGS.setval("positioner/el-start", val)
         )
         self.el_step_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("el-step", val)
+            lambda val: SETTINGS.setval("positioner/el-step", val)
         )
         self.el_stop_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("el-stop", val)
+            lambda val: SETTINGS.setval("positioner/el-stop", val)
         )
 
         self.jog_az_step_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("jog-az-step", val)
+            lambda val: SETTINGS.setval("positioner/jog-az-step", val)
         )
         self.jog_el_step_spinbox.valueChanged.connect(
-            lambda val: SETTINGS.setval("jog-el-step", val)
+            lambda val: SETTINGS.setval("positioner/jog-el-step", val)
         )
 
         self.jog_az_to_lineedit.editingFinished.connect(self._on_jog_az_to_changed)
@@ -194,7 +216,11 @@ class PositionerPlugin(PyChamberPlugin):
         self.set_zero_btn.clicked.connect(self._on_set_zero_clicked)
         self.positioner_connected.connect(self._on_positioner_connected)
 
+        self.jog_started.connect(lambda: self.main.statusBar().showMessage("Jogging..."))
         self.jog_complete.connect(self._on_jog_complete)
+        self.jog_complete.connect(
+            lambda: self.main.statusBar().showMessage("Jog complete", 500)
+        )
 
     def _on_jog_az_to_changed(self) -> None:
         val = self.jog_az_to_lineedit.text()
@@ -222,21 +248,21 @@ class PositionerPlugin(PyChamberPlugin):
 
     def _on_az_move_complete(self) -> None:
         assert self._positioner is not None
-        SETTINGS["positioner-az-pos"] = self._positioner.current_azimuth
-        self.az_pos_lineedit.setText(str(SETTINGS["positioner-az-pos"]))
+        SETTINGS["positioner/az-pos"] = self._positioner.current_azimuth
+        self.az_pos_lineedit.setText(str(SETTINGS["positioner/az-pos"]))
         self.jog_complete.emit()
 
     def _on_el_move_complete(self) -> None:
         assert self._positioner is not None
-        SETTINGS["positioner-el-pos"] = self._positioner.current_elevation
-        self.el_pos_lineedit.setText(str(SETTINGS["positioner-el-pos"]))
+        SETTINGS["positioner/el-pos"] = self._positioner.current_elevation
+        self.el_pos_lineedit.setText(str(SETTINGS["positioner/el-pos"]))
         self.jog_complete.emit()
 
     def _on_positioner_connected(self) -> None:
         assert self._positioner is not None
         self.set_enabled(True)
-        self.az_pos_lineedit.setText(str(SETTINGS["positioner-az-pos"]))
-        self.el_pos_lineedit.setText(str(SETTINGS["positioner-el-pos"]))
+        self.az_pos_lineedit.setText(str(SETTINGS["positioner/az-pos"]))
+        self.el_pos_lineedit.setText(str(SETTINGS["positioner/el-pos"]))
         self._positioner.az_move_complete.connect(self._on_az_move_complete)
         self._positioner.el_move_complete.connect(self._on_el_move_complete)
 
@@ -474,7 +500,7 @@ class PositionerPlugin(PyChamberPlugin):
                     angle = 0.0
                 elif relative:
                     angle = self._positioner.current_azimuth + (
-                        direction.value * float(SETTINGS["jog-az-step"])
+                        direction.value * float(SETTINGS["positioner/jog-az-step"])
                     )
                 else:
                     angle = self.jog_az_to
@@ -485,7 +511,7 @@ class PositionerPlugin(PyChamberPlugin):
                     angle = 0.0
                 if relative:
                     angle = self._positioner.current_elevation + (
-                        direction.value * float(SETTINGS["jog-el-step"])
+                        direction.value * float(SETTINGS["positioner/jog-el-step"])
                     )
                 else:
                     angle = self.jog_el_to
@@ -525,16 +551,16 @@ class PositionerPlugin(PyChamberPlugin):
 
     def az_extents(self) -> np.ndarray:
         return np.arange(
-            float(SETTINGS["az-start"]),
-            float(SETTINGS["az-stop"]) + float(SETTINGS["az-step"]),
-            float(SETTINGS["az-step"]),
+            float(SETTINGS["positioner/az-start"]),
+            float(SETTINGS["positioner/az-stop"]) + float(SETTINGS["positioner/az-step"]),
+            float(SETTINGS["positioner/az-step"]),
         )
 
     def el_extents(self) -> np.ndarray:
         return np.arange(
-            float(SETTINGS["el-start"]),
-            float(SETTINGS["el-stop"]) + float(SETTINGS["el-step"]),
-            float(SETTINGS["el-step"]),
+            float(SETTINGS["positioner/el-start"]),
+            float(SETTINGS["positioner/el-stop"]) + float(SETTINGS["positioner/el-step"]),
+            float(SETTINGS["positioner/el-step"]),
         )
 
     def jog_az(self, angle: float) -> None:

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any, Dict
+    from pychamber.plugins.base import PyChamberPlugin
 
 from PyQt5.QtCore import QSettings, pyqtSignal
 
@@ -12,30 +16,12 @@ APP_NAME = "PyChamber"
 
 class Settings(QSettings):
     settings_changed = pyqtSignal(str)
+    _defaults: Dict = {}
 
-    _defaults = {
-        "backend": "pyvisa-py",
-        "python-theme": "nightowl-light",
-        "analyzer-model": "",
-        "analyzer-addr": "",
-        "positioner-model": "",
-        "positioner-port": "",
-        "positioner-az-pos": 0.0,
-        "positioner-el-pos": 0.0,
-        "pol1-label": "",
-        "pol1-param": "S21",
-        "pol2-label": "",
-        "pol2-param": "S21",
-        "az-start": -90,
-        "az-stop": 90,
-        "az-step": 5,
-        "el-start": -90,
-        "el-stop": 90,
-        "el-step": 5,
-        "jog-az-step": 0.0,
-        "jog-el-step": 0.0,
-        "cal-file": "",
-    }
+    # _defaults = {
+    #     "python-theme": "nightowl-light",
+    #     "cal-file": "",
+    # }
 
     def __init__(self, parent=None) -> None:
         super().__init__(ORG_NAME, APP_NAME, parent)
@@ -48,9 +34,22 @@ class Settings(QSettings):
         self.setValue(key, value)
         self.settings_changed.emit(key)
 
+    def __contains__(self, elem: str) -> bool:
+        return elem in self.childGroups()
+
     def setval(self, key: str, value: Any) -> None:
         # needed to call from a lambda in `controller`
         self[key] = value
+
+    def register_plugin(self, plugin: PyChamberPlugin) -> None:
+        assert plugin.NAME is not None
+        log.debug(f"Registering plugin: {plugin.NAME}")
+        self.beginGroup(plugin.NAME)
+        for key, val in plugin.CONFIG.items():
+            self._defaults[plugin.NAME + "/" + key] = val
+            if self.contains(key):
+                plugin.CONFIG[key] = self.value(key)
+        self.endGroup()
 
 
 SETTINGS = Settings()

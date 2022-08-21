@@ -1,4 +1,9 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pychamber.main_window import MainWindow
 
 from PyQt5.QtWidgets import (
     QGroupBox,
@@ -7,23 +12,23 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QPushButton,
     QVBoxLayout,
-    QWidget,
 )
 
 from pychamber.logger import log
-from pychamber.ui import size_policy
 
-from .base import PyChamberPlugin
+from .base import PyChamberPanelPlugin
 
 
-class CalibrationPlugin(PyChamberPlugin):
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+class CalibrationPlugin(PyChamberPanelPlugin):
+    NAME = "calibration"
+
+    def __init__(self, parent: MainWindow) -> None:
         super().__init__(parent)
 
         self.setObjectName('calibration')
         self.setLayout(QVBoxLayout())
 
-    def setup(self) -> None:
+    def _setup(self) -> None:
         self._add_widgets()
 
     def _add_widgets(self) -> None:
