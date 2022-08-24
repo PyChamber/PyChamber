@@ -33,4 +33,5 @@ def run(args: Dict):
                 f"\nERROR: {e}"
             ),
         )
+        log.critical(f"{e}")
         raise e

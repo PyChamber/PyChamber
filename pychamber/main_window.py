@@ -22,7 +22,7 @@ import pychamber.plugins as plugins
 from pychamber.logger import log
 from pychamber.plugins import PyChamberPanelPlugin, PyChamberPlugin, PyChamberPluginError
 from pychamber.ui import resources_rc, size_policy  # noqa: F401
-from pychamber.widgets import AboutPyChamberDialog, SettingsDialog
+from pychamber.widgets import AboutPyChamberDialog, SettingsDialog, LogViewer
 
 
 class MainWindow(QMainWindow):
@@ -89,12 +89,6 @@ class MainWindow(QMainWindow):
 
     def _on_python_interpreter_triggered(self) -> None:
         log.debug("Launching Python interpreter...")
-
-    def _on_about_triggered(self) -> None:
-        log.debug("Launching about window...")
-
-    def _on_log_triggered(self) -> None:
-        log.debug("Launching log viewer...")
 
     def setup(self) -> None:
         self._setup_menu()
@@ -183,7 +177,7 @@ class MainWindow(QMainWindow):
         bug_report_url = "https://github.com/HRG-Lab/PyChamber/issues/new"
         self.bug.triggered.connect(lambda: webbrowser.open(bug_report_url))
         self.about.triggered.connect(AboutPyChamberDialog.display)
-        self.log.triggered.connect(self._on_log_triggered)
+        self.log.triggered.connect(LogViewer.display)
 
     def _add_widgets(self) -> None:
         log.debug("Setting up widgets...")
