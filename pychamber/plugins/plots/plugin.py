@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from typing import Dict, List, Optional, Type
     from pychamber.main_window import MainWindow
 
+import numpy as np
 import skrf
 from PyQt5.QtCore import QStringListModel, pyqtSignal
 from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
@@ -54,6 +55,7 @@ class PlotsPlugin(PyChamberPlugin):
         self.layout().addWidget(self.tab_widget)
 
         self.experiment = cast(ExperimentPlugin, self.main.get_plugin("experiment"))
+        self.experiment.ntwk_model.data_loaded.connect(self._on_data_loaded)
 
         # TODO: Make this dynamic for users to be able to add desired plots
         self.add_plot(PolarPlot, "Polar Plot")
@@ -74,9 +76,31 @@ class PlotsPlugin(PyChamberPlugin):
             return
         plot.plot_new_data(ntwk_set)
 
+    def _on_data_loaded(self) -> None:
+        log.debug(f"loaded data")
+        assert self.experiment is not None
+        ntwk_model = self.experiment.ntwk_model
+        for plot in self._plots:
+            plot.blockSignals(True)
+
+        self.set_polarizations(ntwk_model.polarizations)
+        log.debug(f"{ntwk_model.azimuths=}")
+        log.debug(f"{ntwk_model.elevations=}")
+        self.init_plots(
+            frequencies=ntwk_model.frequencies,
+            azimuths=ntwk_model.azimuths,
+            elevations=ntwk_model.elevations,
+        )
+        for plot in self._plots:
+            plot.blockSignals(False)
+
+        for plot in self._plots:
+            plot._send_controls_state()
+            plot.autoscale()
+
     def init_plots(self, **kwargs) -> None:
         for plot in self._plots:
-            plot.init_from_experiment(**kwargs)
+            plot.init_controls(**kwargs)
             plot.reset()
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:

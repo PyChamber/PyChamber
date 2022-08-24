@@ -25,7 +25,7 @@ class PolarPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def init_from_experiment(self, **kwargs) -> None:
+    def init_controls(self, **kwargs) -> None:
         freqs: np.ndarray = kwargs.get('frequencies')
         self.freq_spinbox.setRange(freqs.min(), freqs.max())
         self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
@@ -105,6 +105,9 @@ class PolarPlot(PyChamberPlot):
         azimuths = np.deg2rad(np.array(data.params_values['azimuth']))
         mags = np.array([ntwk[freq].s_db for ntwk in data])
         self.plot.plot_new_data(xdata=azimuths, ydata=mags)
+
+    def autoscale(self) -> None:
+        self.plot.autoscale_plot()
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)

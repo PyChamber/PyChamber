@@ -67,6 +67,7 @@ class MainWindow(QMainWindow):
         # TODO: Handle NetworkModel.data_loaded
         log.debug("Launching load dialog...")
         experiment = cast(plugins.ExperimentPlugin, self.get_plugin("experiment"))
+        plots = cast(plugins.PlotsPlugin, self.get_plugin("plots"))
         ntwk_model = experiment.ntwk_model
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":

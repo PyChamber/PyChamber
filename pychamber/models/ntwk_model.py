@@ -32,11 +32,11 @@ class NetworkModel(QObject):
 
     @property
     def azimuths(self) -> np.ndarray:
-        return np.array(self._azimuths)
+        return np.array(list(self._azimuths))
 
     @property
     def elevations(self) -> np.ndarray:
-        return np.array(self._elevations)
+        return np.array(list(self._elevations))
 
     @property
     def polarizations(self) -> List[str]:
@@ -77,6 +77,10 @@ class NetworkModel(QObject):
 
     def load_data(self, data: skrf.NetworkSet) -> None:
         self._data = data
+        metadata = self._data.params_values
+        self._azimuths = set(metadata['azimuth'])
+        self._elevations = set(metadata['elevation'])
+        self._polarizations = set(metadata['polarization'])
         self.data_loaded.emit()
 
     def mags(

@@ -33,7 +33,7 @@ class RectangularPlot(PyChamberPlot):
         self.plot.set_xlabel("Azimuth [deg]")
         self.plot.set_ylabel("Power [dB]")
 
-    def init_from_experiment(self, **kwargs) -> None:
+    def init_controls(self, **kwargs) -> None:
         azimuths = np.deg2rad(kwargs.get('azimuths', np.arange(-180, 180, 1)))
         freqs: np.ndarray = kwargs.get('frequencies')
         self.freq_spinbox.setRange(freqs.min(), freqs.max())
@@ -117,6 +117,9 @@ class RectangularPlot(PyChamberPlot):
         azimuths = np.deg2rad(np.array(data.params_values['azimuth']))
         mags = np.array([ntwk[freq].s_db for ntwk in data])
         self.plot.plot_new_data(xdata=azimuths, ydata=mags)
+
+    def autoscale(self) -> None:
+        self.plot.autoscale_plot()
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)

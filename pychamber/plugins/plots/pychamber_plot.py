@@ -29,7 +29,10 @@ class PyChamberPlot(QWidget):
     def post_visible_setup(self) -> None:
         pass
 
-    def init_from_experiment(self, **kwargs) -> None:
+    def autoscale(self) -> None:
+        ...
+
+    def init_controls(self, **kwargs) -> None:
         ...
 
     def set_polarization_model(self, model: QStringListModel) -> None:

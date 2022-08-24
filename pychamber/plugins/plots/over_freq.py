@@ -25,7 +25,7 @@ class OverFreqPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def init_from_experiment(self, **kwargs) -> None:
+    def init_controls(self, **kwargs) -> None:
         freqs: np.ndarray = kwargs.get('frequencies')
         self.plot.xmin = freqs.min()
         self.plot.xmax = freqs.max()
@@ -133,6 +133,9 @@ class OverFreqPlot(PyChamberPlot):
         freqs = data.frequency.f
         mags = data.s_db
         self.plot.plot_new_data(xdata=freqs, ydata=mags)
+
+    def autoscale(self) -> None:
+        self.plot.autoscale_plot()
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)
