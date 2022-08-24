@@ -1,3 +1,4 @@
+from tkinter.messagebox import RETRY
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
@@ -64,8 +65,15 @@ class NetworkModel(QObject):
         self._data = skrf.NetworkSet(list(self._data) + [ntwk])  # type: ignore
         self.data_added.emit(ntwk)
 
-    def get_data(self, **kwargs) -> None:
-        self._data.sel(kwargs)
+    def get_data(self, **kwargs) -> skrf.NetworkSet:
+        criteria = {key: val for key, val in kwargs.items() if val is not None}
+        log.debug(f"Getting data with {criteria=}")
+        try:
+            return self._data.sel(criteria)
+        except IndexError:
+            # An IndexError happens when we don't have data.
+            # In that case, just return an empty networkset
+            return skrf.NetworkSet()
 
     def load_data(self, data: skrf.NetworkSet) -> None:
         self._data = data
@@ -74,7 +82,7 @@ class NetworkModel(QObject):
     def mags(
         self,
         polarization: str,
-        freq: Optional[str] = None,
+        frequency: Optional[str] = None,
         azimuth: Optional[float] = None,
         elevation: Optional[float] = None,
     ) -> np.ndarray:
@@ -92,7 +100,7 @@ class NetworkModel(QObject):
 
         subset = self._data.sel(params)
 
-        if freq is not None:
+        if frequency is not None:
             return np.array([ntwk[freq].s_db for ntwk in subset])  # type: ignore
         else:
             return np.array([ntwk.s_db for ntwk in subset])  # type: ignore

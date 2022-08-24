@@ -16,7 +16,7 @@ APP_NAME = "PyChamber"
 
 class Settings(QSettings):
     settings_changed = pyqtSignal(str)
-    _defaults: Dict = {}
+    _defaults: Dict = {"pyconsole/theme": "nightowl-light"}
 
     # _defaults = {
     #     "python-theme": "nightowl-light",

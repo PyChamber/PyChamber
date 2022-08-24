@@ -68,7 +68,7 @@ class RectangularPlot(PyChamberPlot):
         pol = self.pol_combobox.currentText()
         freq = self.freq_spinbox.text()
 
-        ctrl = PlotControls(polarization=pol, frequency=freq, elevation=0.0)
+        ctrl = PlotControls(polarization=pol, elevation=0.0)
         self.new_data_requested.emit(ctrl)
 
     def _on_plot_min_changed(self, val: int) -> None:
@@ -113,7 +113,10 @@ class RectangularPlot(PyChamberPlot):
         self.plot.update_plot(theta, mag)
 
     def plot_new_data(self, data: skrf.NetworkSet) -> None:
-        pass
+        freq = self.freq_spinbox.text()
+        azimuths = np.deg2rad(np.array(data.params_values['azimuth']))
+        mags = np.array([ntwk[freq].s_db for ntwk in data])
+        self.plot.plot_new_data(xdata=azimuths, ydata=mags)
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)

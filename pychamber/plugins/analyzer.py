@@ -165,19 +165,17 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.address_combobox.clear()
         # If we can't find the library, default to pyvisa-py
         try:
-            addrs = vna.VNA.available(backend=SETTINGS["analyzer/backend"])
+            log.debug(f"Trying to populate addrs from {SETTINGS['analyzer/backend']}")
+            addrs = vna.available(backend=SETTINGS["analyzer/backend"])
         except pyvisa.errors.LibraryError:
-            addrs = vna.VNA.available()
+            log.debug("Failed. Reverting to default")
+            addrs = vna.available()
 
         self.address_combobox.addItems(addrs)
 
         log.debug("Updating inputs from settings...")
         self.model_combobox.setCurrentText(SETTINGS['analyzer/model'])
         self.address_combobox.setCurrentText(SETTINGS['analyzer/addr'])
-        self.pol1_lineedit.setText(SETTINGS["analyzer/pol1-label"])
-        self.pol1_combobox.setCurrentText(SETTINGS["analyzer/pol1-param"])
-        self.pol2_lineedit.setText(SETTINGS["analyzer/pol2-label"])
-        self.pol2_combobox.setCurrentText(SETTINGS["analyzer/pol2-param"])
 
     def _connect_signals(self) -> None:
         log.debug("Connecting signals...")
@@ -190,8 +188,14 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         )
         self.connect_btn.clicked.connect(self._on_connect_clicked)
 
+        self.pol1_lineedit.textChanged.connect(
+            lambda text: SETTINGS.setval("analyzer/pol1-label", text)
+        )
         self.pol1_combobox.currentTextChanged.connect(
-            lambda text: SETTINGS.setval("analzyer/pol1-param", text)
+            lambda text: SETTINGS.setval("analyzer/pol1-param", text)
+        )
+        self.pol2_lineedit.textChanged.connect(
+            lambda text: SETTINGS.setval("analyzer/pol2-label", text)
         )
         self.pol2_combobox.currentTextChanged.connect(
             lambda text: SETTINGS.setval("analyzer/pol2-param", text)
@@ -271,7 +275,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
 
         log.debug(f"Connecting to analyzer {model} at {addr}")
         try:
-            self._analyzer = self.model[model](addr, backend=SETTINGS['backend'])
+            self._analyzer = self.model[model](addr, backend=SETTINGS['analyzer/backend'])
         except pyvisa.errors.LibraryError:
             self._analyzer = self.model[model](addr)
         except Exception as e:
@@ -301,13 +305,24 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             f"S{p}{p}" for p in ports
         ]
         self.pol1_combobox.blockSignals(True)
+        self.pol1_lineedit.blockSignals(True)
         self.pol2_combobox.blockSignals(True)
+        self.pol2_lineedit.blockSignals(True)
         self.pol1_combobox.addItems(ports)
-        self.pol1_combobox.setCurrentText(SETTINGS['pol1-param'])
+        log.debug(
+            f"{[self.pol1_combobox.itemText(i) for i in range(self.pol1_combobox.count())]}"
+        )
+        log.debug(f"setting pol1_combobox to {SETTINGS['analyzer/pol1-param']}")
+        self.pol1_combobox.setCurrentText(SETTINGS['analyzer/pol1-param'])
+        self.pol1_lineedit.setText(SETTINGS["analyzer/pol1-label"])
         self.pol2_combobox.addItems(ports)
-        self.pol2_combobox.setCurrentText(SETTINGS['pol2-param'])
+        log.debug(f"setting pol2_combobox to {SETTINGS['analyzer/pol2-param']}")
+        self.pol2_combobox.setCurrentText(SETTINGS['analyzer/pol2-param'])
+        self.pol2_lineedit.setText(SETTINGS["analyzer/pol2-label"])
         self.pol1_combobox.blockSignals(False)
+        self.pol1_lineedit.blockSignals(False)
         self.pol2_combobox.blockSignals(False)
+        self.pol2_lineedit.blockSignals(False)
         log.info("Connected")
         self.analyzer_connected.emit()
 
@@ -380,10 +395,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
-        log.debug(f"Setting active measurement to {measurement_name}")
-        self._analyzer.set_active_measurement(measurement_name)
-        log.debug("Getting data")
-        return self._analyzer.get_active_trace()
+        return self._analyzer.get_measurement(measurement_name)
 
     def create_measurement(self, name: str, param: str) -> None:
         log.debug(f"Creating measurement {name}")

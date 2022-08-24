@@ -1,10 +1,10 @@
 from __future__ import annotations
+import dataclasses
 
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    import numpy as np
-    from typing import Dict, List, Optional
+    from typing import Dict, List, Optional, Tuple
     from PyQt5.QtGui import QCloseEvent
     from pychamber.main_window import MainWindow
     from pychamber.polarization import Polarization
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 import functools
 import time
 from enum import Enum, auto
+import numpy as np
 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtTest import QSignalSpy
@@ -179,7 +180,6 @@ class ExperimentPlugin(PyChamberPlugin):
         self.positioner.positioner_connected.connect(self._on_positioner_connected)
 
         self.ntwk_model.data_added.connect(self.plots.rx_updated_data)
-        # self.plots.new_data_requested.connect(self._respond_to_widget_data_request)
 
     def _on_start_experiment(self, experiment_type: ExperimentType) -> None:
         assert self.analyzer is not None
@@ -191,9 +191,9 @@ class ExperimentPlugin(PyChamberPlugin):
         match experiment_type:
             case ExperimentType.AZIMUTH:
                 az_extents = self.positioner.az_extents()
-                el_extents = np.asarray([0])
+                el_extents = np.asarray([0.0])
             case ExperimentType.ELEVATION:
-                az_extents = np.asarray([0])
+                az_extents = np.asarray([0.0])
                 el_extents = self.positioner.el_extents()
             case ExperimentType.FULL:
                 az_extents = self.positioner.az_extents()
@@ -320,6 +320,7 @@ class ExperimentPlugin(PyChamberPlugin):
                         params["polarization"] = pol.label
                         ntwk = self.analyzer.get_data(f"ANT_{pol.param}")
                         ntwk.params = params.copy()
+                        log.debug(f"Got data for {ntwk.params}")
                         data_acquired.emit(ntwk)
 
                     completed = i * len(elevations) + j

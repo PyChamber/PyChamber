@@ -21,7 +21,7 @@ class SettingsDialog(QDialog):
         self.backend.addItems(backends)
         self.backend.textActivated.connect(self.backend_browse)
 
-        current_backend = SETTINGS['backend']
+        current_backend = SETTINGS['analyzer/backend']
         idx = self.backend.findText(current_backend)
         if idx != -1:
             self.backend.setCurrentIndex(idx)
@@ -31,7 +31,7 @@ class SettingsDialog(QDialog):
 
         self.py_theme = QComboBox(self)
         # self.py_theme.addItems(pyconsole.themes.keys())
-        self.py_theme.setCurrentText(SETTINGS['python-theme'])
+        self.py_theme.setCurrentText(SETTINGS['pyconsole/theme'])
 
         layout.addRow("VISA Backend", self.backend)
         layout.addRow("Python Console Theme", self.py_theme)
@@ -46,8 +46,8 @@ class SettingsDialog(QDialog):
         self.layout().addWidget(self.button_box)
 
     def accept(self) -> None:
-        SETTINGS["backend"] = self.backend.currentText()
-        SETTINGS["python-theme"] = self.py_theme.currentText()
+        SETTINGS["analyzer/backend"] = self.backend.currentText()
+        SETTINGS["pyconsole/theme"] = self.py_theme.currentText()
         self.close()
 
     def backend_browse(self, text: str) -> None:

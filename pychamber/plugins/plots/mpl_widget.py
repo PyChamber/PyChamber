@@ -79,17 +79,23 @@ class MplWidget(QWidget):
     def autoscale_plot(self) -> None:
         ...
 
-    def redraw_plot(
-        self, xdata: Optional[np.ndarray] = None, ydata: Optional[np.ndarray] = None
-    ) -> None:
-        if xdata is None:
-            xdata = self.artist.get_xdata()
-        if ydata is None:
-            ydata = self.artist.get_ydata()
+    def redraw_plot(self) -> None:
+        xdata = self.artist.get_xdata()
+        ydata = self.artist.get_ydata()
 
         self.artist.set_xdata(xdata)
         self.artist.set_ydata(ydata)
+
         self.canvas.draw()
+
+    def plot_new_data(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
+        self.artist.set_xdata(xdata)
+        self.artist.set_ydata(ydata)
+
+        if self.autoscale:
+            self.autoscale_plot()
+        else:
+            self.canvas.draw()
 
     def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         self.artist.set_xdata(np.append(self.artist.get_xdata(), xdata))
@@ -182,12 +188,10 @@ class MplRectWidget(MplWidget):
 
     def update_scale(self) -> None:
         self.ax.set_xbound(self._xmin, self._xmax)
-        self.ax.set_xticks(np.linspace(self._xmin, self._xmax, 12))
+        self.ax.set_xticks(np.linspace(self._xmin, self._xmax, 6))
         self.ax.set_ybound(self._ymin, self._ymax)
         self.ax.set_yticks(np.arange(self._ymin, self._ymax, self._ystep))
-        xdata = self.artist.get_xdata()
-        ydata = self.artist.get_ydata()
-        self.redraw_plot(xdata, ydata)
+        self.redraw_plot()
 
 
 class MplPolarWidget(MplWidget):
@@ -251,7 +255,7 @@ class MplPolarWidget(MplWidget):
         self.ax.set_rticks(np.arange(self._rmin, self._rmax, self._rstep))
         xdata = self.artist.get_xdata()
         ydata = self.artist.get_ydata()
-        self.redraw_plot(xdata, ydata)
+        self.redraw_plot()
 
 
 # TODO: 3D plotting needs some work...

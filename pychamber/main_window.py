@@ -1,4 +1,3 @@
-import pickle
 import webbrowser
 from typing import TYPE_CHECKING, cast
 
@@ -18,6 +17,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+import cloudpickle as pickle
 import pychamber.plugins as plugins
 from pychamber.logger import log
 from pychamber.plugins import PyChamberPanelPlugin, PyChamberPlugin, PyChamberPluginError

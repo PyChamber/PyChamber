@@ -11,7 +11,6 @@ from pychamber.logger import log  # noqa: F401
 @dataclass
 class PlotControls:
     polarization: str
-    frequency: Optional[str] = None
     azimuth: Optional[float] = None
     elevation: Optional[float] = None
 

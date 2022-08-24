@@ -95,8 +95,8 @@ class Positioner(QObject):
         self.serial.close()
 
     def zero(self) -> None:
-        SETTINGS["positioner-az-pos"] = 0.0
-        SETTINGS["positioner-el-pos"] = 0.0
+        SETTINGS["positioner/az-pos"] = 0.0
+        SETTINGS["positioner/el-pos"] = 0.0
 
         self.current_azimuth = 0.0
         self.current_elevation = 0.0
@@ -156,8 +156,8 @@ class D6050(Positioner):
         self.azimuth = self.config.hardware.azimuth.upper() + "0"
         self.elevation = self.config.hardware.elevation.upper() + "0"
 
-        self.current_az: float = float(SETTINGS["positioner-az-pos"])
-        self.current_el: float = float(SETTINGS["positioner-el-pos"])
+        self.current_az: float = float(SETTINGS["positioner/az-pos"])
+        self.current_el: float = float(SETTINGS["positioner/el-pos"])
         log.debug(f"{self.current_az=}")
         log.debug(f"{self.current_el=}")
 

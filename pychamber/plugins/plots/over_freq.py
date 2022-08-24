@@ -1,3 +1,5 @@
+import numpy as np
+from matplotlib.ticker import EngFormatter
 import skrf
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
@@ -23,9 +25,27 @@ class OverFreqPlot(PyChamberPlot):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
+    def init_from_experiment(self, **kwargs) -> None:
+        freqs: np.ndarray = kwargs.get('frequencies')
+        self.plot.xmin = freqs.min()
+        self.plot.xmax = freqs.max()
+
+        azimuths: np.ndarray = kwargs.get('azimuths')
+        if len(azimuths) > 1:
+            self.az_spinbox.setRange(azimuths.min(), azimuths.max())
+            self.az_spinbox.setSingleStep(azimuths[1] - azimuths[0])
+
+        elevations: np.ndarray = kwargs.get('elevations')
+        if len(elevations) > 1:
+            self.el_spinbox.setRange(elevations.min(), elevations.max())
+            self.el_spinbox.setSingleStep(elevations[1] - elevations[0])
+
     def post_visible_setup(self) -> None:
         self.plot.set_xlabel("Frequency [Hz]")
         self.plot.set_ylabel("Power [dB]")
+        self.plot.ax.xaxis.set_major_formatter(EngFormatter(unit='Hz'))
+        self.plot.xmin = 0
+        self.plot.xmax = 1e9
 
     def set_polarization_model(self, model: QStringListModel) -> None:
         self.pol_combobox.setModel(model)
@@ -103,7 +123,16 @@ class OverFreqPlot(PyChamberPlot):
         freq = ntwk.frequency.f
         mags = ntwk.s_db
 
+        log.debug(f"Plotting {freq=}, {mags=}")
+
         self.plot.update_plot(freq, mags)
+
+    def plot_new_data(self, data: skrf.NetworkSet) -> None:
+        assert len(data) <= 1
+        data = data[0]  # extract from the set
+        freqs = data.frequency.f
+        mags = data.s_db
+        self.plot.plot_new_data(xdata=freqs, ydata=mags)
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)

@@ -1,9 +1,11 @@
 from __future__ import annotations
+import dataclasses
 
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
+
 
 if TYPE_CHECKING:
-    from typing import Dict, List, Type
+    from typing import Dict, List, Optional, Type
     from pychamber.main_window import MainWindow
 
 import skrf
@@ -11,7 +13,7 @@ from PyQt5.QtCore import QStringListModel, pyqtSignal
 from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
 
 from pychamber.logger import log
-from pychamber.plugins import PyChamberPlugin
+from pychamber.plugins import ExperimentPlugin, PyChamberPlugin
 from pychamber.ui import size_policy
 
 from .over_freq import OverFreqPlot
@@ -37,6 +39,8 @@ class PlotsPlugin(PyChamberPlugin):
         self._plots: List[PyChamberPlot] = []
         self._pol_model: QStringListModel = QStringListModel([], self)
 
+        self.experiment: Optional[ExperimentPlugin] = None
+
     @property
     def plots(self) -> List[PyChamberPlot]:
         return self._plots
@@ -48,6 +52,8 @@ class PlotsPlugin(PyChamberPlugin):
         log.debug("Creating Plots widget...")
         self.tab_widget = QTabWidget(self)
         self.layout().addWidget(self.tab_widget)
+
+        self.experiment = cast(ExperimentPlugin, self.main.get_plugin("experiment"))
 
         # TODO: Make this dynamic for users to be able to add desired plots
         self.add_plot(PolarPlot, "Polar Plot")
@@ -61,8 +67,12 @@ class PlotsPlugin(PyChamberPlugin):
             plot.new_data_requested.connect(self._on_new_data_requested)
 
     def _on_new_data_requested(self, ctrls: PlotControls) -> None:
-        plot = self.sender()
-        self.new_data_requested.emit((plot, ctrls))
+        plot = cast(PyChamberPlot, self.sender())
+        log.debug(f"Getting new data from {plot} with controls {ctrls}")
+        ntwk_set = self.experiment.ntwk_model.get_data(**dataclasses.asdict(ctrls))
+        if len(ntwk_set) == 0:
+            return
+        plot.plot_new_data(ntwk_set)
 
     def init_plots(self, **kwargs) -> None:
         for plot in self._plots:
