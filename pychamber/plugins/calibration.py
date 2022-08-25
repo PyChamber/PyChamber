@@ -37,6 +37,7 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.plugins import PyChamberPanelPlugin, AnalyzerPlugin
+from pychamber.settings import SETTINGS
 from pychamber.widgets import MplRectWidget
 
 
@@ -49,6 +50,7 @@ class Calibration:
 
 class CalibrationPlugin(PyChamberPanelPlugin):
     NAME = "calibration"
+    CONFIG = {"file": ""}
 
     cal_file_loaded = pyqtSignal()
 
@@ -67,11 +69,15 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
         self.analyzer = cast(AnalyzerPlugin, self.main.get_plugin("analyzer"))
 
+        if SETTINGS["calibration/file"] != "":
+            self.load_cal_file(SETTINGS["calibration/file"])
+
     def _connect_signals(self) -> None:
         self.cal_btn.clicked.connect(self._on_cal_btn_clicked)
         self.cal_file_browse_btn.clicked.connect(self._on_cal_file_browse_btn_clicked)
         self.cal_view_btn.clicked.connect(self._on_cal_view_btn_clicked)
         self.cal_file_loaded.connect(lambda: self.cal_view_btn.setEnabled(True))
+        self.cal_file_lineedit.textChanged.connect(self._on_cal_file_name_changed)
 
     def _on_cal_btn_clicked(self) -> None:
         if not self.analyzer.is_connected():
@@ -93,26 +99,29 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.view = CalViewWindow(self._cal)
         self.view.show()
 
+    def _on_cal_file_name_changed(self, text: str) -> None:
+        SETTINGS["calibration/file"] = text
+
     def _on_cal_file_browse_btn_clicked(self) -> None:
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
-            try:
-                self.load_cal_file(file_name)
-            except Exception as e:
-                log.error(f"{e=}")
-                QMessageBox.critical(
-                    self,
-                    "Invalid Calibration File",
-                    ("The specified file is not a valid calibration file."),
-                )
-                return
+            self.load_cal_file(file_name)
 
         self.cal_file_loaded.emit()
 
     def load_cal_file(self, fname: str) -> None:
         # TODO: Run this in a thread
-        with open(fname, "rb") as ff:
-            self._cal = pickle.load(ff)
+        try:
+            with open(fname, "rb") as ff:
+                self._cal = pickle.load(ff)
+        except Exception as e:
+            log.error(f"{e=}")
+            QMessageBox.critical(
+                self,
+                "Invalid Calibration File",
+                ("The specified file is not a valid calibration file."),
+            )
+            return
 
         self.cal_file_lineedit.setText(fname)
 
@@ -129,6 +138,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
         self.cal_file_lineedit = QLineEdit(self.groupbox)
         self.cal_file_lineedit.setReadOnly(True)
+        self.cal_file_lineedit.setText(SETTINGS["calibration/file"])
         hlayout.addWidget(self.cal_file_lineedit)
 
         self.cal_file_browse_btn = QPushButton("Browse", self.groupbox)
@@ -141,7 +151,6 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         hlayout.addWidget(self.cal_btn)
 
         self.cal_view_btn = QPushButton("View Calibration", self.groupbox)
-        self.cal_view_btn.setEnabled(False)
         hlayout.addWidget(self.cal_view_btn)
 
         layout.addLayout(hlayout)
