@@ -1,42 +1,40 @@
 from __future__ import annotations
-from dataclasses import dataclass
-import functools
-from optparse import Option
 
-from typing import cast, TYPE_CHECKING
+import functools
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import os
-    from typing import Optional
+    from typing import Optional, Union
     from pychamber.main_window import MainWindow
 
-
 import cloudpickle as pickle
-from matplotlib.ticker import EngFormatter
+import numpy as np
 import pandas as pd
 import skrf
-from PyQt5.QtCore import pyqtSignal, QSize, QAbstractTableModel, QModelIndex, Qt
+from matplotlib.ticker import EngFormatter
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox,
-    QTableView,
-    QMessageBox,
     QFileDialog,
-    QHBoxLayout,
-    QPlainTextEdit,
-    QWizard,
-    QWizardPage,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
+    QPlainTextEdit,
     QPushButton,
+    QTableView,
     QTabWidget,
-    QWidget,
     QVBoxLayout,
+    QWidget,
+    QWizard,
+    QWizardPage,
 )
 
 from pychamber.logger import log
-from pychamber.plugins import PyChamberPanelPlugin, AnalyzerPlugin
+from pychamber.plugins import AnalyzerPlugin, PyChamberPanelPlugin
 from pychamber.settings import SETTINGS
 from pychamber.widgets import MplRectWidget
 
@@ -80,6 +78,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_file_lineedit.textChanged.connect(self._on_cal_file_name_changed)
 
     def _on_cal_btn_clicked(self) -> None:
+        assert self.analyzer is not None
         if not self.analyzer.is_connected():
             QMessageBox.critical(
                 self,
@@ -189,14 +188,16 @@ class CalibrationWizard(QWizard):
         log.debug("Adding ref antenna page")
         self.addPage(ReferenceAntennaPage(self))
         log.debug("Adding calibration page")
-        self.addPage(CalibrationPage(parent.analyzer, parent=self))
+        # We already check before launching the wizard that analyzer
+        # is connected, so we can type ignore
+        self.addPage(CalibrationPage(parent.analyzer, parent=self))  # type: ignore
 
     def sizeHint(self) -> QSize:
         return QSize(800, 800)
 
 
 class IntroPage(QWizardPage):
-    def __init__(self, parent: None) -> None:
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self.setTitle("Introduction")
@@ -360,7 +361,7 @@ class ReferenceAntennaPage(QWizardPage):
 
         self.completeChanged.emit()
 
-    def load_file(self, path: os.PathLike) -> None:
+    def load_file(self, path: Union[str, os.PathLike]) -> None:
         log.debug(f"Loading {path}")
         with open(path, 'r') as csvfile:
             data = pd.read_csv(csvfile, header=None)
@@ -610,9 +611,18 @@ class CalViewWindow(QWidget):
 
         pol1 = self.cal.pol1
         pol2 = self.cal.pol2
-        freqs = pol1.frequency.f.reshape((-1,))
-        mags1 = pol1.s_db.reshape((-1,))
-        mags2 = pol2.s_db.reshape((-1,))
+        assert (pol1 is not None) and (pol2 is not None), "Empty calibration"
+        if pol1 is not None:
+            freqs = pol1.frequency.f.reshape((-1,))
+        else:
+            freqs = pol2.frequency.f.reshape((-1,))
+
+        mags1 = (
+            pol1.s_db.reshape((-1,)) if pol1 is not None else np.array([])  # type: ignore
+        )
+        mags2 = (
+            pol2.s_db.reshape((-1,)) if pol2 is not None else np.array([])  # type: ignore
+        )
 
         mags_min = min(mags1.min(), mags2.min())
         mags_max = max(mags1.max(), mags2.max())
@@ -639,30 +649,32 @@ class CalTableModel(QAbstractTableModel):
     # https://stackoverflow.com/questions/71076164/fastest-way-to-fill-or-read-from-a-qtablewidget-in-pyqt5
     def __init__(self, cal: Calibration, parent=None):
         super().__init__(parent)
+        data = dict()
+
         pol1 = cal.pol1
-        pol1_label = pol1.params["polarization"]
+        if pol1 is not None:
+            pol1_label = pol1.params["polarization"]
+            data[pol1_label + " frequency"] = pol1.frequency.f.reshape((-1,))
+            data[pol1_label + " loss"] = pol1.s_db.reshape((-1,))
+
         pol2 = cal.pol2
-        pol2_label = pol2.params["polarization"]
+        if pol2 is not None:
+            pol2_label = pol2.params["polarization"]
+            data[pol2_label + " frequency"] = pol2.frequency.f.reshape((-1,))
+            data[pol2_label + " loss"] = pol2.s_db.reshape((-1,))
 
-        self.table_data = pd.DataFrame(
-            data={
-                pol1_label + " frequency": pol1.frequency.f.reshape((-1,)),
-                pol1_label + " loss": pol1.s_db.reshape((-1,)),
-                pol2_label + " frequency": pol2.frequency.f.reshape((-1,)),
-                pol2_label + " loss": pol2.s_db.reshape((-1,)),
-            }
-        )
+        self.table_data = pd.DataFrame(data=data)
 
-    def rowCount(self, parent: QModelIndex = ...) -> int:
+    def rowCount(self, parent: QModelIndex) -> int:
         return self.table_data.shape[0]
 
-    def columnCount(self, parent: QModelIndex = ...) -> int:
+    def columnCount(self, parent: QModelIndex) -> int:
         return self.table_data.shape[1]
 
-    def data(self, index: QModelIndex, role: int = ...):
+    def data(self, index: QModelIndex, role: int):
         if role == Qt.DisplayRole:
             return str(round(self.table_data.loc[index.row()][index.column()], 3))
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...):
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return str(self.table_data.columns[section])

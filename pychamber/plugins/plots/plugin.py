@@ -1,8 +1,7 @@
 from __future__ import annotations
+
 import dataclasses
-
-from typing import cast, TYPE_CHECKING
-
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from typing import Dict, List, Optional, Type
@@ -68,6 +67,7 @@ class PlotsPlugin(PyChamberPlugin):
             plot.new_data_requested.connect(self._on_new_data_requested)
 
     def _on_new_data_requested(self, ctrls: PlotControls) -> None:
+        assert self.experiment is not None
         plot = cast(PyChamberPlot, self.sender())
         log.debug(f"Getting new data from {plot} with controls {ctrls}")
         ntwk_set = self.experiment.ntwk_model.get_data(**dataclasses.asdict(ctrls))
@@ -76,7 +76,7 @@ class PlotsPlugin(PyChamberPlugin):
         plot.plot_new_data(ntwk_set)
 
     def _on_data_loaded(self) -> None:
-        log.debug(f"loaded data")
+        log.debug("Loaded data")
         assert self.experiment is not None
         ntwk_model = self.experiment.ntwk_model
         for plot in self._plots:

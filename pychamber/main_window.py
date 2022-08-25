@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from typing import Dict
 
+import cloudpickle as pickle
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCloseEvent, QIcon
 from PyQt5.QtWidgets import (
@@ -17,12 +18,11 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-import cloudpickle as pickle
 import pychamber.plugins as plugins
 from pychamber.logger import log
 from pychamber.plugins import PyChamberPanelPlugin, PyChamberPlugin, PyChamberPluginError
 from pychamber.ui import resources_rc, size_policy  # noqa: F401
-from pychamber.widgets import AboutPyChamberDialog, SettingsDialog, LogViewer
+from pychamber.widgets import AboutPyChamberDialog, LogViewer, SettingsDialog
 
 
 class MainWindow(QMainWindow):
@@ -67,7 +67,6 @@ class MainWindow(QMainWindow):
         # TODO: Handle NetworkModel.data_loaded
         log.debug("Launching load dialog...")
         experiment = cast(plugins.ExperimentPlugin, self.get_plugin("experiment"))
-        plots = cast(plugins.PlotsPlugin, self.get_plugin("plots"))
         ntwk_model = experiment.ntwk_model
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
@@ -75,7 +74,6 @@ class MainWindow(QMainWindow):
                 log.debug(f"Loading {file_name}")
                 with open(file_name, 'rb') as ff:
                     data = pickle.load(ff)
-
                     ntwk_model.load_data(data)
             except Exception:
                 QMessageBox.critical(

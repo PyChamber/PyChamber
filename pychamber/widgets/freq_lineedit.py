@@ -1,6 +1,7 @@
 from typing import Optional
-from PyQt5.QtWidgets import QLineEdit
+
 import quantiphy
+from PyQt5.QtWidgets import QLineEdit
 
 from .freq_validator import FrequencyValidator
 

@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    import skrf
+    from PyQt5.QtCore import QStringListModel
+    from pychamber.widgets import PlotLimits
+
 import numpy as np
-import skrf
-from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -15,7 +22,7 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.ui import size_policy
-from pychamber.widgets import FrequencySpinBox, MplPolarWidget, PlotLimits
+from pychamber.widgets import FrequencySpinBox, MplPolarWidget
 
 from .pychamber_plot import PlotControls, PyChamberPlot
 
@@ -25,7 +32,7 @@ class PolarPlot(PyChamberPlot):
         super().__init__(parent)
 
     def init_controls(self, **kwargs) -> None:
-        freqs: np.ndarray = kwargs.get('frequencies')
+        freqs: np.ndarray = cast(np.ndarray, kwargs.get('frequencies'))
         self.freq_spinbox.setRange(freqs.min(), freqs.max())
         self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
 

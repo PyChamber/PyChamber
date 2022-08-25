@@ -1,4 +1,3 @@
-from tkinter.messagebox import RETRY
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
@@ -105,7 +104,7 @@ class NetworkModel(QObject):
         subset = self._data.sel(params)
 
         if frequency is not None:
-            return np.array([ntwk[freq].s_db for ntwk in subset])  # type: ignore
+            return np.array([ntwk[frequency].s_db for ntwk in subset])  # type: ignore
         else:
             return np.array([ntwk.s_db for ntwk in subset])  # type: ignore
 

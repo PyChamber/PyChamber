@@ -16,12 +16,12 @@ if TYPE_CHECKING:
     )
 
 import functools
-from math import ceil
 import time
 from datetime import timedelta
 from enum import Enum, auto
-import numpy as np
+from math import ceil
 
+import numpy as np
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtTest import QSignalSpy
 from PyQt5.QtWidgets import (
@@ -247,6 +247,8 @@ class ExperimentPlugin(PyChamberPlugin):
         self.experiment_thread.start()
 
     def _on_data_acquired(self, ntwk: skrf.Network) -> None:
+        assert self.analyzer is not None
+        assert self.calibration is not None
         if (cal := self.calibration.calibration()) is None:
             self.ntwk_model.add_data(ntwk)
         else:
@@ -260,12 +262,14 @@ class ExperimentPlugin(PyChamberPlugin):
             else:
                 raise ValueError("This should be unreachable...")
 
+            assert loss is not None
             log.debug(f"{ntwk.s_db[0]=}")
             log.debug(f"{loss.s_db[0]=}")
             corrected_ntwk = ntwk / loss
             self.ntwk_model.add_data(corrected_ntwk)
 
     def _on_experiment_done(self) -> None:
+        assert self.calibration is not None
         self.cut_progressbar.setEnabled(False)
         self.total_progressbar.setValue(100)
         self.time_remaining_lineedit.setText("Done!")
@@ -337,6 +341,7 @@ class ExperimentPlugin(PyChamberPlugin):
         log.debug(f"{azimuths=}")
         log.debug(f"{elevations=}")
         assert self.analyzer is not None
+        assert self.plots is not None
         assert self.positioner is not None
 
         # Signals
@@ -355,7 +360,6 @@ class ExperimentPlugin(PyChamberPlugin):
         # for the move to finish before taking data
         move_spy = QSignalSpy(self.positioner.jog_complete)
 
-        avg_iter_time = 0.0
         total_iters = len(azimuths) * len(elevations)
         completed = 0
         progress = 0

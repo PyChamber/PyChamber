@@ -17,7 +17,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
 
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pychamber.logger import log
@@ -264,58 +263,3 @@ class MplPolarWidget(MplWidget):
         self.ax.set_rlim(self._rmin, self._rmax)
         self.ax.set_rticks(np.arange(self._rmin, self._rmax, self._rstep))
         self.redraw_plot()
-
-
-# TODO: 3D plotting needs some work...
-class Mpl3DWidget(QWidget):
-    def __init__(self, parent=None):
-        raise NotImplementedError
-        super().__init__(parent)
-        self.canvas = MplCanvas()
-        self.vbl = QVBoxLayout()
-        self.vbl.addWidget(self.canvas)
-        self.setLayout(self.vbl)
-        policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setSizePolicy(policy)
-
-        self.ax_lim = 0.5
-
-        self.ax = self.canvas.fig.add_subplot(projection='3d')
-        self.ax.grid(False)
-        self.ax.set_axis_off()
-        self.ax.set_proj_type('ortho')
-        self.ax.view_init(elev=30, azim=45)
-        self.ax.set_xlim(-1.5, 1.5)
-        self.ax.set_ylim(-1.5, 1.5)
-        self.ax.set_zlim(-1.5, 1.5)
-
-        self.ax.quiver3D(0, 0, 0, self.ax_lim, 0, 0, length=1, colors='r', linewidth=3)
-        self.ax.quiver3D(0, 0, 0, 0, self.ax_lim, 0, length=1, colors='g', linewidth=3)
-        self.ax.quiver3D(0, 0, 0, 0, 0, self.ax_lim, length=1, colors='b', linewidth=3)
-        self.ax.text3D(self.ax_lim, 0, 0, 'X', fontsize=14)
-        self.ax.text3D(0, self.ax_lim, 0, 'Y', fontsize=14)
-        self.ax.text3D(0, 0, self.ax_lim, 'Z', fontsize=14)
-        plt.tight_layout()
-        self.canvas.draw()
-
-    def sizeHint(self) -> QSize:
-        return QSize(500, 300)
-
-    # https://stackoverflow.com/questions/54822873/python-plotting-antenna-radiation-pattern/63059296#63059296
-    def update_plot(
-        self, azimuths: np.ndarray, elevations: np.ndarray, mags: np.ndarray
-    ) -> None:
-        log.debug(f"{mags=}")
-        mesh_az, mesh_el = np.meshgrid(azimuths, elevations)
-
-        # normalize. 3D plots.....don't like negative radii
-        mags = mags / np.max(mags)
-
-        x = mags * np.sin(mesh_el) * np.cos(mesh_az)
-        y = mags * np.sin(mesh_el) * np.sin(mesh_az)
-        z = mags * np.cos(mesh_el)
-
-        self.artist = self.ax.plot_surface(
-            x, y, z, color='viridian', rstride=1, cstride=1, antialiased=True
-        )
-        self.canvas.draw()

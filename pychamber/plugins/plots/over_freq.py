@@ -1,6 +1,6 @@
 import numpy as np
-from matplotlib.ticker import EngFormatter
 import skrf
+from matplotlib.ticker import EngFormatter
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -45,7 +45,7 @@ class OverFreqPlot(PyChamberPlot):
         self.plot.set_ylabel("Power [dB]")
         self.plot.ax.xaxis.set_major_formatter(EngFormatter(unit='Hz'))
         self.plot.xmin = 0
-        self.plot.xmax = 1e9
+        self.plot.xmax = int(1e9)
 
     def set_polarization_model(self, model: QStringListModel) -> None:
         self.pol_combobox.setModel(model)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from xml.sax.handler import property_interning_dict
 
 if TYPE_CHECKING:
     from typing import List, Optional
@@ -309,9 +308,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.pol2_combobox.blockSignals(True)
         self.pol2_lineedit.blockSignals(True)
         self.pol1_combobox.addItems(params)
-        log.debug(
-            f"{[self.pol1_combobox.itemText(i) for i in range(self.pol1_combobox.count())]}"
-        )
+        log.debug(f"{params=}")
         log.debug(f"setting pol1_combobox to {SETTINGS['analyzer/pol1-param']}")
         self.pol1_combobox.setCurrentText(SETTINGS['analyzer/pol1-param'])
         self.pol1_lineedit.setText(SETTINGS["analyzer/pol1-label"])
@@ -333,7 +330,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         return self._analyzer
 
     @property
-    def sparams(self) -> List(str):
+    def sparams(self) -> List[str]:
         return [self.pol1_combobox.itemText(i) for i in range(self.pol1_combobox.count())]
 
     def is_connected(self) -> bool:

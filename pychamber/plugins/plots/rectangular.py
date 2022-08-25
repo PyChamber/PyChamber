@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    import skrf
+    from PyQt5.QtCore import QStringListModel
+    from pychamber.widgets import PlotLimits
+
 import numpy as np
-import skrf
 from matplotlib.ticker import FuncFormatter
-from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,7 +23,7 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.ui import size_policy
-from pychamber.widgets import FrequencySpinBox, MplRectWidget, PlotLimits
+from pychamber.widgets import FrequencySpinBox, MplRectWidget
 
 from .pychamber_plot import PlotControls, PyChamberPlot
 
@@ -34,7 +41,7 @@ class RectangularPlot(PyChamberPlot):
 
     def init_controls(self, **kwargs) -> None:
         azimuths = np.deg2rad(kwargs.get('azimuths', np.arange(-180, 180, 1)))
-        freqs: np.ndarray = kwargs.get('frequencies')
+        freqs: np.ndarray = cast(np.ndarray, kwargs.get('frequencies'))
         self.freq_spinbox.setRange(freqs.min(), freqs.max())
         self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
         log.debug(f"Setting xlimits to {azimuths}")
@@ -65,7 +72,6 @@ class RectangularPlot(PyChamberPlot):
     def _send_controls_state(self) -> None:
         log.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
-        freq = self.freq_spinbox.text()
 
         ctrl = PlotControls(polarization=pol, elevation=0.0)
         self.new_data_requested.emit(ctrl)
