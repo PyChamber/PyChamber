@@ -8,7 +8,6 @@ if TYPE_CHECKING:
     from typing import Dict, List, Optional, Type
     from pychamber.main_window import MainWindow
 
-import numpy as np
 import skrf
 from PyQt5.QtCore import QStringListModel, pyqtSignal
 from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
@@ -114,3 +113,7 @@ class PlotsPlugin(PyChamberPlugin):
 
         self._plots.append(plot_widget)
         self.tab_widget.addTab(plot_widget, tab_name)
+
+    def reset_plots(self) -> None:
+        for plot in self._plots:
+            plot.reset()

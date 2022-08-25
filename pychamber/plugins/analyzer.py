@@ -303,7 +303,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             return
 
         msmts = itertools.product(ports, repeat=2)
-        params = [f"S{a}{b}" for a, b in msmts]
+        params = ["OFF"] + [f"S{a}{b}" for a, b in msmts]
         self.pol1_combobox.blockSignals(True)
         self.pol1_lineedit.blockSignals(True)
         self.pol2_combobox.blockSignals(True)
@@ -342,7 +342,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
     def polarizations(self) -> List[Polarization]:
         pols = []
         pol1_param = self.pol1_combobox.currentText()
-        if pol1_param != "":
+        if pol1_param != "OFF":
             pol1_label = self.pol1_lineedit.text()
             if pol1_label == "":
                 pol1_label = "Polarization 1"
@@ -350,7 +350,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             pols.append(Polarization(pol1_label, pol1_param))
 
         pol2_param = self.pol2_combobox.currentText()
-        if pol2_param != "":
+        if pol2_param != "OFF":
             pol2_label = self.pol2_lineedit.text()
             if pol2_label == "":
                 pol2_label = "Polarization 2"
@@ -358,6 +358,14 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             pols.append(Polarization(pol2_label, pol2_param))
 
         return pols
+
+    def pol_name(self, pol: int) -> str:
+        if pol == 1:
+            return self.pol1_lineedit.text()
+        elif pol == 2:
+            return self.pol2_lineedit.text()
+        else:
+            raise ValueError("There are only two polarizations. Pass 1 or 2.")
 
     def frequencies(self) -> np.ndarray:
         if self._analyzer is None:

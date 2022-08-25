@@ -1,5 +1,7 @@
 from __future__ import annotations
-from cgitb import text
+from dataclasses import dataclass
+import functools
+from optparse import Option
 
 from typing import cast, TYPE_CHECKING
 
@@ -38,6 +40,13 @@ from pychamber.plugins import PyChamberPanelPlugin, AnalyzerPlugin
 from pychamber.widgets import MplRectWidget
 
 
+@dataclass
+class Calibration:
+    notes: str = ""
+    pol1: Optional[skrf.Network] = None
+    pol2: Optional[skrf.Network] = None
+
+
 class CalibrationPlugin(PyChamberPanelPlugin):
     NAME = "calibration"
 
@@ -50,7 +59,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.setLayout(QVBoxLayout())
 
         self.analyzer: Optional[AnalyzerPlugin] = None
-        self.cal_file = None
+        self._cal: Calibration = Calibration()
 
     def _setup(self) -> None:
         self._add_widgets()
@@ -75,13 +84,13 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
         wizard = CalibrationWizard(self)
         wizard.cal_saved.connect(lambda fname: self.cal_file_lineedit.setText(fname))
-        wizard.cal_saved.connect(lambda: setattr(self, "cal_file", wizard.cal))
+        wizard.cal_saved.connect(lambda: setattr(self, "_cal", wizard.cal))
         wizard.cal_saved.connect(self.cal_file_loaded.emit)
         wizard.show()
 
     def _on_cal_view_btn_clicked(self) -> None:
         log.debug("Starting calibration view")
-        self.view = CalViewWindow(self.cal_file)
+        self.view = CalViewWindow(self._cal)
         self.view.show()
 
     def _on_cal_file_browse_btn_clicked(self) -> None:
@@ -101,8 +110,9 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_file_loaded.emit()
 
     def load_cal_file(self, fname: str) -> None:
+        # TODO: Run this in a thread
         with open(fname, "rb") as ff:
-            self.cal_file = pickle.load(ff)
+            self._cal = pickle.load(ff)
 
         self.cal_file_lineedit.setText(fname)
 
@@ -136,6 +146,15 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
         layout.addLayout(hlayout)
 
+    def set_enabled(self, state: bool) -> None:
+        self.groupbox.setEnabled(state)
+
+    def calibration(self) -> Optional[Calibration]:
+        if self._cal.pol1 is None and self._cal.pol2 is None:
+            return None
+        else:
+            return self._cal
+
 
 class CalibrationWizard(QWizard):
     cal_saved = pyqtSignal(str)
@@ -148,8 +167,8 @@ class CalibrationWizard(QWizard):
         self.pol2_ntwk: Optional[skrf.Network] = None
         self.loss1_ntwk: Optional[skrf.Network] = None
         self.loss2_ntwk: Optional[skrf.Network] = None
-        self.cal_notes: str = ""
-        self.cal = None
+        self.notes = ""
+        self.cal: Calibration = Calibration()
 
         self.setWindowTitle("Calibration Wizard")
         log.debug("Adding intro page")
@@ -237,7 +256,7 @@ class NotesPage(QWizardPage):
         notes_text_edit = QPlainTextEdit(self)
         notes_text_edit.setPlaceholderText("Notes...")
         notes_text_edit.textChanged.connect(
-            lambda: setattr(self.wizard(), "cal_notes", notes_text_edit.toPlainText())
+            lambda: setattr(self.wizard(), "notes", notes_text_edit.toPlainText())
         )
 
         layout.addWidget(notes_text_edit)
@@ -412,8 +431,17 @@ class CalibrationPage(QWizardPage):
 
         hlayout = QHBoxLayout()
 
-        self.measure_btn = QPushButton("Measure", self)
-        hlayout.addWidget(self.measure_btn)
+        self.measure_pol1_btn = QPushButton("Measure Polarization 1", self)
+        self.measure_pol1_btn.setEnabled(False)
+        hlayout.addWidget(self.measure_pol1_btn)
+
+        self.measure_pol2_btn = QPushButton("Measure Polarization 2", self)
+        self.measure_pol2_btn.setEnabled(False)
+        hlayout.addWidget(self.measure_pol2_btn)
+
+        layout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
 
         self.save_btn = QPushButton("Save", self)
         hlayout.addWidget(self.save_btn)
@@ -425,69 +453,107 @@ class CalibrationPage(QWizardPage):
         self.pol2_combobox.addItems(self.analyzer.sparams)
 
     def _connect_signals(self) -> None:
-        self.measure_btn.clicked.connect(self._on_measure_btn_clicked)
+        self.measure_pol1_btn.clicked.connect(
+            functools.partial(self._on_measure_btn_clicked, 1)
+        )
+        self.measure_pol2_btn.clicked.connect(
+            functools.partial(self._on_measure_btn_clicked, 2)
+        )
         self.save_btn.clicked.connect(self._on_save_btn_clicked)
+        self.pol1_combobox.currentTextChanged.connect(
+            functools.partial(self._on_pol_combobox_changed, 1)
+        )
+        self.pol2_combobox.currentTextChanged.connect(
+            functools.partial(self._on_pol_combobox_changed, 2)
+        )
 
-    def _on_measure_btn_clicked(self) -> None:
-        msmnt1_param = self.pol1_combobox.currentText()
-        msmnt1_name = f"CAL_{msmnt1_param}"
-        msmnt2_param = self.pol2_combobox.currentText()
-        msmnt2_name = f"CAL_{msmnt2_param}"
+    def measure_pol(self, pol: int) -> None:
+        if pol not in [1, 2]:
+            raise ValueError("Only two polarizations. Pass 1 or 2")
 
-        self.analyzer.create_measurement(msmnt1_name, msmnt1_param)
-        self.analyzer.create_measurement(msmnt2_name, msmnt2_param)
+        if pol == 1:
+            msmnt_param = self.pol1_combobox.currentText()
+            params = {"polarization": self.pol1_lineedit.text()}
+        else:
+            msmnt_param = self.pol2_combobox.currentText()
+            params = {"polarization": self.pol2_lineedit.text()}
 
-        params = {"polarization": self.pol1_lineedit.text()}
-        ntwk = self.analyzer.get_data(msmnt1_name)
+        msmnt_name = f"CAL_{msmnt_param}"
+        self.analyzer.create_measurement(msmnt_name, msmnt_param)
+        ntwk = self.analyzer.get_data(msmnt_name)
         ntwk.params = params
-        self.wizard().pol1_ntwk = ntwk
 
-        params = {"polarization": self.pol2_lineedit.text()}
-        ntwk = self.analyzer.get_data(msmnt2_name)
-        ntwk.params = params
-        self.wizard().pol2_ntwk = ntwk
+        if pol == 1:
+            self.wizard().pol1_ntwk = ntwk
+        else:
+            self.wizard().pol2_ntwk = ntwk
 
-        log.debug(f"{self.wizard().pol1_ntwk}")
-        log.debug(f"{self.wizard().pol2_ntwk}")
+        self.analyzer.delete_measurement(msmnt_name)
+        self._calc_loss(pol)
 
-        self.analyzer.delete_measurement(msmnt1_name)
-        self.analyzer.delete_measurement(msmnt2_name)
+    def _on_pol_combobox_changed(self, pol: int, text: str) -> None:
+        if pol not in [1, 2]:
+            raise ValueError("Only two polarizations. Pass 1 or 2")
 
-        self._calc_loss()
+        if pol == 1:
+            self.measure_pol1_btn.setEnabled(text != "OFF")
+        else:
+            self.measure_pol2_btn.setEnabled(text != "OFF")
 
-    def _calc_loss(self) -> None:
+    def _on_measure_btn_clicked(self, pol: int) -> None:
+        if pol not in [1, 2]:
+            raise ValueError("Only two polarizations. Pass 1 or 2")
+
+        self.measure_pol(pol)
+        self._plot_loss(pol)
+
+    def _calc_loss(self, pol: int) -> None:
+        if pol not in [1, 2]:
+            raise ValueError("Only two polarizations. Pass 1 or 2")
+
         ref = self.wizard().ref_ntwk
-        ntwk1 = self.wizard().pol1_ntwk
-        ntwk2 = self.wizard().pol2_ntwk
+        if pol == 1:
+            ntwk = self.wizard().pol1_ntwk
+        else:
+            ntwk = self.wizard().pol2_ntwk
 
-        if len(ref) != len(ntwk1):
-            ref.interpolate_self(ntwk1.frequency)
+        if len(ref) != len(ntwk):
+            ref.interpolate_self(ntwk.frequency)
 
-        self.wizard().loss1_ntwk = ntwk1 / ref
-        self.wizard().loss2_ntwk = ntwk2 / ref
+        if pol == 1:
+            self.wizard().loss1_ntwk = ntwk / ref
+        else:
+            self.wizard().loss2_ntwk = ntwk / ref
 
-        freqs = self.wizard().loss1_ntwk.frequency.f
-        mags1 = self.wizard().loss1_ntwk.s_db.reshape((-1,))
-        mags2 = self.wizard().loss2_ntwk.s_db.reshape((-1,))
+    def _plot_loss(self, pol: int) -> None:
+        if pol not in [1, 2]:
+            raise ValueError("Only two polarizations. Pass 1 or 2")
+        if pol == 1:
+            freqs = self.wizard().loss1_ntwk.frequency.f
+            mags = self.wizard().loss1_ntwk.s_db.reshape((-1,))
+            self.plot.plot_new_data(freqs, mags)
+        else:
+            freqs = self.wizard().loss2_ntwk.frequency.f
+            mags = self.wizard().loss2_ntwk.s_db.reshape((-1,))
+            if len(self.plot.artists) == 1:
+                self.plot.add_plot(freqs, mags)
+            else:
+                self.plot.plot_new_data(freqs, mags, 1)
 
-        mags_min = min(mags1.min(), mags2.min())
-        mags_max = max(mags1.max(), mags2.max())
-
-        self.plot.plot_new_data(freqs, mags1)
-        self.plot.add_plot(freqs, mags2)
-        self.plot.ax.legend([self.pol1_lineedit.text(), self.pol2_lineedit.text()])
+        if len(self.plot.artists) == 2:
+            self.plot.ax.legend([self.pol1_lineedit.text(), self.pol2_lineedit.text()])
         self.plot.redraw_plot()
 
         self.plot.xmin = freqs.min()
         self.plot.xmax = freqs.max()
-        self.plot.ymin = mags_min
-        self.plot.ymax = mags_max
-        self.plot.ystep = round((mags_max - mags_min) / 5, 1)
+        self.plot.ymin = mags.min()
+        self.plot.ymax = mags.max()
+        self.plot.ystep = round((mags.max() - mags.min()) / 5, 1)
 
     def _on_save_btn_clicked(self) -> None:
         loss1 = self.wizard().loss1_ntwk
         loss2 = self.wizard().loss2_ntwk
-        cal = {"notes": self.wizard().cal_notes, "pol1": loss1, "pol2": loss2}
+        cal = Calibration(notes=self.wizard().notes, pol1=loss1, pol2=loss2)
 
         save_name, _ = QFileDialog.getSaveFileName()
         if save_name != "":
@@ -505,7 +571,7 @@ class CalibrationPage(QWizardPage):
 
 
 class CalViewWindow(QWidget):
-    def __init__(self, cal, parent=None) -> None:
+    def __init__(self, cal: Calibration, parent=None) -> None:
         super().__init__(parent)
         self.cal = cal
 
@@ -519,7 +585,7 @@ class CalViewWindow(QWidget):
         tab_widget = QTabWidget()
 
         textedit = QPlainTextEdit()
-        textedit.setPlainText(self.cal["notes"])
+        textedit.setPlainText(self.cal.notes)
         textedit.setReadOnly(True)
         tab_widget.addTab(textedit, "Notes")
 
@@ -533,8 +599,8 @@ class CalViewWindow(QWidget):
         self.plot.set_ylabel("Magnitude [dB]")
         self.plot.ax.xaxis.set_major_formatter(EngFormatter(unit='Hz'))
 
-        pol1 = self.cal["pol1"]
-        pol2 = self.cal["pol2"]
+        pol1 = self.cal.pol1
+        pol2 = self.cal.pol2
         freqs = pol1.frequency.f.reshape((-1,))
         mags1 = pol1.s_db.reshape((-1,))
         mags2 = pol2.s_db.reshape((-1,))
@@ -562,11 +628,11 @@ class CalViewWindow(QWidget):
 
 class CalTableModel(QAbstractTableModel):
     # https://stackoverflow.com/questions/71076164/fastest-way-to-fill-or-read-from-a-qtablewidget-in-pyqt5
-    def __init__(self, cal_file, parent=None):
+    def __init__(self, cal: Calibration, parent=None):
         super().__init__(parent)
-        pol1 = cal_file["pol1"]
+        pol1 = cal.pol1
         pol1_label = pol1.params["polarization"]
-        pol2 = cal_file["pol2"]
+        pol2 = cal.pol2
         pol2_label = pol2.params["polarization"]
 
         self.table_data = pd.DataFrame(

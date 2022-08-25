@@ -1,17 +1,24 @@
 from __future__ import annotations
-import dataclasses
 
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from typing import Dict, List, Optional, Tuple
+    import skrf
+    from typing import Dict, List, Optional
     from PyQt5.QtGui import QCloseEvent
     from pychamber.main_window import MainWindow
     from pychamber.polarization import Polarization
-    from pychamber.plugins import AnalyzerPlugin, PlotsPlugin, PositionerPlugin
+    from pychamber.plugins import (
+        AnalyzerPlugin,
+        CalibrationPlugin,
+        PlotsPlugin,
+        PositionerPlugin,
+    )
 
 import functools
+from math import ceil
 import time
+from datetime import timedelta
 from enum import Enum, auto
 import numpy as np
 
@@ -48,7 +55,9 @@ class ExperimentPlugin(PyChamberPlugin):
     experiment_done = pyqtSignal()
     abort_clicked = pyqtSignal()
     progress_updated = pyqtSignal(int)
+    update_remaining = pyqtSignal(int)
     cut_progress_updated = pyqtSignal(int)
+    time_remaining_updated = pyqtSignal(float)
     data_acquired = pyqtSignal(object)
 
     def __init__(self, parent: MainWindow) -> None:
@@ -60,12 +69,18 @@ class ExperimentPlugin(PyChamberPlugin):
         self.analyzer: Optional[AnalyzerPlugin] = None
         self.positioner: Optional[PositionerPlugin] = None
         self.plots: Optional[PlotsPlugin] = None
+        self.calibration: Optional['CalibrationPlugin'] = None
 
         self.experiment_thread: QThread = QThread(None)
         self.ntwk_model: NetworkModel = NetworkModel()
 
         self.analyzer_connected: bool = False
         self.positioner_connected: bool = False
+
+        self._remaining_iters = 0
+        self._avg_iter_time: float = 0.0
+        self._iter_start_time: float = 0.0
+        self._iter_stop_time: float = 0.0
 
     def _setup(self) -> None:
         from pychamber.plugins import AnalyzerPlugin, PlotsPlugin, PositionerPlugin
@@ -75,6 +90,8 @@ class ExperimentPlugin(PyChamberPlugin):
         self.analyzer = cast(AnalyzerPlugin, self.main.get_plugin("analyzer"))
         self.positioner = cast(PositionerPlugin, self.main.get_plugin("positioner"))
         self.plots = cast(PlotsPlugin, self.main.get_plugin("plots"))
+        # I have no idea why the interpreter threw a fit for only this module...
+        self.calibration = cast('CalibrationPlugin', self.main.get_plugin("calibration"))
 
     def _post_visible_setup(self) -> None:
         self._connect_signals()
@@ -121,7 +138,7 @@ class ExperimentPlugin(PyChamberPlugin):
         vlayout.addWidget(total_progress_label)
 
         self.total_progressbar = QProgressBar(self.groupbox)
-        self.total_progressbar.setSizePolicy(size_policy["EXP_PREF"])
+        self.total_progressbar.setSizePolicy(size_policy["PREF_PREF"])
         vlayout.addWidget(self.total_progressbar)
 
         self.cut_progress_label = QLabel("Cut Progress", self.groupbox)
@@ -172,9 +189,13 @@ class ExperimentPlugin(PyChamberPlugin):
         self.experiment_done.connect(self._on_experiment_done)
         self.progress_updated.connect(self._on_progress_updated)
         self.cut_progress_updated.connect(self._on_cut_progress_updated)
+        self.time_remaining_updated.connect(self._on_time_remaining_updated)
+        self.update_remaining.connect(lambda r: setattr(self, "_remaining_iters", r))
 
         self.experiment_thread.finished.connect(self.experiment_done.emit)
-        self.data_acquired.connect(self.ntwk_model.add_data)
+        self.experiment_thread.finished.connect(self._on_experiment_done)
+        self.data_acquired.connect(self._on_data_acquired)
+        self.data_acquired.connect(self._calc_time_remaining)
 
         self.analyzer.analyzer_connected.connect(self._on_analyzer_connected)
         self.positioner.positioner_connected.connect(self._on_positioner_connected)
@@ -185,8 +206,10 @@ class ExperimentPlugin(PyChamberPlugin):
         assert self.analyzer is not None
         assert self.positioner is not None
         assert self.plots is not None
+        assert self.calibration is not None
 
         self.set_enabled(False)
+        self.calibration.set_enabled(False)
 
         match experiment_type:
             case ExperimentType.AZIMUTH:
@@ -196,6 +219,7 @@ class ExperimentPlugin(PyChamberPlugin):
                 az_extents = np.asarray([0.0])
                 el_extents = self.positioner.el_extents()
             case ExperimentType.FULL:
+                self.cut_progressbar.setEnabled(True)
                 az_extents = self.positioner.az_extents()
                 el_extents = self.positioner.el_extents()
 
@@ -204,6 +228,7 @@ class ExperimentPlugin(PyChamberPlugin):
             log.debug("No polarizations. No experiment to run")
             return
 
+        self.reset_experiment()
         self.ntwk_model.reset()
         self.plots.set_polarizations([p.label for p in pols])
         self.plots.init_plots(
@@ -218,9 +243,33 @@ class ExperimentPlugin(PyChamberPlugin):
             azimuths=az_extents,
             elevations=el_extents,
         )
+        self._remaining_iters = len(az_extents) * len(el_extents)
         self.experiment_thread.start()
 
+    def _on_data_acquired(self, ntwk: skrf.Network) -> None:
+        if (cal := self.calibration.calibration()) is None:
+            self.ntwk_model.add_data(ntwk)
+        else:
+            pol = ntwk.params["polarization"]
+            if pol == self.analyzer.pol_name(1):
+                log.debug("Applying calibration pol1")
+                loss = cal.pol1
+            elif pol == self.analyzer.pol_name(2):
+                log.debug("Applying calibration pol2")
+                loss = cal.pol2
+            else:
+                raise ValueError("This should be unreachable...")
+
+            log.debug(f"{ntwk.s_db[0]=}")
+            log.debug(f"{loss.s_db[0]=}")
+            corrected_ntwk = ntwk / loss
+            self.ntwk_model.add_data(corrected_ntwk)
+
     def _on_experiment_done(self) -> None:
+        self.cut_progressbar.setEnabled(False)
+        self.total_progressbar.setValue(100)
+        self.time_remaining_lineedit.setText("Done!")
+        self.calibration.set_enabled(True)
         self.set_enabled(True)
 
     def _on_abort_experiment(self) -> None:
@@ -234,6 +283,13 @@ class ExperimentPlugin(PyChamberPlugin):
     def _on_cut_progress_updated(self, progress: int) -> None:
         self.cut_progressbar.setValue(progress)
 
+    def _on_time_remaining_updated(self, secs: float) -> None:
+        t_secs = str(timedelta(seconds=ceil(secs)))
+        hours, minutes, seconds = t_secs.split(":")
+        self.time_remaining_lineedit.setText(
+            f"{hours} hours {minutes} minutes {seconds} seconds remaining"
+        )
+
     def _on_analyzer_connected(self) -> None:
         self.analyzer_connected = True
         if self.analyzer_connected and self.positioner_connected:
@@ -243,6 +299,14 @@ class ExperimentPlugin(PyChamberPlugin):
         self.positioner_connected = True
         if self.analyzer_connected and self.positioner_connected:
             self.set_enabled(True)
+
+    def _calc_time_remaining(self, _) -> None:
+        self._iter_stop_time = time.time()
+        self._avg_iter_time = 0.5 * (
+            self._avg_iter_time + self._iter_stop_time - self._iter_start_time
+        )
+        self._iter_start_time = time.time()
+        self.time_remaining_updated.emit(self._remaining_iters * self._avg_iter_time)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.experiment_thread.quit()
@@ -255,6 +319,12 @@ class ExperimentPlugin(PyChamberPlugin):
         self.el_scan_btn.setEnabled(enable)
         self.full_scan_btn.setEnabled(enable)
         self.abort_btn.setEnabled(not enable)
+
+    def reset_experiment(self) -> None:
+        self.total_progressbar.setValue(0)
+        self.cut_progressbar.setValue(0)
+        self.cut_progressbar.setEnabled(False)
+        self.time_remaining_lineedit.setText("")
 
     def run_experiment(
         self,
@@ -276,6 +346,7 @@ class ExperimentPlugin(PyChamberPlugin):
 
         self.positioner.set_enabled(False)
         self.analyzer.set_enabled(False)
+        self.plots.reset_plots()
 
         self.positioner.listen_to_jog_complete_signals = False
 
@@ -309,7 +380,6 @@ class ExperimentPlugin(PyChamberPlugin):
                     if self.experiment_thread.isInterruptionRequested():
                         self.main.statusBar().showMessage("Experiment aborted!", 4000)
                         break
-                    iter_start = time.time()
 
                     params["elevation"] = elevation
                     self.positioner.jog_el(elevation)
@@ -323,16 +393,16 @@ class ExperimentPlugin(PyChamberPlugin):
                         log.debug(f"Got data for {ntwk.params}")
                         data_acquired.emit(ntwk)
 
+                    log.debug(f"{len(elevations)}")
                     completed = i * len(elevations) + j
-                    progress = completed // total_iters * 100
-                    cut_progress = j // len(elevations) * 100
+                    self.update_remaining.emit(total_iters - completed)
+                    log.debug(f"{i=}; {j=}")
+                    log.debug(f"{completed=}")
+                    progress = int(completed / total_iters * 100)
+                    cut_progress = int(j / len(elevations) * 100)
 
                     progress_updated.emit(progress)
                     cut_progress_updated.emit(cut_progress)
-
-                    iter_stop = time.time()
-                    iter_time = iter_stop - iter_start
-                    avg_iter_time = 0.5 * (avg_iter_time + iter_time)
 
         except Exception as e:
             raise RuntimeError(f"Encountered error during measurement: {e}")

@@ -60,7 +60,10 @@ class MplWidget(QWidget):
         self._autoscale: bool = False
 
     def reset_plot(self) -> None:
-        ...
+        for artist in self.artists:
+            artist.remove()
+        self.artists = self.ax.plot(np.array([]), np.array([]))
+        self.update_scale()
 
     def update_scale(self) -> None:
         ...
@@ -192,10 +195,6 @@ class MplRectWidget(MplWidget):
     def set_title(self, title: str) -> None:
         self.ax.set_title(title)
 
-    def reset_plot(self) -> None:
-        self.artists = self.ax.plot(np.array([]), np.array([]))
-        self.update_scale()
-
     def update_scale(self) -> None:
         self.ax.set_xbound(self._xmin, self._xmax)
         self.ax.set_xticks(np.linspace(self._xmin, self._xmax, 6))
@@ -260,10 +259,6 @@ class MplPolarWidget(MplWidget):
             self._rmax = ceil(max(y))
             self.update_scale()
             self.autoscaled.emit(PlotLimits(self.rmin, self.rmax, self.rstep))
-
-    def reset_plot(self) -> None:
-        self.artists = self.ax.plot(np.array([]), np.array([]))
-        self.update_scale()
 
     def update_scale(self) -> None:
         self.ax.set_rlim(self._rmin, self._rmax)
