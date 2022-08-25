@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from xml.sax.handler import property_interning_dict
 
 if TYPE_CHECKING:
     from typing import List, Optional
@@ -301,21 +302,20 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             self._analyzer = None
             return
 
-        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [
-            f"S{p}{p}" for p in ports
-        ]
+        msmts = itertools.product(ports, repeat=2)
+        params = [f"S{a}{b}" for a, b in msmts]
         self.pol1_combobox.blockSignals(True)
         self.pol1_lineedit.blockSignals(True)
         self.pol2_combobox.blockSignals(True)
         self.pol2_lineedit.blockSignals(True)
-        self.pol1_combobox.addItems(ports)
+        self.pol1_combobox.addItems(params)
         log.debug(
             f"{[self.pol1_combobox.itemText(i) for i in range(self.pol1_combobox.count())]}"
         )
         log.debug(f"setting pol1_combobox to {SETTINGS['analyzer/pol1-param']}")
         self.pol1_combobox.setCurrentText(SETTINGS['analyzer/pol1-param'])
         self.pol1_lineedit.setText(SETTINGS["analyzer/pol1-label"])
-        self.pol2_combobox.addItems(ports)
+        self.pol2_combobox.addItems(params)
         log.debug(f"setting pol2_combobox to {SETTINGS['analyzer/pol2-param']}")
         self.pol2_combobox.setCurrentText(SETTINGS['analyzer/pol2-param'])
         self.pol2_lineedit.setText(SETTINGS["analyzer/pol2-label"])
@@ -331,6 +331,13 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             raise RuntimeError("Analyzer not connected")
 
         return self._analyzer
+
+    @property
+    def sparams(self) -> List(str):
+        return [self.pol1_combobox.itemText(i) for i in range(self.pol1_combobox.count())]
+
+    def is_connected(self) -> bool:
+        return self._analyzer is not None
 
     def polarizations(self) -> List[Polarization]:
         pols = []

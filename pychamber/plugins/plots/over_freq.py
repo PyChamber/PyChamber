@@ -16,8 +16,8 @@ from PyQt5.QtWidgets import (
 )
 
 from pychamber.logger import log
+from pychamber.widgets import MplRectWidget, PlotLimits
 
-from .mpl_widget import MplRectWidget, PlotLimits
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 

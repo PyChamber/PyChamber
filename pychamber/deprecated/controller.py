@@ -427,11 +427,10 @@ class PyChamberCtrl:
             self.analyzer = None
             return
 
-        ports = [f"S{''.join(p)}" for p in itertools.permutations(ports, 2)] + [
-            f"S{p}{p}" for p in ports
-        ]
-        self.view.analyzerPol1ComboBox.addItems(ports)
-        self.view.analyzerPol2ComboBox.addItems(ports)
+        msmts = itertools.product(ports, repeat=2)
+        params = [f"S{a}{b}" for a, b in msmts]
+        self.view.analyzerPol1ComboBox.addItems(params)
+        self.view.analyzerPol2ComboBox.addItems(params)
         self.view.analyzerPol1ComboBox.setCurrentText(self.settings['pol1-param'])
         self.view.analyzerPol2ComboBox.setCurrentText(self.settings['pol2-param'])
         log.info("Connected")

@@ -2,9 +2,15 @@
 
     isort:skip_file
 """
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import List
+    from matplotlib.pyplot import Line2D
 
 from dataclasses import dataclass
-from typing import Optional
+from math import floor, ceil
 from PyQt5.QtCore import QSize, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget, QVBoxLayout
 from matplotlib.figure import Figure
@@ -35,7 +41,7 @@ class MplCanvas(Canvas):
 
 
 class MplWidget(QWidget):
-    artist: plt.Line2D
+    artists: List[Line2D]
     autoscaled = pyqtSignal(object)
 
     def __init__(self, parent=None):
@@ -80,26 +86,27 @@ class MplWidget(QWidget):
         ...
 
     def redraw_plot(self) -> None:
-        xdata = self.artist.get_xdata()
-        ydata = self.artist.get_ydata()
+        for artist in self.artists:
+            xdata = artist.get_xdata()
+            ydata = artist.get_ydata()
 
-        self.artist.set_xdata(xdata)
-        self.artist.set_ydata(ydata)
+            artist.set_xdata(xdata)
+            artist.set_ydata(ydata)
 
         self.canvas.draw()
 
-    def plot_new_data(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
-        self.artist.set_xdata(xdata)
-        self.artist.set_ydata(ydata)
+    def plot_new_data(self, xdata: np.ndarray, ydata: np.ndarray, plot: int = 0) -> None:
+        self.artists[plot].set_xdata(xdata)
+        self.artists[plot].set_ydata(ydata)
 
         if self.autoscale:
             self.autoscale_plot()
         else:
             self.canvas.draw()
 
-    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
-        self.artist.set_xdata(np.append(self.artist.get_xdata(), xdata))
-        self.artist.set_ydata(np.append(self.artist.get_ydata(), ydata))
+    def update_plot(self, xdata: np.ndarray, ydata: np.ndarray, plot: int = 0) -> None:
+        self.artists[plot].set_xdata(np.append(self.artists[plot].get_xdata(), xdata))
+        self.artists[plot].set_ydata(np.append(self.artists[plot].get_ydata(), ydata))
         if self.autoscale:
             self.autoscale_plot()
 
@@ -114,7 +121,7 @@ class MplRectWidget(MplWidget):
         super().__init__(parent)
 
         self.ax = self.canvas.fig.add_subplot()
-        self.artist, *_ = self.ax.plot(np.array([0]), np.array([0]))
+        self.artists = self.ax.plot(np.array([0]), np.array([0]))
         self.ax.grid(self.grid)
 
         self._xmin = 0
@@ -170,9 +177,9 @@ class MplRectWidget(MplWidget):
         self.update_scale()
 
     def autoscale_plot(self) -> None:
-        if len(y := self.artist.get_ydata()) > 0:
-            self._ymin = min(y)
-            self._ymax = max(y)
+        if len(y := self.artists[0].get_ydata()) > 0:
+            self._ymin = floor(min(y))
+            self._ymax = ceil(max(y))
             self.update_scale()
             self.autoscaled.emit(PlotLimits(self.ymin, self.ymax, self.ystep))
 
@@ -182,8 +189,11 @@ class MplRectWidget(MplWidget):
     def set_ylabel(self, label: str) -> None:
         self.ax.set_ylabel(label)
 
+    def set_title(self, title: str) -> None:
+        self.ax.set_title(title)
+
     def reset_plot(self) -> None:
-        self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
+        self.artists = self.ax.plot(np.array([]), np.array([]))
         self.update_scale()
 
     def update_scale(self) -> None:
@@ -191,6 +201,11 @@ class MplRectWidget(MplWidget):
         self.ax.set_xticks(np.linspace(self._xmin, self._xmax, 6))
         self.ax.set_ybound(self._ymin, self._ymax)
         self.ax.set_yticks(np.arange(self._ymin, self._ymax, self._ystep))
+        self.redraw_plot()
+
+    def add_plot(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
+        artist, *_ = self.ax.plot(xdata, ydata)
+        self.artists.append(artist)
         self.redraw_plot()
 
 
@@ -201,7 +216,7 @@ class MplPolarWidget(MplWidget):
         self.ax = self.canvas.fig.add_subplot(projection='polar')
         self.ax.set_theta_zero_location('N')
         self.ax.set_thetagrids(np.arange(0, 360, 30))
-        self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
+        self.artists = self.ax.plot(np.array([]), np.array([]))
 
         self.ax.set_xticks(np.deg2rad(np.arange(-180, 180, 30)))
         self.ax.set_thetalim(-np.pi, np.pi)
@@ -240,27 +255,26 @@ class MplPolarWidget(MplWidget):
         self.update_scale()
 
     def autoscale_plot(self) -> None:
-        if len(y := self.artist.get_ydata()) > 0:
-            self._rmin = min(y)
-            self._rmax = max(y)
+        if len(y := self.artists[0].get_ydata()) > 0:
+            self._rmin = floor(min(y))
+            self._rmax = ceil(max(y))
             self.update_scale()
             self.autoscaled.emit(PlotLimits(self.rmin, self.rmax, self.rstep))
 
     def reset_plot(self) -> None:
-        self.artist, *_ = self.ax.plot(np.array([]), np.array([]))
+        self.artists = self.ax.plot(np.array([]), np.array([]))
         self.update_scale()
 
     def update_scale(self) -> None:
         self.ax.set_rlim(self._rmin, self._rmax)
         self.ax.set_rticks(np.arange(self._rmin, self._rmax, self._rstep))
-        xdata = self.artist.get_xdata()
-        ydata = self.artist.get_ydata()
         self.redraw_plot()
 
 
 # TODO: 3D plotting needs some work...
 class Mpl3DWidget(QWidget):
     def __init__(self, parent=None):
+        raise NotImplementedError
         super().__init__(parent)
         self.canvas = MplCanvas()
         self.vbl = QVBoxLayout()

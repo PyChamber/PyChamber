@@ -16,9 +16,8 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.ui import size_policy
-from pychamber.widgets import FrequencySpinBox
+from pychamber.widgets import FrequencySpinBox, MplRectWidget, PlotLimits
 
-from .mpl_widget import MplRectWidget, PlotLimits
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 

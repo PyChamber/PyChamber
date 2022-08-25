@@ -11,9 +11,8 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import log
 from pychamber.ui import size_policy
-from pychamber.widgets import FrequencyLineEdit
+from pychamber.widgets import FrequencyLineEdit, Mpl3DWidget
 
-from .mpl_widget import Mpl3DWidget
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 
