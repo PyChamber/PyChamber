@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.ui import size_policy
 from pychamber.widgets import FrequencySpinBox, MplPolarWidget
 
@@ -28,6 +28,8 @@ from .pychamber_plot import PlotControls, PyChamberPlot
 
 
 class PolarPlot(PyChamberPlot):
+    """A polar plot of the antenna pattern."""
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
@@ -58,7 +60,7 @@ class PolarPlot(PyChamberPlot):
         self.plot.autoscaled.connect(self._on_autoscaled)
 
     def _send_controls_state(self) -> None:
-        log.debug("Controls updated. Sending...")
+        LOG.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
 
         ctrl = PlotControls(polarization=pol, elevation=0.0)
@@ -94,7 +96,7 @@ class PolarPlot(PyChamberPlot):
         self.step_spinbox.blockSignals(False)
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
-        log.debug("Got new data. Updating...")
+        LOG.debug("Got new data. Updating...")
         pol = self.pol_combobox.currentText()
         freq = self.freq_spinbox.text()
         if ntwk.params['polarization'] != pol:
@@ -103,7 +105,7 @@ class PolarPlot(PyChamberPlot):
         theta = np.deg2rad(float(ntwk.params['azimuth']))
         r = ntwk[freq].s_db  # type: ignore
 
-        log.debug(f"Updating polar plot with {theta=} {r=}")
+        LOG.debug(f"Updating polar plot with {theta=} {r=}")
         self.plot.update_plot(theta, r)
 
     def plot_new_data(self, data: skrf.NetworkSet) -> None:

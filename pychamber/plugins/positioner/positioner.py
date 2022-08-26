@@ -1,3 +1,4 @@
+"""Defines the positioner class."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,16 +11,20 @@ import serial
 from omegaconf import OmegaConf
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.settings import SETTINGS
 
 
 class JogAxis(Enum):
+    """Which axis to jog."""
+
     AZIMUTH = auto()
     ELEVATION = auto()
 
 
 class JogDir(Enum):
+    """Jog direction +/-."""
+
     MINUS = -1.0
     ZERO = 0.0
     PLUS = 1.0
@@ -27,16 +32,25 @@ class JogDir(Enum):
 
 @dataclass
 class BoardResponse:
+    """Response from the positioner.
+
+    Warning:
+        This is specific to the D6050's motor driver and might change.
+    """
+
     type_: str
     address: str
     status: str
     response: str
 
     def __str__(self) -> str:
+        """String representation of the response."""
         return f"{self.type_}{self.address}{self.status}{self.response}"
 
 
 class PositionerError(RuntimeError):
+    """Error raised when the positioner encounters an issue, e.g. home limits."""
+
     pass
 
 
@@ -59,6 +73,7 @@ class Positioner(QObject):
         Args:
             name: model name of positioner (e.g. D6050)
             serial_port: port name of serial port connection
+            parent: parent QWidget
         """
         super().__init__(parent)
         yaml_str = pkg_resources.resource_string(__name__, f"configs/{name}.yaml").decode(
@@ -77,10 +92,20 @@ class Positioner(QObject):
 
     @classmethod
     def connect(cls, model: str, serial_port: str) -> Positioner:
+        """Connect to a positioner.
+
+        Classes are registered with __init_subclass__ so we can just connect
+        using the model name of the positioner to get an instance of that class.
+
+        Arguments:
+            model: model name (class name of the positioner)
+            serial_port: serial port the positioner is connected to
+        """
         return cls._models[model](serial_port)
 
     @classmethod
     def model_names(cls) -> List[str]:
+        """Get a list of all registered model names."""
         return list(cls._models.keys())
 
     def __enter__(self) -> Positioner:
@@ -90,10 +115,14 @@ class Positioner(QObject):
         self.close()
 
     def close(self) -> None:
-        # self.save_state()
+        """Close the serial connection."""
         self.serial.close()
 
     def zero(self) -> None:
+        """Zero the positioner.
+
+        Sets the PyChamber plugin setting to all zero and updates the internal state.
+        """
         SETTINGS["positioner/az-pos"] = 0.0
         SETTINGS["positioner/el-pos"] = 0.0
 
@@ -101,16 +130,35 @@ class Positioner(QObject):
         self.current_elevation = 0.0
 
     def write(self, cmd: str) -> Optional[BoardResponse]:
+        """Send a command over the serial port and get the response.
+
+        Arguments:
+            cmd: command string to send
+
+        Returns:
+            BoardResponse | None: The parsed response from the positioner if there
+                was one
+        """
         ...
 
     def query(self, cmd: str) -> str:
+        """Send a command and get the plain text positioner response.
+
+        Arguments:
+            cmd: command string to send
+
+        Returns:
+            str: the response from the positioner
+        """
         ...
 
     def abort_all(self) -> None:
+        """Abort all movement."""
         ...
 
     @property  # type: ignore
     def current_azimuth(self) -> float:
+        """The current azimuth position [deg]."""
         ...
 
     @current_azimuth.setter  # type: ignore
@@ -119,6 +167,7 @@ class Positioner(QObject):
 
     @property  # type: ignore
     def current_elevation(self) -> float:
+        """The current elevation position [deg]."""
         ...
 
     @current_elevation.setter  # type: ignore
@@ -126,19 +175,52 @@ class Positioner(QObject):
         ...
 
     def move_azimuth_relative(self, angle: float) -> None:
+        """Move the azimuth a relative number of degrees.
+
+        Arguments:
+            angle: how far to move the positioner's azimuth
+        """
         ...
 
     def move_azimuth_absolute(self, angle: float) -> None:
+        """Move the azimuth to an absolute angle.
+
+        Arguments:
+            angle: the absolute azimuth to move to
+        """
         ...
 
     def move_elevation_relative(self, angle: float) -> None:
+        """Move the elevation a relative number of degrees.
+
+        Arguments:
+            angle: how far to move the positioner's elevation
+        """
         ...
 
     def move_elevation_absolute(self, angle: float) -> None:
+        """Move the elevation to an absolute angle.
+
+        Arguments:
+            angle: the absolute elevation to move to
+        """
         ...
 
 
 class D6050(Positioner):
+    """The Diamond Engineering D6050 Turntable.
+
+    The motor driver is a SimpleStep SSXYXMicroMC.
+
+    - [Turntable
+      Website](https://www.diamondeng.net/antenna-measurement/d6050-series/)
+    - [Motor Driver
+      Manual](https://simplestep.com/wp-content/uploads/2019/03/Simple-Step\
+        -Product-Manual-4x.pdf)
+
+    It does have a Z axis, however this is currently unsupported.
+    """
+
     x = "X0"
     y = "Y0"
 
@@ -157,8 +239,8 @@ class D6050(Positioner):
 
         self.current_az: float = float(SETTINGS["positioner/az-pos"])
         self.current_el: float = float(SETTINGS["positioner/el-pos"])
-        log.debug(f"{self.current_az=}")
-        log.debug(f"{self.current_el=}")
+        LOG.debug(f"{self.current_az=}")
+        LOG.debug(f"{self.current_el=}")
 
         self.reset()
 
@@ -253,7 +335,7 @@ class D6050(Positioner):
     @property
     def current_az_steps(self) -> int:
         az_steps = self.query(f"{self.azimuth}m")
-        log.debug(f"{az_steps=}")
+        LOG.debug(f"{az_steps=}")
         return int(az_steps)
 
     @property
@@ -337,7 +419,7 @@ class D6050(Positioner):
             self.az_move_complete.emit()
             return
         steps = -int(self.az_steps_per_deg * angle)
-        log.debug(f"move az relative: {angle} degrees / {steps} steps")
+        LOG.debug(f"move az relative: {angle} degrees / {steps} steps")
         self.move(self.azimuth, f"{steps:+}")
         self.current_az += angle
 
@@ -346,7 +428,7 @@ class D6050(Positioner):
             self.el_move_complete.emit()
             return
         steps = -int(self.el_steps_per_deg * angle)
-        log.debug(f"move el relative: {angle} degrees / {steps} steps")
+        LOG.debug(f"move el relative: {angle} degrees / {steps} steps")
         self.move(self.elevation, f"{steps:+}")
         self.current_el += angle
 

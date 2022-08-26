@@ -2,7 +2,7 @@
 
 ## Stable release
 
-Todo!
+I'm actively working on creating excutables for download!
 
 ## From source
 
@@ -21,10 +21,10 @@ Or download the tarball:
 curl -OJL https://github.com/hrg-lab/pychamber/tarball/master
 ```
 
-Once you have a copy of the source, you can install it with:
+Once you have a copy of the source, you can install it using [poetry](https://python-poetry.org/docs/1.2/):
 
 ``` console
-pip install .
+poetry install
 ```
 
   [pip]: https://pip.pypa.io

@@ -1,3 +1,4 @@
+"""Define a dialog to display information about PyChamber."""
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout
 
@@ -6,7 +7,14 @@ from pychamber.ui import resources_rc  # noqa: F401
 
 
 class AboutPyChamberDialog(QDialog):
+    """Who is PyChamber?"""
+
     def __init__(self, parent=None) -> None:
+        """Create the dialog.
+
+        Arguments:
+            parent: parent QWidget
+        """
         super().__init__(parent)
         layout = QVBoxLayout()
 
@@ -39,5 +47,6 @@ class AboutPyChamberDialog(QDialog):
 
     @classmethod
     def display(cls) -> None:
+        """Display the window."""
         about = cls(parent=None)
         about.exec_()

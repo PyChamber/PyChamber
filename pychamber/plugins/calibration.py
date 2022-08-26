@@ -1,3 +1,9 @@
+"""Defines the calibration plugin and provides a wizard to perform calibration.
+
+Calibrations are dataclasses internally, and saved to disk using cloudpickle.
+This might change to be a more long-term solution as cloudpickle is highly
+version dependent.
+"""
 from __future__ import annotations
 
 import functools
@@ -33,7 +39,7 @@ from PyQt5.QtWidgets import (
     QWizardPage,
 )
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.plugins import AnalyzerPlugin, PyChamberPanelPlugin
 from pychamber.settings import SETTINGS
 from pychamber.widgets import MplRectWidget
@@ -41,18 +47,35 @@ from pychamber.widgets import MplRectWidget
 
 @dataclass
 class Calibration:
+    """A calibration.
+
+    A calibration is a set of notes related to the calibration along with the
+    data the represents the loss of the system for two polarizations.
+    """
+
     notes: str = ""
     pol1: Optional[skrf.Network] = None
     pol2: Optional[skrf.Network] = None
 
 
 class CalibrationPlugin(PyChamberPanelPlugin):
+    """The Calibration Plugin.
+
+    Attributes:
+        cal_file_loaded: Signal raised when a calibration is loaded
+    """
+
     NAME = "calibration"
     CONFIG = {"file": ""}
 
     cal_file_loaded = pyqtSignal()
 
     def __init__(self, parent: MainWindow) -> None:
+        """Instatiate the plugin.
+
+        Arguments:
+            parent: the PyChamber main window
+        """
         super().__init__(parent)
 
         self.setObjectName('calibration')
@@ -94,7 +117,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         wizard.show()
 
     def _on_cal_view_btn_clicked(self) -> None:
-        log.debug("Starting calibration view")
+        LOG.debug("Starting calibration view")
         self.view = CalViewWindow(self._cal)
         self.view.show()
 
@@ -109,12 +132,17 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_file_loaded.emit()
 
     def load_cal_file(self, fname: str) -> None:
+        """Load a calibration from disk.
+
+        Arguments:
+            fname: the filename of the calibration file
+        """
         # TODO: Run this in a thread
         try:
             with open(fname, "rb") as ff:
                 self._cal = pickle.load(ff)
         except Exception as e:
-            log.error(f"{e=}")
+            LOG.error(f"{e=}")
             QMessageBox.critical(
                 self,
                 "Invalid Calibration File",
@@ -125,7 +153,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_file_lineedit.setText(fname)
 
     def _add_widgets(self) -> None:
-        log.debug("Creating Calibration widget...")
+        LOG.debug("Creating Calibration widget...")
         self.groupbox = QGroupBox("Calibration", self)
         self.layout().addWidget(self.groupbox)
 
@@ -155,9 +183,15 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         layout.addLayout(hlayout)
 
     def set_enabled(self, state: bool) -> None:
+        """Enable/Disable the plugin.
+
+        Arguments:
+            state: True to enable, False to disable
+        """
         self.groupbox.setEnabled(state)
 
     def calibration(self) -> Optional[Calibration]:
+        """Get the currently loaded calibration."""
         if self._cal.pol1 is None and self._cal.pol2 is None:
             return None
         else:
@@ -179,15 +213,15 @@ class CalibrationWizard(QWizard):
         self.cal: Calibration = Calibration()
 
         self.setWindowTitle("Calibration Wizard")
-        log.debug("Adding intro page")
+        LOG.debug("Adding intro page")
         self.addPage(IntroPage(self))
-        log.debug("Adding setup page")
+        LOG.debug("Adding setup page")
         self.addPage(SetupPage(self))
-        log.debug("Adding notes page")
+        LOG.debug("Adding notes page")
         self.addPage(NotesPage(self))
-        log.debug("Adding ref antenna page")
+        LOG.debug("Adding ref antenna page")
         self.addPage(ReferenceAntennaPage(self))
-        log.debug("Adding calibration page")
+        LOG.debug("Adding calibration page")
         # We already check before launching the wizard that analyzer
         # is connected, so we can type ignore
         self.addPage(CalibrationPage(parent.analyzer, parent=self))  # type: ignore
@@ -332,7 +366,7 @@ class ReferenceAntennaPage(QWizardPage):
             try:
                 self.load_file(file_name)
             except Exception as e:
-                log.error(f"{e=}")
+                LOG.error(f"{e=}")
                 QMessageBox.critical(
                     self,
                     "Invalid Reference File",
@@ -362,7 +396,7 @@ class ReferenceAntennaPage(QWizardPage):
         self.completeChanged.emit()
 
     def load_file(self, path: Union[str, os.PathLike]) -> None:
-        log.debug(f"Loading {path}")
+        LOG.debug(f"Loading {path}")
         with open(path, 'r') as csvfile:
             data = pd.read_csv(csvfile, header=None)
         freqs = data.iloc[:, 0].to_numpy()
@@ -571,7 +605,7 @@ class CalibrationPage(QWizardPage):
                 with open(save_name, "wb") as ff:
                     ff.write(pickle.dumps(cal))
             except Exception as e:
-                log.error(f"{e=}")
+                LOG.error(f"{e=}")
                 QMessageBox.critical(
                     self, "Save Failure", "An error occurred while saving the calibration"
                 )

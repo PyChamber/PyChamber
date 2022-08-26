@@ -1,3 +1,4 @@
+"""Some useful ui-related constants."""
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QSizePolicy
 
@@ -14,6 +15,7 @@ size_policy = {
     'EXP_PREF': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred),
     'EXP_EXP': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding),
 }
+"""Shorter representations of QSizePolicies"""
 
 font = {
     'BOLD_12': QFont('Roboto', 12, QFont.Bold),
@@ -21,3 +23,4 @@ font = {
     'BOLD_20': QFont('Roboto', 20, QFont.Bold),
     'BOLD_20_IBM': QFont('IBM 3270', 20, QFont.Bold),
 }
+"""Fonts to use throughout the application...stylesheets?"""

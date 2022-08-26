@@ -1,9 +1,13 @@
+"""Plugin to interact with a network analyzer.
+
+Internally, this uses scikit-rf's vi module to interact with instruments.
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import List, Optional
+    from typing import List, Optional, Union
     from pychamber.main_window import MainWindow
 
 import itertools
@@ -27,7 +31,7 @@ from PyQt5.QtWidgets import (
 from quantiphy import Quantity
 from skrf.vi import vna
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.polarization import Polarization
 from pychamber.settings import SETTINGS
 from pychamber.widgets import FrequencyLineEdit
@@ -36,6 +40,12 @@ from .base import PyChamberPanelPlugin
 
 
 class AnalyzerPlugin(PyChamberPanelPlugin):
+    """A plugin to manage a network analyzer.
+
+    Attributes:
+        analyzer_connected: Signal raised when an analyzer has been succesfully connected
+    """
+
     NAME = "analyzer"
     CONFIG = {
         "backend": "",
@@ -48,13 +58,19 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
     }
 
     model = {
-        "Keysight PNA": vna.PNA,
+        "Keysight PNA": vna.keysight.PNA,
     }
+    """Mapping of user-friendly model names and their scikit-rf specific classes."""
 
     # Signals
     analyzer_connected = pyqtSignal()
 
     def __init__(self, parent: MainWindow) -> None:
+        """Instantiate the plugin.
+
+        Arguments:
+            parent: the PyChamber main window
+        """
         super().__init__(parent)
 
         self.setObjectName("analyzer")
@@ -68,11 +84,11 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.n_points: Optional[int] = None
 
     def _setup(self) -> None:
-        log.debug("Creating Analyzer widget...")
+        LOG.debug("Creating Analyzer widget...")
         self._add_widgets()
 
     def _post_visible_setup(self) -> None:
-        log.debug("Post-visible setup")
+        LOG.debug("Post-visible setup")
         self._init_inputs()
         self._connect_signals()
 
@@ -157,28 +173,28 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.freq_groupbox.setEnabled(False)
 
     def _init_inputs(self) -> None:
-        log.debug("Populating models...")
+        LOG.debug("Populating models...")
         self.model_combobox.clear()
         self.model_combobox.addItems(list(self.model.keys()))
 
-        log.debug("Populating addresses...")
+        LOG.debug("Populating addresses...")
         self.address_combobox.clear()
         # If we can't find the library, default to pyvisa-py
         try:
-            log.debug(f"Trying to populate addrs from {SETTINGS['analyzer/backend']}")
+            LOG.debug(f"Trying to populate addrs from {SETTINGS['analyzer/backend']}")
             addrs = vna.available(backend=SETTINGS["analyzer/backend"])
         except pyvisa.errors.LibraryError:
-            log.debug("Failed. Reverting to default")
+            LOG.debug("Failed. Reverting to default")
             addrs = vna.available()
 
         self.address_combobox.addItems(addrs)
 
-        log.debug("Updating inputs from settings...")
+        LOG.debug("Updating inputs from settings...")
         self.model_combobox.setCurrentText(SETTINGS['analyzer/model'])
         self.address_combobox.setCurrentText(SETTINGS['analyzer/addr'])
 
     def _connect_signals(self) -> None:
-        log.debug("Connecting signals...")
+        LOG.debug("Connecting signals...")
 
         self.model_combobox.currentTextChanged.connect(
             lambda val: SETTINGS.setval("analyzer/model", val)
@@ -265,6 +281,14 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
 
     # ========== API ==========
     def connect(self, model: str, addr: str) -> None:
+        """Connect to the analyzer.
+
+        Arguments:
+            model: the model name
+            addr: the VISA address of the instrument
+        """
+        # TODO: The QMessageBoxes should be moved out of this to allow this to
+        # be called from an interpreter
         if model == "":
             QMessageBox.warning(self, "Invalid model", "Must specify model")
             return
@@ -273,7 +297,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             QMessageBox.warning(self, "Invalid address", "Must specify address")
             return
 
-        log.debug(f"Connecting to analyzer {model} at {addr}")
+        LOG.debug(f"Connecting to analyzer {model} at {addr}")
         try:
             self._analyzer = self.model[model](addr, backend=SETTINGS['analyzer/backend'])
         except pyvisa.errors.LibraryError:
@@ -284,7 +308,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             )
             return
 
-        log.debug("Updating current analyzer frequency settings")
+        LOG.debug("Updating current analyzer frequency settings")
         try:
             self.start_freq_lineedit.setText(str(self._analyzer.start_freq()))
             self.stop_freq_lineedit.setText(str(self._analyzer.stop_freq()))
@@ -292,7 +316,7 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             self.freq_step_lineedit.setText(str(self._analyzer.freq_step()))
             ports = self._analyzer.ports
         except pyvisa.errors.VisaIOError as e:
-            log.error(f"Error communicating with the analyzer: {e}")
+            LOG.error(f"Error communicating with the analyzer: {e}")
             QMessageBox.critical(
                 self,
                 "Communication Error",
@@ -308,22 +332,30 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.pol2_combobox.blockSignals(True)
         self.pol2_lineedit.blockSignals(True)
         self.pol1_combobox.addItems(params)
-        log.debug(f"{params=}")
-        log.debug(f"setting pol1_combobox to {SETTINGS['analyzer/pol1-param']}")
+        LOG.debug(f"{params=}")
+        LOG.debug(f"setting pol1_combobox to {SETTINGS['analyzer/pol1-param']}")
         self.pol1_combobox.setCurrentText(SETTINGS['analyzer/pol1-param'])
         self.pol1_lineedit.setText(SETTINGS["analyzer/pol1-label"])
         self.pol2_combobox.addItems(params)
-        log.debug(f"setting pol2_combobox to {SETTINGS['analyzer/pol2-param']}")
+        LOG.debug(f"setting pol2_combobox to {SETTINGS['analyzer/pol2-param']}")
         self.pol2_combobox.setCurrentText(SETTINGS['analyzer/pol2-param'])
         self.pol2_lineedit.setText(SETTINGS["analyzer/pol2-label"])
         self.pol1_combobox.blockSignals(False)
         self.pol1_lineedit.blockSignals(False)
         self.pol2_combobox.blockSignals(False)
         self.pol2_lineedit.blockSignals(False)
-        log.info("Connected")
+        LOG.info("Connected")
         self.analyzer_connected.emit()
 
     def analyzer(self) -> vna.VNA:
+        """Get the analyzer instance.
+
+        Returns:
+            the analyzer instance
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected")
 
@@ -331,12 +363,15 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
 
     @property
     def sparams(self) -> List[str]:
+        """The parameters in the dropdowns."""
         return [self.pol1_combobox.itemText(i) for i in range(self.pol1_combobox.count())]
 
     def is_connected(self) -> bool:
+        """Check if an analyzer is connected."""
         return self._analyzer is not None
 
     def polarizations(self) -> List[Polarization]:
+        """Get the polarizations as a list."""
         pols = []
         pol1_param = self.pol1_combobox.currentText()
         if pol1_param != "OFF":
@@ -357,6 +392,11 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         return pols
 
     def pol_name(self, pol: int) -> str:
+        """Get the name (label) of a polarization.
+
+        Arguments:
+            pol: which polarizatoin (1, 2)
+        """
         if pol == 1:
             return self.pol1_lineedit.text()
         elif pol == 2:
@@ -365,59 +405,133 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
             raise ValueError("There are only two polarizations. Pass 1 or 2.")
 
     def frequencies(self) -> np.ndarray:
+        """Get the array of frequencies of the current setitings of the analyzer."""
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
         return self._analyzer.frequency().f
 
-    def set_start_freq(self, f: Quantity) -> None:
-        log.debug(f"Setting start freq to {f}")
+    def set_start_freq(self, f: Union[float, Quantity]) -> None:
+        """Set the analyzer start frequency.
+
+        Arguments:
+            f: the start frequency
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
+        LOG.debug(f"Setting start freq to {f}")
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
-        self._analyzer.set_start_freq(f.real)
+        if isinstance(f, Quantity):
+            f = f.real
 
-    def set_stop_freq(self, f: Quantity) -> None:
-        log.debug(f"Setting stop freq to {f}")
+        self._analyzer.set_start_freq(f)
+
+    def set_stop_freq(self, f: Union[float, Quantity]) -> None:
+        """Set the analyzer stop frequency.
+
+        Arguments:
+            f: the start frequency
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
+        LOG.debug(f"Setting stop freq to {f}")
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
-        self._analyzer.set_stop_freq(f.real)
+        if isinstance(f, Quantity):
+            f = f.real
 
-    def set_freq_step(self, f: Quantity) -> None:
-        log.debug(f"Setting freq step to {f}")
+        self._analyzer.set_stop_freq(f)
+
+    def set_freq_step(self, f: Union[float, Quantity]) -> None:
+        """Set the frequency step.
+
+        Arguments:
+            f: the frequency step
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
+        LOG.debug(f"Setting freq step to {f}")
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
+
+        if isinstance(f, Quantity):
+            f = f.real
 
         self._analyzer.set_freq_step(f.real)
+        # TODO: Move GUI code out of the API
         self.n_points_lineedit.setText(str(self._analyzer.npoints()))
 
     def set_n_points(self, n: int) -> None:
-        log.debug(f"Setting n points to {n}")
+        """Set the number of frequency points.
+
+        Arguments:
+            n: the number of points
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
+        LOG.debug(f"Setting n points to {n}")
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
         self._analyzer.set_npoints(n)
+        # TODO: Move GUI code out of the API
         self.freq_step_lineedit.setText(str(self._analyzer.freq_step()))
 
     def set_enabled(self, enable: bool) -> None:
+        """Enable/Disable the plugin.
+
+        Arguments:
+            enable: True to enable, False to disable
+        """
         self.freq_groupbox.setEnabled(enable)
 
     def get_data(self, measurement_name: str) -> skrf.Network:
+        """Get the data from an existing measurement.
+
+        Arguments:
+            measurement_name: name of the measurement to grab data from
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
         return self._analyzer.get_measurement(measurement_name)
 
     def create_measurement(self, name: str, param: str) -> None:
-        log.debug(f"Creating measurement {name}")
+        """Create a new measurement.
+
+        Arguments:
+            name: the name of the new measurement
+            param: the measurement parameter (e.g. S21)
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
+        LOG.debug(f"Creating measurement {name}")
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 
         self._analyzer.create_measurement(name, param)
 
     def delete_measurement(self, name: str) -> None:
-        log.debug(f"Deleting measurement {name}")
+        """Delete a measurement.
+
+        Arguments:
+            name: the name of the measurement to delete
+
+        Raises:
+            RuntimeError: if no analyzer is connected
+        """
+        LOG.debug(f"Deleting measurement {name}")
         if self._analyzer is None:
             raise RuntimeError("Analyzer not connected.")
 

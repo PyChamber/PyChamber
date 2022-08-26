@@ -15,13 +15,15 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.widgets import MplRectWidget, PlotLimits
 
 from .pychamber_plot import PlotControls, PyChamberPlot
 
 
 class OverFreqPlot(PyChamberPlot):
+    """Gain over frequency plot for a specific azimuth/elevation."""
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
@@ -70,7 +72,7 @@ class OverFreqPlot(PyChamberPlot):
         self.plot.autoscaled.connect(self._on_autoscaled)
 
     def _send_controls_state(self) -> None:
-        log.debug("Controls updated. Sending...")
+        LOG.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
         az = self.az_spinbox.value()
         el = self.el_spinbox.value()
@@ -108,7 +110,7 @@ class OverFreqPlot(PyChamberPlot):
         self.step_spinbox.blockSignals(False)
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
-        log.debug("Got new data. Updating...")
+        LOG.debug("Got new data. Updating...")
         pol = self.pol_combobox.currentText()
         az = self.az_spinbox.value()
         el = self.el_spinbox.value()
@@ -123,7 +125,7 @@ class OverFreqPlot(PyChamberPlot):
         freq = ntwk.frequency.f
         mags = ntwk.s_db
 
-        log.debug(f"Plotting {freq=}, {mags=}")
+        LOG.debug(f"Plotting {freq=}, {mags=}")
 
         self.plot.update_plot(freq, mags)
 

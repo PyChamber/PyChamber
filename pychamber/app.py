@@ -1,15 +1,21 @@
+"""Starts the application instance."""
 from typing import Dict
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import pychamber
-from pychamber.logger import log, set_log_level
+from pychamber.logger import LOG, set_log_level
 from pychamber.main_window import MainWindow
 
 
 def run(args: Dict):
+    """Start PyChamber.
+
+    Arguments:
+        args: dictionary of parsed command-line arguments
+    """
     set_log_level(args['loglevel'])
-    log.info(f"Starting PyChamber (v{pychamber.__version__})")
+    LOG.info(f"Starting PyChamber (v{pychamber.__version__})")
 
     app = QApplication(['PyChamber'])
     app.setOrganizationName("pychamber")
@@ -33,5 +39,5 @@ def run(args: Dict):
                 f"\nERROR: {e}"
             ),
         )
-        log.critical(f"{e}")
+        LOG.critical(f"{e}")
         raise e

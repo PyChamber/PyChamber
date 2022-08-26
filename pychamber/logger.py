@@ -1,3 +1,4 @@
+"""Define a global logger with configuration."""
 import logging
 import logging.handlers
 import pathlib
@@ -13,7 +14,7 @@ class StreamFilter(logging.Filter):
 
 
 logging.basicConfig()
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 log_path = (
     pathlib.Path(tempfile.gettempdir())
@@ -28,11 +29,11 @@ _file_handler = logging.handlers.RotatingFileHandler(
 )
 _file_handler.setFormatter(_formatter)
 
-log.addHandler(_stderr_handler)
-log.addHandler(_file_handler)
+LOG.addHandler(_stderr_handler)
+LOG.addHandler(_file_handler)
 
-log.propagate = False
+LOG.propagate = False
 
 
 def set_log_level(level: str) -> None:
-    log.setLevel(level.upper())
+    LOG.setLevel(level.upper())

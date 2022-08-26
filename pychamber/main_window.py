@@ -1,3 +1,4 @@
+"""The main PyChamber application window."""
 import webbrowser
 from typing import TYPE_CHECKING, cast
 
@@ -19,13 +20,19 @@ from PyQt5.QtWidgets import (
 )
 
 import pychamber.plugins as plugins
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.plugins import PyChamberPanelPlugin, PyChamberPlugin, PyChamberPluginError
 from pychamber.ui import resources_rc, size_policy  # noqa: F401
 from pychamber.widgets import AboutPyChamberDialog, LogViewer, SettingsDialog
 
 
 class MainWindow(QMainWindow):
+    """PyChamber.
+
+    This is the main window of PyChamber. It is responsible for handling user
+    interactions, managing plugins, and providing a menu and status bar.
+    """
+
     REQUIRED_PLUGINS = [
         plugins.AnalyzerPlugin,
         plugins.CalibrationPlugin,
@@ -33,10 +40,16 @@ class MainWindow(QMainWindow):
         plugins.PositionerPlugin,
         plugins.PlotsPlugin,
     ]
+    """list(PyChamberPlugin): List of minimum plugins required to run PyChamber"""
 
     def __init__(self, *args) -> None:
+        """Create the PyChamber main window.
+
+        Does some basic initialization, but expects the launching (in app.py) to
+        call methods to do the actual setup.
+        """
         super().__init__(*args)
-        log.debug("Constructing MainWindow...")
+        LOG.debug("Constructing MainWindow...")
 
         self.setWindowTitle("PyChamber")
         self.setWindowIcon(QIcon(":/logo.png"))
@@ -48,7 +61,7 @@ class MainWindow(QMainWindow):
         self.registered_plugins: Dict[str, PyChamberPlugin] = {}
 
     def _on_save_triggered(self) -> None:
-        log.debug("Launching save dialog...")
+        LOG.debug("Launching save dialog...")
         experiment = cast(plugins.ExperimentPlugin, self.get_plugin("experiment"))
         ntwk_model = experiment.ntwk_model
         if len(ntwk_model) == 0:
@@ -65,13 +78,13 @@ class MainWindow(QMainWindow):
 
     def _on_load_triggered(self) -> None:
         # TODO: Handle NetworkModel.data_loaded
-        log.debug("Launching load dialog...")
+        LOG.debug("Launching load dialog...")
         experiment = cast(plugins.ExperimentPlugin, self.get_plugin("experiment"))
         ntwk_model = experiment.ntwk_model
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
             try:
-                log.debug(f"Loading {file_name}")
+                LOG.debug(f"Loading {file_name}")
                 with open(file_name, 'rb') as ff:
                     data = pickle.load(ff)
                     ntwk_model.load_data(data)
@@ -82,18 +95,20 @@ class MainWindow(QMainWindow):
                 return
 
     def _on_settings_triggered(self) -> None:
-        log.debug("Launching settings dialog...")
+        LOG.debug("Launching settings dialog...")
         SettingsDialog.display()
 
     def _on_python_interpreter_triggered(self) -> None:
-        log.debug("Launching Python interpreter...")
+        LOG.debug("Launching Python interpreter...")
 
     def setup(self) -> None:
+        """Setup the window's menu and widgets."""
         self._setup_menu()
         self._add_widgets()
 
     def post_visible_setup(self) -> None:
-        log.debug("Running post-visible setups")
+        """Initialize registered plugins."""
+        LOG.debug("Running post-visible setups")
         to_init = list(self.registered_plugins.values())
         for plugin in to_init:
             plugin._post_visible_setup()
@@ -101,13 +116,19 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Welcome to PyChamber!", 2000)
 
     def center(self) -> None:
+        """Center the window."""
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        log.debug("Close event triggered")
+        """Warn the user on close.
+
+        Arguments:
+            event: the event that triggered the close.
+        """
+        LOG.debug("Close event triggered")
         warning = QMessageBox()
         warning.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
         warning.setDefaultButton(QMessageBox.Cancel)
@@ -115,14 +136,26 @@ class MainWindow(QMainWindow):
 
         resp = warning.exec_()
         if resp == QMessageBox.Yes:
-            log.debug("Close event accepted")
+            LOG.debug("Close event accepted")
             del self.settings  # Saves settings
             super().closeEvent(event)
         else:
-            log.debug("Close event canceled")
+            LOG.debug("Close event canceled")
             event.ignore()
 
     def register_plugin(self, plugin: PyChamberPlugin) -> None:
+        """Register a plugin.
+
+        This registers the plugin with the application (including settings). All
+        panel plugins are added to the left-side scrolling panel and any other
+        plugins are added to the main layout. This might change for plugins the
+        may not want to be in either place (e.g. tools accessible from the menu)
+
+        For more information about creating plugins, see the plugins module documentation.
+
+        Arguments:
+            plugin: plugin to register
+        """
         assert plugin.NAME is not None
         if plugin.NAME in self.registered_plugins:
             raise PyChamberPluginError(
@@ -132,20 +165,34 @@ class MainWindow(QMainWindow):
         self.registered_plugins[plugin.NAME] = plugin
 
         if isinstance(plugin, PyChamberPanelPlugin):
-            log.debug(f"Adding {plugin.NAME} to panel")
+            LOG.debug(f"Adding {plugin.NAME} to panel")
             self.panel_layout.addWidget(plugin)
         elif isinstance(plugin, PyChamberPlugin):
-            log.debug(f"Adding {plugin.NAME} to right side")
+            LOG.debug(f"Adding {plugin.NAME} to right side")
             self.right_side_layout.addWidget(plugin)
 
     def unregister_plugin(self, plugin: PyChamberPlugin) -> None:
-        pass
+        """Remove a plugin from PyChamber (NOT IMPLEMENTED).
+
+        Arguments:
+            plugin: plugin to remove
+        """
+        raise NotImplementedError
 
     def get_plugin(self, plugin_name: str) -> PyChamberPlugin:
+        """Retrieve plugin instance.
+
+        All plugins are registered in the MainWindow and have a reference to it.
+        Plugins that need to interoperate with other plugins can use this
+        function to retrieve those plugin instances.
+
+        Arguments:
+            plugin_name: name of the plugin. This is defined by each plugin.
+        """
         return self.registered_plugins[plugin_name]
 
     def _setup_menu(self) -> None:
-        log.debug("Setting up menu...")
+        LOG.debug("Setting up menu...")
         self.menu = self.menuBar()
 
         self.file = self.menu.addMenu("File")
@@ -178,7 +225,7 @@ class MainWindow(QMainWindow):
         self.log.triggered.connect(LogViewer.display)
 
     def _add_widgets(self) -> None:
-        log.debug("Setting up widgets...")
+        LOG.debug("Setting up widgets...")
 
         self.panel_scroll_area = QScrollArea(widgetResizable=True)
         self.panel_widget = QWidget()

@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.ui import size_policy
 from pychamber.widgets import FrequencySpinBox, MplRectWidget
 
@@ -29,6 +29,8 @@ from .pychamber_plot import PlotControls, PyChamberPlot
 
 
 class RectangularPlot(PyChamberPlot):
+    """A rectangular plot of the antenna pattern."""
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
@@ -44,7 +46,7 @@ class RectangularPlot(PyChamberPlot):
         freqs: np.ndarray = cast(np.ndarray, kwargs.get('frequencies'))
         self.freq_spinbox.setRange(freqs.min(), freqs.max())
         self.freq_spinbox.setSingleStep(freqs[1] - freqs[0])
-        log.debug(f"Setting xlimits to {azimuths}")
+        LOG.debug(f"Setting xlimits to {azimuths}")
         self.plot.xmin = azimuths.min()
         self.plot.xmax = azimuths.max()
 
@@ -70,7 +72,7 @@ class RectangularPlot(PyChamberPlot):
         self.plot.autoscaled.connect(self._on_autoscaled)
 
     def _send_controls_state(self) -> None:
-        log.debug("Controls updated. Sending...")
+        LOG.debug("Controls updated. Sending...")
         pol = self.pol_combobox.currentText()
 
         ctrl = PlotControls(polarization=pol, elevation=0.0)
@@ -106,7 +108,7 @@ class RectangularPlot(PyChamberPlot):
         self.step_spinbox.blockSignals(False)
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
-        log.debug("Got new data. Updating...")
+        LOG.debug("Got new data. Updating...")
         pol = self.pol_combobox.currentText()
         freq = self.freq_spinbox.text()
         if ntwk.params['polarization'] != pol:

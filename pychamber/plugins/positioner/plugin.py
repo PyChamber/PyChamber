@@ -1,3 +1,4 @@
+"""Defines the PositionerPlugin."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -25,7 +26,7 @@ from PyQt5.QtWidgets import (
 )
 from serial.tools import list_ports
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.plugins import PyChamberPanelPlugin
 from pychamber.settings import SETTINGS
 from pychamber.ui import font
@@ -34,6 +35,15 @@ from .positioner import JogAxis, JogDir, Positioner
 
 
 class PositionerPlugin(PyChamberPanelPlugin):
+    """The Positioner plugin.
+
+    Attributes:
+        positioner_connected: Signal raised when a positioner is successfully
+            connected
+        jog_started: Signal raised to announce the start of a jog movement
+        jog_complete: Signal raised to announce a jog movement has completed
+    """
+
     NAME = "positioner"
     CONFIG = {
         "model": "",
@@ -56,6 +66,11 @@ class PositionerPlugin(PyChamberPanelPlugin):
     jog_complete = pyqtSignal()
 
     def __init__(self, parent: MainWindow) -> None:
+        """Instantiate the plugin.
+
+        Arguments:
+            parent: the PyChamber main window
+        """
         super().__init__(parent)
 
         self.setObjectName('positioner')
@@ -75,11 +90,12 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self._add_widgets()
 
     def _post_visible_setup(self) -> None:
-        log.debug("Post-visible setup...")
+        LOG.debug("Post-visible setup...")
         self._init_inputs()
         self._connect_signals()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        """Ensures jog threads are closed and stores current position."""
         if self._positioner is not None:
             SETTINGS["polarization/az-pos"] = self._positioner.current_azimuth
             SETTINGS["polarization/el-pos"] = self._positioner.current_elevation
@@ -88,7 +104,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
         super().closeEvent(event)
 
     def _add_widgets(self) -> None:
-        log.debug("Creating Positioner widget...")
+        LOG.debug("Creating Positioner widget...")
         self.groupbox = QGroupBox("Positioner", self)
         self.layout().addWidget(self.groupbox)
 
@@ -124,16 +140,16 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self.groupbox_layout.addWidget(self.jog_groupbox)
 
     def _init_inputs(self) -> None:
-        log.debug("Populating models...")
+        LOG.debug("Populating models...")
         self.model_combobox.clear()
         self.model_combobox.addItems(Positioner.model_names())
 
-        log.debug("Populating addrs...")
+        LOG.debug("Populating addrs...")
         self.port_combobox.clear()
         ports = [p.device for p in list_ports.comports()]
         self.port_combobox.addItems(ports)
 
-        log.debug("Updating inputs from settings...")
+        LOG.debug("Updating inputs from settings...")
         self.model_combobox.setCurrentText(SETTINGS['positioner/model'])
         self.port_combobox.setCurrentText(SETTINGS['positioner/port'])
         self.az_start_spinbox.setValue(float(SETTINGS["positioner/az-start"]))
@@ -267,7 +283,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self._positioner.el_move_complete.connect(self._on_el_move_complete)
 
     def _on_jog_complete(self) -> None:
-        log.debug("Jog complete")
+        LOG.debug("Jog complete")
         self.set_enabled(True and self.listen_to_jog_complete_signals)
 
     def _setup_az_extent_widget(self) -> None:
@@ -492,7 +508,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
             QMessageBox.critical(self, "Connection Error", "Positioner not connected")
             return
 
-        log.debug("Setting up jog thread")
+        LOG.debug("Setting up jog thread")
         self.set_enabled(False)
         match axis:
             case JogAxis.AZIMUTH:
@@ -504,7 +520,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
                     )
                 else:
                     angle = self.jog_az_to
-                log.debug("Starting azimuth jog thread")
+                LOG.debug("Starting azimuth jog thread")
                 self.jog_thread.run = functools.partial(self.jog_az, angle)
             case JogAxis.ELEVATION:
                 if direction == JogDir.ZERO:
@@ -515,14 +531,21 @@ class PositionerPlugin(PyChamberPanelPlugin):
                     )
                 else:
                     angle = self.jog_el_to
-                log.debug("Starting elevation jog thread")
+                LOG.debug("Starting elevation jog thread")
                 self.jog_thread.run = functools.partial(self.jog_el, angle)
 
-        log.debug(f"Jogging angle: {angle}")
+        LOG.debug(f"Jogging angle: {angle}")
         self.jog_thread.start()
 
     # ========== API ==========
     def connect(self, model: str, port: str) -> None:
+        """Connect to a positioner.
+
+        Arguments:
+            model: model string
+            port: serial port the positioner is on
+        """
+        # TODO: Move messageboxes out of API code
         if model == "":
             QMessageBox.warning(self, "Invalid model", "Must specify model")
             return
@@ -531,7 +554,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
             QMessageBox.warning(self, "Invalid address", "Must specify port")
             return
 
-        log.debug(f"Connecting to positioner {model} at {port}")
+        LOG.debug(f"Connecting to positioner {model} at {port}")
         try:
             self._positioner = Positioner.connect(model, port)
         except Exception as e:
@@ -540,16 +563,18 @@ class PositionerPlugin(PyChamberPanelPlugin):
             )
             return
 
-        log.info("Connected")
+        LOG.info("Connected")
         self.positioner_connected.emit()
 
     def positioner(self) -> Positioner:
+        """Get the positioner."""
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
 
         return self._positioner
 
     def az_extents(self) -> np.ndarray:
+        """Get the current azimuth extents as a numpy array."""
         return np.arange(
             float(SETTINGS["positioner/az-start"]),
             float(SETTINGS["positioner/az-stop"]) + float(SETTINGS["positioner/az-step"]),
@@ -557,6 +582,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
         )
 
     def el_extents(self) -> np.ndarray:
+        """Get the current elevation extents as a numpy array."""
         return np.arange(
             float(SETTINGS["positioner/el-start"]),
             float(SETTINGS["positioner/el-stop"]) + float(SETTINGS["positioner/el-step"]),
@@ -564,18 +590,39 @@ class PositionerPlugin(PyChamberPanelPlugin):
         )
 
     def jog_az(self, angle: float) -> None:
-        log.debug("Jogging azimuth")
+        """Jog the azimuth plane to an angle.
+
+        Arguments:
+            angle: absolute angle to move the azimuth to
+
+        Raises:
+            RuntimeError: if the positioner is not connected
+        """
+        LOG.debug("Jogging azimuth")
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
 
         self._positioner.move_azimuth_absolute(angle)
 
     def jog_el(self, angle: float) -> None:
-        log.debug("Jogging elevation")
+        """Jog the elevation plane to an angle.
+
+        Arguments:
+            angle: absolute angle to move the elevation to
+
+        Raises:
+            RuntimeError: if the positioner is not connected
+        """
+        LOG.debug("Jogging elevation")
         if self._positioner is None:
             raise RuntimeError("Positioner not connected")
 
         self._positioner.move_elevation_absolute(angle)
 
     def set_enabled(self, enable: bool) -> None:
+        """Enable/Disable the plugin.
+
+        Arguments:
+            enable: True to enable, False to disable
+        """
         self.jog_groupbox.setEnabled(enable)

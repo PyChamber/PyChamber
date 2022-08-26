@@ -16,9 +16,14 @@ classes derived from them) which greatly simplifies post-processing.
 ## Table of Contents
 
 - [Overview](./): This page
-- [Usage](./usage.md): How to use the program
-- [API Reference](./reference/index.md): Documentation of the Python API
 - [Installation](./installation.md): Ways to install PyChamber
+- [The Interface](./the_interface.md): Explains the GUI
+- [Taking a Measurement](./taking_a_measurement.md): The process of setting up
+  and taking a measurement
+- [Calibration](./calibration.md): How to perform a calibration
+- [Interacting with Data in Python](./interact_with_data.md): How to load data
+  into Python and use it
+- [API Reference](./reference/): Documentation of the Python API
 - [Contributing](./contributing.md): How to help with the development of
   PyChamber
 - [Changelog](./changelog.md): Summaries of each update of PyChamber

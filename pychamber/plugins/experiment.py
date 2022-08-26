@@ -1,3 +1,4 @@
+"""Defines the experiment plugin."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
@@ -34,7 +35,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from pychamber.logger import log
+from pychamber.logger import LOG
 from pychamber.models import NetworkModel
 from pychamber.plugins import PyChamberPlugin
 from pychamber.ui import font, size_policy
@@ -47,6 +48,24 @@ class ExperimentType(Enum):
 
 
 class ExperimentPlugin(PyChamberPlugin):
+    """The Experiment plugin.
+
+    This plugin handles the actual nuts and bolts of taking a measurement. It
+    spins up a new thread to keep the GUI responsive, and manages the positioner
+    and analyzer.
+
+    Attributes:
+        start_experiment: Signal the start of an experiment
+        experiment_done: Signal an experiment has concluded
+        abort_clicked: Signal raised when the abort button is clicked (passed to
+            the measurement thread)
+        progress_updated: Signal raised when the total progress is updated
+        update_remaining: Signal to indicate remaining iteration counter should be updated
+        cut_progress_updated: Signal raised when cut progress is updated
+        time_remaining_updated: Signal to indicate time remaining has been updated
+        data_acquired: Signal raised when new data is acquired
+    """
+
     NAME = "experiment"
     CONFIG: Dict = {}
 
@@ -61,6 +80,11 @@ class ExperimentPlugin(PyChamberPlugin):
     data_acquired = pyqtSignal(object)
 
     def __init__(self, parent: MainWindow) -> None:
+        """Instantiate the plugin.
+
+        Arguments:
+            parent: the PyChamber main window
+        """
         super().__init__(parent)
 
         self.setObjectName("experiment")
@@ -97,7 +121,7 @@ class ExperimentPlugin(PyChamberPlugin):
         self._connect_signals()
 
     def _add_widgets(self) -> None:
-        log.debug("Creating Experiment widget...")
+        LOG.debug("Creating Experiment widget...")
         self.groupbox = QGroupBox("Experiment", self)
         self.layout().addWidget(self.groupbox)
 
@@ -225,7 +249,7 @@ class ExperimentPlugin(PyChamberPlugin):
 
         pols = self.analyzer.polarizations()
         if len(pols) == 0:
-            log.debug("No polarizations. No experiment to run")
+            LOG.debug("No polarizations. No experiment to run")
             return
 
         self.reset_experiment()
@@ -254,17 +278,17 @@ class ExperimentPlugin(PyChamberPlugin):
         else:
             pol = ntwk.params["polarization"]
             if pol == self.analyzer.pol_name(1):
-                log.debug("Applying calibration pol1")
+                LOG.debug("Applying calibration pol1")
                 loss = cal.pol1
             elif pol == self.analyzer.pol_name(2):
-                log.debug("Applying calibration pol2")
+                LOG.debug("Applying calibration pol2")
                 loss = cal.pol2
             else:
                 raise ValueError("This should be unreachable...")
 
             assert loss is not None
-            log.debug(f"{ntwk.s_db[0]=}")
-            log.debug(f"{loss.s_db[0]=}")
+            LOG.debug(f"{ntwk.s_db[0]=}")
+            LOG.debug(f"{loss.s_db[0]=}")
             corrected_ntwk = ntwk / loss
             self.ntwk_model.add_data(corrected_ntwk)
 
@@ -277,7 +301,7 @@ class ExperimentPlugin(PyChamberPlugin):
         self.set_enabled(True)
 
     def _on_abort_experiment(self) -> None:
-        log.debug("Aborting experiment...")
+        LOG.debug("Aborting experiment...")
         if self.experiment_thread.isRunning():
             self.experiment_thread.requestInterruption()
 
@@ -313,18 +337,25 @@ class ExperimentPlugin(PyChamberPlugin):
         self.time_remaining_updated.emit(self._remaining_iters * self._avg_iter_time)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        """Ensures threads are killed."""
         self.experiment_thread.quit()
         self.experiment_thread.wait()
         super().closeEvent(event)
 
     # ========== API ==========
     def set_enabled(self, enable: bool) -> None:
+        """Enable/Disable the plugin.
+
+        Arguments:
+            enable: True to enable, False to disable
+        """
         self.az_scan_btn.setEnabled(enable)
         self.el_scan_btn.setEnabled(enable)
         self.full_scan_btn.setEnabled(enable)
         self.abort_btn.setEnabled(not enable)
 
     def reset_experiment(self) -> None:
+        """Reset experiment to initial state."""
         self.total_progressbar.setValue(0)
         self.cut_progressbar.setValue(0)
         self.cut_progressbar.setEnabled(False)
@@ -336,10 +367,28 @@ class ExperimentPlugin(PyChamberPlugin):
         azimuths: np.ndarray,
         elevations: np.ndarray,
     ) -> None:
-        log.debug("Starting experiment thread")
-        log.debug(f"{polarizations=}")
-        log.debug(f"{azimuths=}")
-        log.debug(f"{elevations=}")
+        """Run an experiment!
+
+        This is the primary purpose of this plugin...to do the actual data
+        gathering. This function is meant to be the run function of a QThread to
+        ensure the GUI remains responsive.
+
+        It will create measurements on the analyzer and delete them when it's finished.
+
+        Arguments:
+            polarizations: List of Polarizations which contain measurement names
+                and parameters
+            azimuths: array of azimuths to steer the positioner to
+            elevations: array of elevations to steer the positioner to
+
+        Raises:
+            AssertionError: if any of the required plugins are unavailable
+            RuntimeError: if any other exception is raised during the experiment
+        """
+        LOG.debug("Starting experiment thread")
+        LOG.debug(f"{polarizations=}")
+        LOG.debug(f"{azimuths=}")
+        LOG.debug(f"{elevations=}")
         assert self.analyzer is not None
         assert self.plots is not None
         assert self.positioner is not None
@@ -369,39 +418,39 @@ class ExperimentPlugin(PyChamberPlugin):
                 self.analyzer.create_measurement(f"ANT_{pol.param}", pol.param)
 
             for i, azimuth in enumerate(azimuths):
-                log.debug(f"Azimuth: {azimuth}")
+                LOG.debug(f"Azimuth: {azimuth}")
                 if self.experiment_thread.isInterruptionRequested():
                     self.main.statusBar().showMessage("Experiment aborted!", 4000)
                     break
 
                 params["azimuth"] = azimuth
                 self.positioner.jog_az(azimuth)
-                log.debug("Waiting for azimuth jog to finish...")
+                LOG.debug("Waiting for azimuth jog to finish...")
                 move_spy.wait()
 
                 for j, elevation in enumerate(elevations):
-                    log.debug(f"Elevation: {elevation}")
+                    LOG.debug(f"Elevation: {elevation}")
                     if self.experiment_thread.isInterruptionRequested():
                         self.main.statusBar().showMessage("Experiment aborted!", 4000)
                         break
 
                     params["elevation"] = elevation
                     self.positioner.jog_el(elevation)
-                    log.debug("Waiting for elevation jog to finish...")
+                    LOG.debug("Waiting for elevation jog to finish...")
                     move_spy.wait()
 
                     for pol in polarizations:
                         params["polarization"] = pol.label
                         ntwk = self.analyzer.get_data(f"ANT_{pol.param}")
                         ntwk.params = params.copy()
-                        log.debug(f"Got data for {ntwk.params}")
+                        LOG.debug(f"Got data for {ntwk.params}")
                         data_acquired.emit(ntwk)
 
-                    log.debug(f"{len(elevations)}")
+                    LOG.debug(f"{len(elevations)}")
                     completed = i * len(elevations) + j
                     self.update_remaining.emit(total_iters - completed)
-                    log.debug(f"{i=}; {j=}")
-                    log.debug(f"{completed=}")
+                    LOG.debug(f"{i=}; {j=}")
+                    LOG.debug(f"{completed=}")
                     progress = int(completed / total_iters * 100)
                     cut_progress = int(j / len(elevations) * 100)
 
