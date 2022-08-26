@@ -1,1 +1,1 @@
-from .main_window import MainWindow
+from .ui import font, size_policy

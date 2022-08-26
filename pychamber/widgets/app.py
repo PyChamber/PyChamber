@@ -6,8 +6,8 @@ class PyChamberApp(QApplication):
         super().__init__(*args, **kwargs)
 
     def gui(self):
-        from pychamber.controller import PyChamberCtrl
-        from pychamber.ui import MainWindow
+        from pychamber.deprecated import MainWindow
+        from pychamber.deprecated.controller import PyChamberCtrl
 
         self.window = MainWindow()
         self.ctrl = PyChamberCtrl(self.window)

@@ -1,9 +1,8 @@
-import pathlib
 import shutil
-import tempfile
 
-from classes.logger import log_path
 from PyQt5.QtWidgets import QDialog, QFileDialog, QPlainTextEdit, QPushButton, QVBoxLayout
+
+from pychamber.logger import log_path
 
 
 class LogViewer(QDialog):
