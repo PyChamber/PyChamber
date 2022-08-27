@@ -2,12 +2,8 @@
 
 # PyChamber
 
-Python GUI to Control PSU Anechoic Chamber built with PyQt5
+PyChamber is an open-source application written with Qt to take anechoic chamber measurements. All measurements are saved as scikit-rf objects (or classes derived from them) which greatly simplifies post-processing.
 
 * Documentation: <https://hrg-lab.github.io/pychamber>
 * GitHub: <https://github.com/hrg-lab/pychamber>
 * Free software: MIT
-
-## Features
-
-* TODO
