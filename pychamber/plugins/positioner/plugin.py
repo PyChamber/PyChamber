@@ -1,5 +1,6 @@
 """Defines the PositionerPlugin."""
 from __future__ import annotations
+from shutil import move
 
 from typing import TYPE_CHECKING
 
@@ -12,6 +13,7 @@ import functools
 import numpy as np
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap
+from PyQt5.QtTest import QSignalSpy
 from PyQt5.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -228,6 +230,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
                 self._jog, axis=JogAxis.ELEVATION, direction=JogDir.PLUS, relative=True
             )
         )
+        self.ret_to_zero_btn.clicked.connect(self._on_ret_to_zero_clicked)
 
         self.set_zero_btn.clicked.connect(self._on_set_zero_clicked)
         self.positioner_connected.connect(self._on_positioner_connected)
@@ -261,6 +264,12 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self._positioner.zero()
         self.az_pos_lineedit.setText("0.0")
         self.el_pos_lineedit.setText("0.0")
+
+    def _on_ret_to_zero_clicked(self) -> None:
+        move_spy = QSignalSpy(self.jog_complete)
+        self._jog(axis=JogAxis.ELEVATION, direction=JogDir.ZERO, relative=False)
+        move_spy.wait()
+        self._jog(axis=JogAxis.AZIMUTH, direction=JogDir.ZERO, relative=False)
 
     def _on_az_move_complete(self) -> None:
         assert self._positioner is not None
