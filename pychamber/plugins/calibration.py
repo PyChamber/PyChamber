@@ -50,7 +50,7 @@ class Calibration:
     """A calibration.
 
     A calibration is a set of notes related to the calibration along with the
-    data the represents the loss of the system for two polarizations.
+    data that represents the loss of the system for one or two polarizations.
     """
 
     notes: str = ""
@@ -155,6 +155,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
             return
 
         self.cal_file_lineedit.setText(fname)
+        self.cal_file_loaded.emit()
 
     def _add_widgets(self) -> None:
         LOG.debug("Creating Calibration widget...")
