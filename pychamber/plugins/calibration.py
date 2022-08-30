@@ -118,6 +118,10 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
     def _on_cal_view_btn_clicked(self) -> None:
         LOG.debug("Starting calibration view")
+        if self._cal is None:
+            QMessageBox.warning(
+                self, "No Calibration Loaded", "No calibration file is active."
+            )
         self.view = CalViewWindow(self._cal)
         self.view.show()
 
@@ -178,6 +182,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         hlayout.addWidget(self.cal_btn)
 
         self.cal_view_btn = QPushButton("View Calibration", self.groupbox)
+        self.cal_view_btn.setEnabled(False)
         hlayout.addWidget(self.cal_view_btn)
 
         layout.addLayout(hlayout)
