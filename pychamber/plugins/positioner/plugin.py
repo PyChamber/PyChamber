@@ -1,6 +1,5 @@
 """Defines the PositionerPlugin."""
 from __future__ import annotations
-from shutil import move
 
 from typing import TYPE_CHECKING
 
@@ -567,8 +566,9 @@ class PositionerPlugin(PyChamberPanelPlugin):
         try:
             self._positioner = Positioner.connect(model, port)
         except Exception as e:
+            LOG.debug(f"{e=}")
             QMessageBox.critical(
-                self, "Connection Error", f"Failed to connecto to positioner: {e}"
+                self, "Connection Error", f"Failed to connect to to positioner: {e}"
             )
             return
 
