@@ -67,7 +67,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          poetry install
+          poetry install -E dev -E doc -E test
       - name: Build with pyinstaller for ${{ matrix.TARGET }}
         run: ${{ matrix.CMD_BUILD }}
       - name: Load Release URL File from release job
