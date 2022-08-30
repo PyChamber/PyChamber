@@ -243,7 +243,6 @@ class ExperimentPlugin(PyChamberPlugin):
                 az_extents = np.asarray([0.0])
                 el_extents = self.positioner.el_extents()
             case ExperimentType.FULL:
-                self.cut_progressbar.setEnabled(True)
                 az_extents = self.positioner.az_extents()
                 el_extents = self.positioner.el_extents()
 
@@ -253,6 +252,8 @@ class ExperimentPlugin(PyChamberPlugin):
             return
 
         self.reset_experiment()
+        if experiment_type == ExperimentType.FULL:
+            self.enable_cut_progress(True)
         self.ntwk_model.reset()
         self.plots.set_polarizations([p.label for p in pols])
         self.plots.init_plots(
@@ -294,7 +295,7 @@ class ExperimentPlugin(PyChamberPlugin):
 
     def _on_experiment_done(self) -> None:
         assert self.calibration is not None
-        self.cut_progressbar.setEnabled(False)
+        self.enable_cut_progress(False)
         self.total_progressbar.setValue(100)
         self.time_remaining_lineedit.setText("Done!")
         self.calibration.set_enabled(True)
@@ -354,11 +355,19 @@ class ExperimentPlugin(PyChamberPlugin):
         self.full_scan_btn.setEnabled(enable)
         self.abort_btn.setEnabled(not enable)
 
+    def enable_cut_progress(self, state: bool) -> None:
+        if state:
+            self.cut_progress_label.show()
+            self.cut_progressbar.show()
+        else:
+            self.cut_progress_label.hide()
+            self.cut_progressbar.hide()
+
     def reset_experiment(self) -> None:
         """Reset experiment to initial state."""
         self.total_progressbar.setValue(0)
         self.cut_progressbar.setValue(0)
-        self.cut_progressbar.setEnabled(False)
+        self.enable_cut_progress(False)
         self.time_remaining_lineedit.setText("")
 
     def run_experiment(

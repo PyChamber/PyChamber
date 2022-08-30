@@ -113,6 +113,8 @@ class RectangularPlot(PyChamberPlot):
         freq = self.freq_spinbox.text()
         if ntwk.params['polarization'] != pol:
             return
+        if ntwk.params['elevation'] != 0.0:
+            return
 
         theta = np.deg2rad(float(ntwk.params['azimuth']))
         mag = ntwk[freq].s_db  # type: ignore
