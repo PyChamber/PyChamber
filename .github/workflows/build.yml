@@ -35,19 +35,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            TARGET: macos
-            CMD_BUILD: >
-              pyinstaller -F -w -n pychamber --copy-metadata pychamber
-              --collect-data skrf --paths=pychamber --hidden-import pyvisa_py
-              ./pychamber/launch.py && cd dist/ && zip -r9 pychamber
-              pychamber.app/
-            OUT_FILE_NAME: pychamber.zip
-            ASSET_MIME: application/zip
           - os: windows-latest
             TARGET: windows
-            CMD_BUILD: pyinstaller -F -w -n pychamber --copy-metadata pychamber
-              --collect-data skrf --paths=pychamber --hidden-import pyvisa_py
+            CMD_BUILD: pyinstaller -F -w -n PyChamber --copy-metadata pychamber
+              --collect-data skrf --paths=pychamber --hidden-import pyvisa_py --icon resources/icon.png
               ./pychamber/launch.py
             OUT_FILE_NAME: pychamber.exe
             ASSET_MIME: application/vnd.microsoft.portable-executable
