@@ -2,7 +2,16 @@
 
 ## Stable release
 
-I'm actively working on creating excutables for download!
+The most recent release is currently available as a .exe file. I'm working on
+adding OSX support.
+
+You can also install the .whl file by downloading it from releases and running:
+
+```console
+pip install pychamber-<version>-py3-none-any.whl
+```
+
+**NOTE:** You currently must have git installed to install the .whl file
 
 ## From source
 
@@ -26,6 +35,3 @@ Once you have a copy of the source, you can install it using [poetry](https://py
 ``` console
 poetry install
 ```
-
-  [pip]: https://pip.pypa.io
-  [Python installation guide]: http://docs.python-guide.org/en/latest/starting/installation/

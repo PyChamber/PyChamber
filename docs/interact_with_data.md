@@ -1,6 +1,6 @@
 # Interacting with Data in Python
 
-!!! note "PyChamber is deeply integrated with scikit-rf. Information about scikit-rf objects should be found in [their documentation](scikit-rf.readthedocs.io/)"
+!!! note "PyChamber is deeply integrated with scikit-rf. Information about scikit-rf objects should be found in [their documentation](https://scikit-rf.readthedocs.io/en/latest/)"
 
 ## Loading Measurements
 
