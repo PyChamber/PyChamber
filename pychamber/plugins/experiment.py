@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
@@ -232,6 +233,19 @@ class ExperimentPlugin(PyChamberPlugin):
         assert self.plots is not None
         assert self.calibration is not None
 
+        pols = self.analyzer.polarizations()
+        if len(pols) == 0:
+            QMessageBox.warning(
+                self,
+                "No polarization selected",
+                (
+                    "No polarizations were chosen for the analyzer."
+                    "Must select at least one polarization to run an experiment."
+                ),
+            )
+            LOG.debug("No polarizations. No experiment to run")
+            return
+
         self.set_enabled(False)
         self.calibration.set_enabled(False)
 
@@ -245,11 +259,6 @@ class ExperimentPlugin(PyChamberPlugin):
             case ExperimentType.FULL:
                 az_extents = self.positioner.az_extents()
                 el_extents = self.positioner.el_extents()
-
-        pols = self.analyzer.polarizations()
-        if len(pols) == 0:
-            LOG.debug("No polarizations. No experiment to run")
-            return
 
         self.reset_experiment()
         if experiment_type == ExperimentType.FULL:
@@ -288,8 +297,8 @@ class ExperimentPlugin(PyChamberPlugin):
                 raise ValueError("This should be unreachable...")
 
             assert loss is not None
-            LOG.debug(f"{ntwk.s_db[0]=}")
-            LOG.debug(f"{loss.s_db[0]=}")
+            LOG.debug(f"{ntwk.s_db[0]=}")  # type: ignore
+            LOG.debug(f"{loss.s_db[0]=}")  # type: ignore
             corrected_ntwk = ntwk / loss
             self.ntwk_model.add_data(corrected_ntwk)
 
