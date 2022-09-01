@@ -53,6 +53,7 @@ mkdocs-gen-files = { version = "^0.3.5", optional = true }
 mkdocs-literate-nav = { version = "^0.4.1", optional = true }
 mkdocs-section-index = { version = "^0.3.4", optional = true }
 pyinstaller = { version = "^5.3", optional = true }
+qtwidgets = "^0.18"
 
 [tool.poetry.extras]
 test = ["pytest", "flake8", "flake8-docstrings", "pytest-cov"]

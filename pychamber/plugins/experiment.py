@@ -303,7 +303,10 @@ class ExperimentPlugin(PyChamberPlugin):
             self.ntwk_model.add_data(corrected_ntwk)
 
     def _on_experiment_done(self) -> None:
+        assert self.analyzer is not None
         assert self.calibration is not None
+        assert self.positioner is not None
+
         self.enable_cut_progress(False)
         self.total_progressbar.setValue(100)
         self.time_remaining_lineedit.setText("Done!")

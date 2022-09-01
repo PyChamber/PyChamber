@@ -38,6 +38,7 @@ from PyQt5.QtWidgets import (
     QWizard,
     QWizardPage,
 )
+from qtwidgets import Toggle
 
 from pychamber.logger import LOG
 from pychamber.plugins import AnalyzerPlugin, PyChamberPanelPlugin
@@ -97,7 +98,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_btn.clicked.connect(self._on_cal_btn_clicked)
         self.cal_file_browse_btn.clicked.connect(self._on_cal_file_browse_btn_clicked)
         self.cal_view_btn.clicked.connect(self._on_cal_view_btn_clicked)
-        self.cal_file_loaded.connect(lambda: self.cal_view_btn.setEnabled(True))
+        self.cal_file_loaded.connect(self._on_cal_file_loaded)
         self.cal_file_lineedit.textChanged.connect(self._on_cal_file_name_changed)
 
     def _on_cal_btn_clicked(self) -> None:
@@ -156,6 +157,10 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_file_lineedit.setText(fname)
         self.cal_file_loaded.emit()
 
+    def _on_cal_file_loaded(self) -> None:
+        self.cal_view_btn.setEnabled(True)
+        self.cal_toggle.setEnabled(True)
+
     def _add_widgets(self) -> None:
         LOG.debug("Creating Calibration widget...")
         self.groupbox = QGroupBox("Calibration", self)
@@ -174,6 +179,13 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
         self.cal_file_browse_btn = QPushButton("Browse", self.groupbox)
         hlayout.addWidget(self.cal_file_browse_btn)
+
+        self.cal_toggle = Toggle(self.groupbox)
+        self.cal_toggle.setEnabled(False)
+        self.cal_toggle.setToolTip(
+            "Turn calibration on/off. Disabled unless a calibration file is loaded"
+        )
+        hlayout.addWidget(self.cal_toggle)
 
         layout.addLayout(hlayout)
 
@@ -198,6 +210,8 @@ class CalibrationPlugin(PyChamberPanelPlugin):
     def calibration(self) -> Optional[Calibration]:
         """Get the currently loaded calibration."""
         if self._cal.pol1 is None and self._cal.pol2 is None:
+            return None
+        elif not self.cal_toggle.isChecked():
             return None
         else:
             return self._cal
