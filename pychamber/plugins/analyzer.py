@@ -263,21 +263,38 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
     # class variables should never be None, hence the type: ignores
     def _on_start_freq_editing_finished(self) -> None:
         self.set_start_freq(self.start_freq)  # type: ignore
+        self._update_freqs()
 
     def _on_stop_freq_editing_finished(self) -> None:
         self.set_stop_freq(self.stop_freq)  # type: ignore
+        self._update_freqs()
 
     def _on_freq_step_editing_finished(self) -> None:
         self.set_freq_step(self.freq_step)  # type: ignore
+        self._update_freqs()
 
     def _on_n_points_editing_finished(self) -> None:
         self.set_n_points(self.n_points)  # type: ignore
+        self._update_freqs()
 
     def _on_connect_clicked(self) -> None:
         model = self.model_combobox.currentText()
         addr = self.address_combobox.currentText()
 
         self.connect(model, addr)
+
+    def _update_freqs(self) -> None:
+        assert self._analyzer is not None
+        freq = self._analyzer.frequency()
+
+        start = Quantity(freq.start, units='Hz').render()
+        self.start_freq_lineedit.setText(start)
+        stop = Quantity(freq.stop, units='Hz').render()
+        self.stop_freq_lineedit.setText(stop)
+        step = Quantity(freq.step, units='Hz').render()
+        self.freq_step_lineedit.setText(step)
+        npoints = freq.npoints
+        self.n_points_lineedit.setText(str(npoints))
 
     # ========== API ==========
     def connect(self, model: str, addr: str) -> None:
