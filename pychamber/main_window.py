@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from typing import Dict
 
+import textwrap
+
 import cloudpickle as pickle
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCloseEvent, QIcon
@@ -18,6 +20,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from pyqtgraph.console import ConsoleWidget
 
 import pychamber.plugins as plugins
 from pychamber.logger import LOG
@@ -100,6 +103,20 @@ class MainWindow(QMainWindow):
 
     def _on_python_interpreter_triggered(self) -> None:
         LOG.debug("Launching Python interpreter...")
+
+        namespace = self.registered_plugins.copy()
+
+        banner = textwrap.dedent(
+            f"""
+                This is PyChamber's interactive console. The namespace has been
+                populated with all plugins active when the console was loaded.
+
+                The currently loaded plugins are: {list(self.registered_plugins.keys())}
+            """
+        )
+        console = ConsoleWidget(namespace=namespace, text=banner)
+        console.show()
+        console.setWindowTitle("PyChamber - Console")
 
     def setup(self) -> None:
         """Setup the window's menu and widgets."""
