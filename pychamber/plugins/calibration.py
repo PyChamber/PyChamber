@@ -132,8 +132,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         file_name, _ = QFileDialog.getOpenFileName()
         if file_name != "":
             self.load_cal_file(file_name)
-
-        self.cal_file_loaded.emit()
+            self.cal_file_loaded.emit()
 
     def load_cal_file(self, fname: str) -> None:
         """Load a calibration from disk.
