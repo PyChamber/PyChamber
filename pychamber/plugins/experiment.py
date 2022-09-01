@@ -308,6 +308,8 @@ class ExperimentPlugin(PyChamberPlugin):
         self.total_progressbar.setValue(100)
         self.time_remaining_lineedit.setText("Done!")
         self.calibration.set_enabled(True)
+        self.positioner.set_enabled(True)
+        self.analyzer.set_enabled(True)
         self.set_enabled(True)
 
     def _on_abort_experiment(self) -> None:
