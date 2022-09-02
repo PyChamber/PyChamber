@@ -249,16 +249,17 @@ class ExperimentPlugin(PyChamberPlugin):
         self.set_enabled(False)
         self.calibration.set_enabled(False)
 
-        match experiment_type:
-            case ExperimentType.AZIMUTH:
-                az_extents = self.positioner.az_extents()
-                el_extents = np.asarray([0.0])
-            case ExperimentType.ELEVATION:
-                az_extents = np.asarray([0.0])
-                el_extents = self.positioner.el_extents()
-            case ExperimentType.FULL:
-                az_extents = self.positioner.az_extents()
-                el_extents = self.positioner.el_extents()
+        if experiment_type == ExperimentType.AZIMUTH:
+            az_extents = self.positioner.az_extents()
+            el_extents = np.asarray([0.0])
+        elif experiment_type == ExperimentType.ELEVATION:
+            az_extents = np.asarray([0.0])
+            el_extents = self.positioner.el_extents()
+        elif experiment_type == ExperimentType.FULL:
+            az_extents = self.positioner.az_extents()
+            el_extents = self.positioner.el_extents()
+        else:
+            raise ValueError("Unreachable")
 
         self.reset_experiment()
         if experiment_type == ExperimentType.FULL:

@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import List, Optional, Union
+    from typing import List, Optional, Tuple, Type, Union
     from pychamber.main_window import MainWindow
 
 import itertools
@@ -19,6 +19,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -363,6 +364,35 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.pol2_lineedit.blockSignals(False)
         LOG.info("Connected")
         self.analyzer_connected.emit()
+
+    def _user_settings(self) -> List[Tuple[str, str, Type]]:
+        def backend_browse(text: str) -> None:
+            if text == "Browse...":
+                backend_path, _ = QFileDialog.getOpenFileName()
+                if backend_path != "":
+                    last_idx = backend.count()
+                    backend.insertItem(last_idx, backend_path)
+                    backend.setCurrentIndex(last_idx)
+
+        backend = QComboBox()
+        backend.addItems(["Browse...", "pyvisa-py", "IVI"])
+
+        current_backend = SETTINGS['analyzer/backend']
+        if current_backend != "":
+            idx = backend.findText(current_backend)
+            if idx != -1:
+                backend.setCurrentIndex(idx)
+            else:
+                backend.addItem(current_backend)
+                backend.setCurrentIndex(backend.count() - 1)
+
+        backend.textActivated.connect(backend_browse)
+        backend.currentTextChanged.connect(
+            lambda text: SETTINGS.setval("analyzer/backend", text)
+        )
+
+        settings = [("backed", "VISA Backend", backend)]
+        return settings
 
     def analyzer(self) -> vna.VNA:
         """Get the analyzer instance.

@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Dict, List, Optional
+    from typing import Dict, List, Optional, Tuple, Type
     from pychamber.main_window import MainWindow
 
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QLabel, QWidget
 
 
 class PyChamberPluginError(Exception):
@@ -79,6 +79,9 @@ class PyChamberPlugin(QWidget):
     def _post_visible_setup(self) -> None:
         """Code run after the plugin widget is shown."""
         ...
+
+    def _user_settings(self) -> List[Tuple[str, str, Type]]:
+        return [("", "", QLabel("No user settings available for this plugin."))]
 
 
 class PyChamberPanelPlugin(PyChamberPlugin):

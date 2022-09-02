@@ -61,6 +61,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.main_layout = QHBoxLayout(self.main_widget)
 
+        self.settings_dialog = SettingsDialog(self)
+
         self.registered_plugins: Dict[str, PyChamberPlugin] = {}
 
     def _on_save_triggered(self) -> None:
@@ -99,7 +101,8 @@ class MainWindow(QMainWindow):
 
     def _on_settings_triggered(self) -> None:
         LOG.debug("Launching settings dialog...")
-        SettingsDialog.display()
+        self.settings_dialog.populate(self.registered_plugins.copy())
+        self.settings_dialog.exec_()
 
     def _on_python_interpreter_triggered(self) -> None:
         LOG.debug("Launching Python interpreter...")
@@ -188,13 +191,20 @@ class MainWindow(QMainWindow):
             LOG.debug(f"Adding {plugin.NAME} to right side")
             self.right_side_layout.addWidget(plugin)
 
-    def unregister_plugin(self, plugin: PyChamberPlugin) -> None:
+    def unregister_plugin(self, name: str) -> None:
         """Remove a plugin from PyChamber (NOT IMPLEMENTED).
 
         Arguments:
             plugin: plugin to remove
         """
-        raise NotImplementedError
+        if name in [plugin.NAME for plugin in self.REQUIRED_PLUGINS]:  # type: ignore
+            QMessageBox.critical(
+                self, "Required Plugin", f"{name} is a core plugin and cannot be removed"
+            )
+        elif name not in self.registered_plugins.keys():
+            LOG.debug("This plugin isn't activated. How did you get here...?")
+        else:
+            raise NotImplementedError
 
     def get_plugin(self, plugin_name: str) -> PyChamberPlugin:
         """Retrieve plugin instance.

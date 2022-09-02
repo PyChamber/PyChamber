@@ -1,7 +1,26 @@
-"""Defines a window to change application settings."""
-from PyQt5.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout
+from __future__ import annotations
 
-from pychamber.settings import SETTINGS
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Dict
+
+    from pychamber.main_window import MainWindow
+    from pychamber.plugins.base import PyChamberPlugin
+
+"""Defines a window to change application settings."""
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QMessageBox,
+    QVBoxLayout,
+    QWidget,
+)
+
+from pychamber.logger import LOG
+from pychamber.widgets import HorizontalTabWidget
 
 
 class SettingsDialog(QDialog):
@@ -10,68 +29,66 @@ class SettingsDialog(QDialog):
     This may change soon to enable per-plugin settings.
     """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: MainWindow) -> None:
         super().__init__(parent)
-        self.setup()
+        self._setup()
+        self.plugins: Dict[str, PyChamberPlugin] = {}
 
-    def setup(self) -> None:
+    def populate(self, plugins: Dict[str, PyChamberPlugin]) -> None:
+        for name, plugin in plugins.items():
+            if name in self.plugins:
+                continue
+            name = name.capitalize()
+
+            widget = QWidget()
+            _ = QFormLayout(widget)
+            self.settings_tab_widget.addTab(widget, name)
+            self._load_plugin_settings(plugin, widget)
+
+        self.plugins = plugins
+
+    def _setup(self) -> None:
         """Add the control widgets and dialog buttons."""
         self._add_widgets()
         self._setup_buttons()
 
+    def sizeHint(self) -> QSize:
+        return QSize(600, 400)
+
     def _add_widgets(self) -> None:
-        layout = QFormLayout()
+        self.main_layout = QVBoxLayout()
 
-        self.backend = QComboBox(self)
-        self.backend.addItem("Browse...")
-        backends = ['pyvisa-py', 'IVI']
-        self.backend.addItems(backends)
-        self.backend.textActivated.connect(self.backend_browse)
+        self.settings_tab_widget = HorizontalTabWidget()
+        widget = QWidget()
+        _ = QFormLayout(widget)
+        self.settings_tab_widget.addTab(widget, "General")
+        self.main_layout.addWidget(self.settings_tab_widget)
 
-        current_backend = SETTINGS['analyzer/backend']
-        idx = self.backend.findText(current_backend)
-        if idx != -1:
-            self.backend.setCurrentIndex(idx)
-        else:
-            self.backend.addItem(current_backend)
-            self.backend.setCurrentIndex(self.backend.count() - 1)
-
-        self.py_theme = QComboBox(self)
-        # self.py_theme.addItems(pyconsole.themes.keys())
-        self.py_theme.setCurrentText(SETTINGS['pyconsole/theme'])
-
-        layout.addRow("VISA Backend", self.backend)
-        layout.addRow("Python Console Theme", self.py_theme)
-
-        self.setLayout(layout)
+        self.setLayout(self.main_layout)
 
     def _setup_buttons(self) -> None:
-        _buttons = QDialogButtonBox.Apply | QDialogButtonBox.Cancel
+        _buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         self.button_box = QDialogButtonBox(_buttons)
-        self.button_box.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
+        self.button_box.button(QDialogButtonBox.Ok).clicked.connect(self.close)
         self.button_box.rejected.connect(self.reject)
-        self.layout().addWidget(self.button_box)
+        self.main_layout.addWidget(self.button_box)
 
-    def accept(self) -> None:
-        """Accept the changes and save to SETTINGS."""
-        SETTINGS["analyzer/backend"] = self.backend.currentText()
-        SETTINGS["pyconsole/theme"] = self.py_theme.currentText()
-        self.close()
+    def _add_plugin(self) -> None:
+        QMessageBox.warning(
+            self,
+            "Not Implemented.",
+            "Optional plugins are not yet supported. Stay tuned!",
+        )
 
-    def backend_browse(self, text: str) -> None:
-        """Open a file browser to find a VISA backend file.
+    def _remove_plugin(self) -> None:
+        raise NotImplementedError
 
-        Arguments:
-            text: text string of the combobox
-        """
-        if text == "Browse...":
-            backend_path, _ = QFileDialog.getOpenFileName()
-            if backend_path != "":
-                self.backend.insertItem(2, backend_path)
-                self.backend.setCurrentIndex(2)
+    def _load_plugin_settings(self, plugin: PyChamberPlugin, parent) -> None:
+        LOG.debug(f"{parent=}")
 
-    @classmethod
-    def display(cls) -> None:
-        """Open the dialog."""
-        dialog = cls(parent=None)
-        dialog.exec_()
+        settings = plugin._user_settings()
+        for setting in settings:
+            parent.layout().addRow(setting[1], setting[2])
+
+    def _load_general_settings(self, parent) -> None:
+        pass

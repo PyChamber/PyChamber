@@ -518,29 +518,30 @@ class PositionerPlugin(PyChamberPanelPlugin):
 
         LOG.debug("Setting up jog thread")
         self.set_enabled(False)
-        match axis:
-            case JogAxis.AZIMUTH:
-                if direction == JogDir.ZERO:
-                    angle = 0.0
-                elif relative:
-                    angle = self._positioner.current_azimuth + (
-                        direction.value * float(SETTINGS["positioner/jog-az-step"])
-                    )
-                else:
-                    angle = self.jog_az_to
-                LOG.debug("Starting azimuth jog thread")
-                self.jog_thread.run = functools.partial(self.jog_az, angle)
-            case JogAxis.ELEVATION:
-                if direction == JogDir.ZERO:
-                    angle = 0.0
-                if relative:
-                    angle = self._positioner.current_elevation + (
-                        direction.value * float(SETTINGS["positioner/jog-el-step"])
-                    )
-                else:
-                    angle = self.jog_el_to
-                LOG.debug("Starting elevation jog thread")
-                self.jog_thread.run = functools.partial(self.jog_el, angle)
+        if axis == JogAxis.AZIMUTH:
+            if direction == JogDir.ZERO:
+                angle = 0.0
+            elif relative:
+                angle = self._positioner.current_azimuth + (
+                    direction.value * float(SETTINGS["positioner/jog-az-step"])
+                )
+            else:
+                angle = self.jog_az_to
+            LOG.debug("Starting azimuth jog thread")
+            self.jog_thread.run = functools.partial(self.jog_az, angle)
+        elif axis == JogAxis.ELEVATION:
+            if direction == JogDir.ZERO:
+                angle = 0.0
+            if relative:
+                angle = self._positioner.current_elevation + (
+                    direction.value * float(SETTINGS["positioner/jog-el-step"])
+                )
+            else:
+                angle = self.jog_el_to
+            LOG.debug("Starting elevation jog thread")
+            self.jog_thread.run = functools.partial(self.jog_el, angle)
+        else:
+            raise ValueError("Unreachable")
 
         LOG.debug(f"Jogging angle: {angle}")
         self.jog_thread.start()
