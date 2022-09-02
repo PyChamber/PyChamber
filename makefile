@@ -31,4 +31,4 @@ build:
 	poetry install
 
 package:
-	pyinstaller ./pychamber/launch.py --copy-metadata pychamber --onefile --collect-data skrf --paths=pychamber --hidden-import pyvisa_py -y --clean
+	pyinstaller PyChamber.spec

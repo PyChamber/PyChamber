@@ -1,4 +1,4 @@
-exclude: ^(tests/|pychamber/ui/)
+exclude: ^(tests/|pychamber/ui/ | PyChamber.spec)
 repos:
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.1.13

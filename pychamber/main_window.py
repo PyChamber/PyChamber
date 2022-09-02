@@ -1,11 +1,13 @@
 """The main PyChamber application window."""
-import webbrowser
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from typing import Dict
 
 import textwrap
+import webbrowser
 
 import cloudpickle as pickle
 from PyQt5.QtCore import Qt

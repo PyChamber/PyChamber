@@ -52,6 +52,8 @@ pyinstaller = { version = "^5.3", optional = true }
 qtwidgets = "^0.18"
 pyqtgraph = "^0.12.4"
 vermin = { version = "^1.4.2", optional = true }
+pyinstaller-hooks-contrib = { version = "^2022.10", optional = true }
+tk = { version = "^0.1.0", optional = true }
 
 
 [tool.poetry.extras]
@@ -67,9 +69,11 @@ dev = [
     "pip",
     "twine",
     "toml",
+    "tk",
     "bump2version",
     "types-pkg_resources",
     "pyinstaller",
+    "pyinstaller-hooks-contrib",
 ]
 
 doc = [
