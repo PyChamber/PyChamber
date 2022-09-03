@@ -4,6 +4,7 @@ from PyInstaller.utils.hooks import copy_metadata
 
 datas = []
 datas += collect_data_files('skrf')
+datas += collect_data_files('aquarel')
 datas += copy_metadata('pychamber')
 
 

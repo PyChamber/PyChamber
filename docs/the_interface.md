@@ -1,5 +1,5 @@
-PyChamber consists of two areas: the plugin panel (in cyan), and the main area
-(in fuschia).
+PyChamber consists of two areas: the experiment and plugin panels (in cyan), and
+the plot area (in fuschia).
 
 ![Main Window](./assets/main_window_areas.png)
 

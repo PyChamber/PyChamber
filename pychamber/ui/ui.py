@@ -14,6 +14,8 @@ size_policy = {
     'EXP_MIN': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum),
     'EXP_PREF': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred),
     'EXP_EXP': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding),
+    'EXP_MAX': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum),
+    'EXP_FIX': QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed),
 }
 """Shorter representations of QSizePolicies"""
 

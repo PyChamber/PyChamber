@@ -4,6 +4,7 @@ Plugins can use these widgets but any widgets specific to a plugin should local
 to that plugin.
 """
 from .about import AboutPyChamberDialog
+from .collapsible_section import CollapsibleSection
 from .freq_lineedit import FrequencyLineEdit
 from .freq_spin_box import FrequencySpinBox
 from .freq_validator import FrequencyValidator

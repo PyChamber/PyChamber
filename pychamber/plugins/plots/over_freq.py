@@ -28,16 +28,16 @@ class OverFreqPlot(PyChamberPlot):
         super().__init__(parent)
 
     def init_controls(self, **kwargs) -> None:
-        freqs: np.ndarray = kwargs.get('frequencies')
+        freqs: np.ndarray = kwargs['frequencies']
         self.plot.xmin = freqs.min()
         self.plot.xmax = freqs.max()
 
-        azimuths: np.ndarray = kwargs.get('azimuths')
+        azimuths: np.ndarray = kwargs['azimuths']
         if len(azimuths) > 1:
             self.az_spinbox.setRange(azimuths.min(), azimuths.max())
             self.az_spinbox.setSingleStep(azimuths[1] - azimuths[0])
 
-        elevations: np.ndarray = kwargs.get('elevations')
+        elevations: np.ndarray = kwargs['elevations']
         if len(elevations) > 1:
             self.el_spinbox.setRange(elevations.min(), elevations.max())
             self.el_spinbox.setSingleStep(elevations[1] - elevations[0])
@@ -123,7 +123,7 @@ class OverFreqPlot(PyChamberPlot):
             return
 
         freq = ntwk.frequency.f
-        mags = ntwk.s_db
+        mags = ntwk.s_db  # type: ignore
 
         LOG.debug(f"Plotting {freq=}, {mags=}")
 
@@ -132,12 +132,18 @@ class OverFreqPlot(PyChamberPlot):
     def plot_new_data(self, data: skrf.NetworkSet) -> None:
         assert len(data) <= 1
         data = data[0]  # extract from the set
-        freqs = data.frequency.f
-        mags = data.s_db
+        freqs = data.frequency.f  # type: ignore
+        mags = data.s_db  # type: ignore
         self.plot.plot_new_data(xdata=freqs, ydata=mags)
 
     def autoscale(self) -> None:
         self.plot.autoscale_plot()
+
+    def newfig(self) -> None:
+        newplot = MplRectWidget(self)
+        self.layout().replaceWidget(self.plot, newplot)
+        self.plot: MplRectWidget = newplot
+        self.plot.update_scale()
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)

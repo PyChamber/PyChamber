@@ -15,6 +15,18 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "aquarel"
+version = "0.0.4"
+description = "Lightweight templating engine for matplotlib"
+category = "main"
+optional = false
+python-versions = ">3.7"
+
+[package.dependencies]
+cycler = "*"
+matplotlib = ">=3.4.0"
+
+[[package]]
 name = "atomicwrites"
 version = "1.4.1"
 description = "Atomic file writes."
@@ -1184,6 +1196,33 @@ python-versions = ">=3.6"
 pyyaml = "*"
 
 [[package]]
+name = "QDarkStyle"
+version = "3.1"
+description = "The most complete dark/light style sheet for C++/Python and Qt applications"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+qtpy = ">=1.9"
+
+[package.extras]
+develop = ["qtsass", "watchdog"]
+docs = ["sphinx", "sphinx-rtd-theme"]
+example = ["pyqt5", "pyside2"]
+
+[[package]]
+name = "QtAwesome"
+version = "1.1.1"
+description = "FontAwesome icons in PyQt and PySide applications"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+qtpy = "*"
+
+[[package]]
 name = "QtPy"
 version = "2.2.0"
 description = "Provides an abstraction layer on top of the various Qt bindings (PyQt5/6 and PySide2/6)."
@@ -1557,7 +1596,7 @@ test = ["pytest", "flake8", "flake8-docstrings", "pytest-cov", "vermin"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "ea7e1d8556ed164b4a483f3b5565d1b40662ebf4a40d9bf24a3e8ba76ed5fd46"
+content-hash = "d35440ab13972597218f0bd757d3d114b2edfe963d19676abb89d40529eef2f4"
 
 [metadata.files]
 altgraph = [
@@ -1566,6 +1605,10 @@ altgraph = [
 ]
 antlr4-python3-runtime = [
     {file = "antlr4-python3-runtime-4.9.3.tar.gz", hash = "sha256:f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b"},
+]
+aquarel = [
+    {file = "aquarel-0.0.4-py3-none-any.whl", hash = "sha256:23ae2851d3dadd9dfa25b895b8253316f38813544e3d89f0bfa902449af1e06a"},
+    {file = "aquarel-0.0.4.tar.gz", hash = "sha256:6ec35e5b6a0ca7b8559f89987276b4702af1bc3d9ffbd589b14d0815bb5f89b6"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.1.tar.gz", hash = "sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"},
@@ -2432,6 +2475,14 @@ PyYAML = [
 pyyaml_env_tag = [
     {file = "pyyaml_env_tag-0.1-py3-none-any.whl", hash = "sha256:af31106dec8a4d68c60207c1886031cbf839b68aa7abccdb19868200532c2069"},
     {file = "pyyaml_env_tag-0.1.tar.gz", hash = "sha256:70092675bda14fdec33b31ba77e7543de9ddc88f2e5b99160396572d11525bdb"},
+]
+QDarkStyle = [
+    {file = "QDarkStyle-3.1-py2.py3-none-any.whl", hash = "sha256:679a38fcd040de9fac8b8cae483310302fdb12c8d912845249c41dc54974a9b2"},
+    {file = "QDarkStyle-3.1.tar.gz", hash = "sha256:600584d625343e0ddd128de08393d3c35637786a49827f174d29aa7caa8279c1"},
+]
+QtAwesome = [
+    {file = "QtAwesome-1.1.1-py3-none-any.whl", hash = "sha256:27d2e2bcb34cb5c9a7f61c29f34b24bf89ef50c79ffff7a76effe59bf781fcee"},
+    {file = "QtAwesome-1.1.1.tar.gz", hash = "sha256:ec02e200231fa68a146a93845890aa0432a7edcba14bf811ff6975cf9acdab5d"},
 ]
 QtPy = [
     {file = "QtPy-2.2.0-py3-none-any.whl", hash = "sha256:d283cfba378b0dbe36a55b68aea8ee2f86cd6ccf06c023af25bbe705ffbb29e5"},

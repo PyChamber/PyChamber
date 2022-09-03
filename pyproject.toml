@@ -54,6 +54,9 @@ pyqtgraph = "^0.12.4"
 vermin = { version = "^1.4.2", optional = true }
 pyinstaller-hooks-contrib = { version = "^2022.10", optional = true }
 tk = { version = "^0.1.0", optional = true }
+QDarkStyle = "^3.1"
+aquarel = "^0.0.4"
+QtAwesome = "^1.1.1"
 
 
 [tool.poetry.extras]

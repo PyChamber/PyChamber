@@ -24,7 +24,6 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox,
     QFileDialog,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -43,7 +42,8 @@ from qtwidgets import Toggle
 from pychamber.logger import LOG
 from pychamber.plugins import AnalyzerPlugin, PyChamberPanelPlugin
 from pychamber.settings import SETTINGS
-from pychamber.widgets import MplRectWidget
+from pychamber.ui import size_policy
+from pychamber.widgets import CollapsibleSection, MplRectWidget
 
 
 @dataclass
@@ -71,21 +71,26 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
     cal_file_loaded = pyqtSignal()
 
-    def __init__(self, parent: MainWindow) -> None:
+    def __init__(self, main_window: MainWindow) -> None:
         """Instatiate the plugin.
 
         Arguments:
             parent: the PyChamber main window
         """
-        super().__init__(parent)
+        assert self.NAME is not None
+        PyChamberPanelPlugin.__init__(self, main_window=main_window)
+        self.section = CollapsibleSection(title=self.NAME.capitalize(), parent=self)
+        layout = QVBoxLayout()
+        layout.addWidget(self.section)
+        self.setLayout(layout)
 
         self.setObjectName('calibration')
-        self.setLayout(QVBoxLayout())
 
         self.analyzer: Optional[AnalyzerPlugin] = None
         self._cal: Calibration = Calibration()
 
     def _setup(self) -> None:
+        LOG.debug("Creating Calibration widget...")
         self._add_widgets()
         self._connect_signals()
 
@@ -162,25 +167,24 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_toggle.setEnabled(True)
 
     def _add_widgets(self) -> None:
-        LOG.debug("Creating Calibration widget...")
-        self.groupbox = QGroupBox("Calibration", self)
-        self.layout().addWidget(self.groupbox)
-
-        layout = QVBoxLayout(self.groupbox)
+        layout = QVBoxLayout()
 
         hlayout = QHBoxLayout()
-        cal_file_label = QLabel("Cal file:", self.groupbox)
+        cal_file_label = QLabel("Cal file:", self.section)
         hlayout.addWidget(cal_file_label)
 
-        self.cal_file_lineedit = QLineEdit(self.groupbox)
+        self.cal_file_lineedit = QLineEdit(self.section)
         self.cal_file_lineedit.setReadOnly(True)
         self.cal_file_lineedit.setText(SETTINGS["calibration/file"])
         hlayout.addWidget(self.cal_file_lineedit)
 
-        self.cal_file_browse_btn = QPushButton("Browse", self.groupbox)
+        self.cal_file_browse_btn = QPushButton("Browse", self.section)
+        self.cal_file_browse_btn.setFixedHeight(
+            self.cal_file_lineedit.sizeHint().height()
+        )
         hlayout.addWidget(self.cal_file_browse_btn)
 
-        self.cal_toggle = Toggle(self.groupbox)
+        self.cal_toggle = Toggle(self.section)
         self.cal_toggle.setEnabled(False)
         self.cal_toggle.setToolTip(
             "Turn calibration on/off. Disabled unless a calibration file is loaded"
@@ -190,14 +194,18 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         layout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
-        self.cal_btn = QPushButton("Calibration Wizard", self.groupbox)
+        self.cal_btn = QPushButton("Calibration Wizard", self.section)
+        self.cal_btn.setSizePolicy(size_policy["PREF_MINEXP"])
         hlayout.addWidget(self.cal_btn)
 
-        self.cal_view_btn = QPushButton("View Calibration", self.groupbox)
+        self.cal_view_btn = QPushButton("View Calibration", self.section)
+        self.cal_view_btn.setSizePolicy(size_policy["PREF_MINEXP"])
         self.cal_view_btn.setEnabled(False)
         hlayout.addWidget(self.cal_view_btn)
 
         layout.addLayout(hlayout)
+
+        self.section.set_content_layout(layout)
 
     def set_enabled(self, state: bool) -> None:
         """Enable/Disable the plugin.
@@ -205,7 +213,7 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         Arguments:
             state: True to enable, False to disable
         """
-        self.groupbox.setEnabled(state)
+        self.setEnabled(state)
 
     def calibration(self) -> Optional[Calibration]:
         """Get the currently loaded calibration."""

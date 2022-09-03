@@ -89,7 +89,7 @@ class ExperimentPlugin(PyChamberPlugin):
         super().__init__(parent)
 
         self.setObjectName("experiment")
-        self.setLayout(QVBoxLayout())
+        self.setLayout(QHBoxLayout())
 
         self.analyzer: Optional[AnalyzerPlugin] = None
         self.positioner: Optional[PositionerPlugin] = None
@@ -106,6 +106,8 @@ class ExperimentPlugin(PyChamberPlugin):
         self._avg_iter_time: float = 0.0
         self._iter_start_time: float = 0.0
         self._iter_stop_time: float = 0.0
+
+        self.setMinimumHeight(200)
 
     def _setup(self) -> None:
         from pychamber.plugins import AnalyzerPlugin, PlotsPlugin, PositionerPlugin
@@ -152,7 +154,7 @@ class ExperimentPlugin(PyChamberPlugin):
         self.abort_btn.setEnabled(False)
         vlayout.addWidget(self.abort_btn)
 
-        layout.addLayout(vlayout)
+        layout.addLayout(vlayout, stretch=1)
 
         vlayout = QVBoxLayout()
 
@@ -180,17 +182,34 @@ class ExperimentPlugin(PyChamberPlugin):
         time_remaining_label.setSizePolicy(size_policy["PREF_PREF"])
         time_remaining_label.setFont(font["BOLD_12"])
         time_remaining_label.setAlignment(Qt.AlignHCenter)
+        time_remaining_label.setWordWrap(True)
         vlayout.addWidget(time_remaining_label)
 
         self.time_remaining_lineedit = QLineEdit(self.groupbox)
         self.time_remaining_lineedit.setSizePolicy(size_policy["EXP_PREF"])
         vlayout.addWidget(self.time_remaining_lineedit)
 
-        layout.addLayout(vlayout)
+        layout.addLayout(vlayout, stretch=2)
 
         self.set_enabled(False)
         self.cut_progress_label.hide()
         self.cut_progressbar.hide()
+
+        # logo_layout = QVBoxLayout()
+
+        # logo = QPixmap(":/logo.png")
+        # logo = logo.scaled(100, 100)
+        # label = QLabel()
+        # label.setPixmap(logo)
+        # label.setAlignment(Qt.AlignHCenter | Qt.AlignBottom)
+        # logo_layout.addWidget(label)
+
+        # title = QLabel("PyChamber")
+        # title.setFont(font["BOLD_14"])
+        # title.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # logo_layout.addWidget(title)
+
+        # self.layout().addLayout(logo_layout)
 
     def _connect_signals(self) -> None:
         assert self.analyzer is not None

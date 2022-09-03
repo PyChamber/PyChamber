@@ -35,7 +35,7 @@ class Settings(QSettings):
     """
 
     settings_changed = pyqtSignal(str)
-    _defaults: Dict = {"pyconsole/theme": "nightowl-light"}
+    _defaults: Dict = {"theme": "Dark"}
 
     def __init__(self, parent=None) -> None:
         """Create the settings object.

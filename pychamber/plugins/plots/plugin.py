@@ -10,15 +10,17 @@ import dataclasses
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from typing import Dict, List, Optional, Type
+    from typing import Dict, List, Optional, Tuple, Type
     from pychamber.main_window import MainWindow
 
+import aquarel
 import skrf
 from PyQt5.QtCore import QStringListModel, pyqtSignal
-from PyQt5.QtWidgets import QTabWidget, QVBoxLayout
+from PyQt5.QtWidgets import QComboBox, QTabWidget, QVBoxLayout
 
 from pychamber.logger import LOG
 from pychamber.plugins import ExperimentPlugin, PyChamberPlugin
+from pychamber.settings import SETTINGS
 from pychamber.ui import size_policy
 
 from .over_freq import OverFreqPlot
@@ -36,7 +38,7 @@ class PlotsPlugin(PyChamberPlugin):
     """
 
     NAME = "plots"
-    CONFIG: Dict = {}
+    CONFIG: Dict = {"theme": "arctic_dark"}
 
     new_data_requested = pyqtSignal(object)
 
@@ -51,7 +53,7 @@ class PlotsPlugin(PyChamberPlugin):
         self.setObjectName('plots')
         self.setLayout(QVBoxLayout())
         self.setSizePolicy(size_policy["PREF_PREF"])
-        self.setMinimumSize(600, 600)
+        self.setMinimumSize(800, 800)
 
         self._plots: List[PyChamberPlot] = []
         self._pol_model: QStringListModel = QStringListModel([], self)
@@ -78,6 +80,8 @@ class PlotsPlugin(PyChamberPlugin):
 
         self.experiment = cast(ExperimentPlugin, self.main.get_plugin("experiment"))
         self.experiment.ntwk_model.data_loaded.connect(self._on_data_loaded)
+
+        self.apply_theme(SETTINGS["plots/theme"])
 
         # TODO: Make this dynamic for users to be able to add desired plots
         self.add_plot(PolarPlot, "Polar Plot")
@@ -126,6 +130,37 @@ class PlotsPlugin(PyChamberPlugin):
         for plot in self._plots:
             plot.init_controls(**kwargs)
             plot.reset()
+
+    def apply_theme(self, theme_name: str) -> None:
+        LOG.debug(theme_name)
+        try:
+            theme = aquarel.load_theme(theme_name)
+            theme.apply()
+            SETTINGS["plots/theme"] = theme_name
+        except ValueError:
+            theme = aquarel.load_theme("arctic_dark")
+            theme.apply()
+            SETTINGS["plots/theme"] = "arctic_dark"
+
+        for plot in self._plots:
+            plot.newfig()
+
+    def _user_settings(self) -> List[Tuple[str, str, Type]]:
+        theme_dropdown = QComboBox()
+        theme_dropdown.addItems(aquarel.list_themes())
+
+        current_theme = SETTINGS['plots/theme']
+        if current_theme != "":
+            idx = theme_dropdown.findText(current_theme)
+            if idx != -1:
+                theme_dropdown.setCurrentIndex(idx)
+            else:
+                theme_dropdown.addItem(current_theme)
+                theme_dropdown.setCurrentIndex(theme_dropdown.count() - 1)
+
+        theme_dropdown.currentTextChanged.connect(self.apply_theme)
+        settings = [("theme", "Plot Theme", theme_dropdown)]
+        return settings
 
     def rx_updated_data(self, ntwk: skrf.Network) -> None:
         """Receive new data and update existing plots.

@@ -112,12 +112,18 @@ class PolarPlot(PyChamberPlot):
 
     def plot_new_data(self, data: skrf.NetworkSet) -> None:
         freq = self.freq_spinbox.text()
-        azimuths = np.deg2rad(np.array(data.params_values['azimuth']))
-        mags = np.array([ntwk[freq].s_db for ntwk in data])
+        azimuths = np.deg2rad(np.array(data.params_values['azimuth']))  # type: ignore
+        mags = np.array([ntwk[freq].s_db for ntwk in data])  # type: ignore
         self.plot.plot_new_data(xdata=azimuths, ydata=mags)
 
     def autoscale(self) -> None:
         self.plot.autoscale_plot()
+
+    def newfig(self) -> None:
+        newplot = MplPolarWidget(self)
+        self.layout().replaceWidget(self.plot, newplot)
+        self.plot: MplPolarWidget = newplot
+        self.plot.update_scale()
 
     def _add_widgets(self) -> None:
         layout = QVBoxLayout(self)

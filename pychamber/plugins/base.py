@@ -45,7 +45,7 @@ class PyChamberPlugin(QWidget):
             main_window: this MUST be the PyChamber main window to allow the
                 plugin to communicate with other plugins
         """
-        super().__init__(main_window)
+        super().__init__(parent=main_window)
 
         self.main = main_window
 

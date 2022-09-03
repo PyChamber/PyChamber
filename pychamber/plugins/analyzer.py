@@ -35,7 +35,8 @@ from skrf.vi import vna
 from pychamber.logger import LOG
 from pychamber.polarization import Polarization
 from pychamber.settings import SETTINGS
-from pychamber.widgets import FrequencyLineEdit
+from pychamber.ui import size_policy
+from pychamber.widgets import CollapsibleSection, FrequencyLineEdit
 
 from .base import PyChamberPanelPlugin
 
@@ -66,16 +67,20 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
     # Signals
     analyzer_connected = pyqtSignal()
 
-    def __init__(self, parent: MainWindow) -> None:
+    def __init__(self, main_window: MainWindow) -> None:
         """Instantiate the plugin.
 
         Arguments:
             parent: the PyChamber main window
         """
-        super().__init__(parent)
+        assert self.NAME is not None
+        PyChamberPanelPlugin.__init__(self, main_window=main_window)
+        self.section = CollapsibleSection(title=self.NAME.capitalize(), parent=self)
+        layout = QVBoxLayout()
+        layout.addWidget(self.section)
+        self.setLayout(layout)
 
-        self.setObjectName("analyzer")
-        self.setLayout(QVBoxLayout())
+        self.setObjectName(self.NAME)
 
         self._analyzer: Optional[vna.VNA] = None
 
@@ -94,55 +99,53 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self._connect_signals()
 
     def _add_widgets(self) -> None:
-        self.groupbox = QGroupBox("Analyzer", self)
-        self.layout().addWidget(self.groupbox)
-
-        layout = QVBoxLayout(self.groupbox)
+        layout = QVBoxLayout()
 
         hlayout = QHBoxLayout()
-        model_label = QLabel("Model", self.groupbox)
+        model_label = QLabel("Model", self.section)
         hlayout.addWidget(model_label)
 
-        self.model_combobox = QComboBox(self.groupbox)
+        self.model_combobox = QComboBox(self.section)
         hlayout.addWidget(self.model_combobox)
 
-        address_label = QLabel("Address", self.groupbox)
+        address_label = QLabel("Address", self.section)
         hlayout.addWidget(address_label)
 
-        self.address_combobox = QComboBox(self.groupbox)
+        self.address_combobox = QComboBox(self.section)
         hlayout.addWidget(self.address_combobox)
 
-        self.connect_btn = QPushButton("Connect", self.groupbox)
+        self.connect_btn = QPushButton("Connect", self.section)
+        self.connect_btn.setSizePolicy(size_policy["PREF_PREF"])
         hlayout.addWidget(self.connect_btn)
 
         layout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
-        pol1_label = QLabel("Polarization 1:", self.groupbox)
+        pol1_label = QLabel("Polarization 1:", self.section)
         hlayout.addWidget(pol1_label)
 
-        self.pol1_lineedit = QLineEdit(self.groupbox)
+        self.pol1_lineedit = QLineEdit(self.section)
         self.pol1_lineedit.setPlaceholderText("Label (e.g. Vertical)")
         hlayout.addWidget(self.pol1_lineedit)
 
-        self.pol1_combobox = QComboBox(self.groupbox)
+        self.pol1_combobox = QComboBox(self.section)
         hlayout.addWidget(self.pol1_combobox)
         layout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
-        pol2_label = QLabel("Polarization 2:", self.groupbox)
+        pol2_label = QLabel("Polarization 2:", self.section)
         hlayout.addWidget(pol2_label)
 
-        self.pol2_lineedit = QLineEdit(self.groupbox)
+        self.pol2_lineedit = QLineEdit(self.section)
         self.pol2_lineedit.setPlaceholderText("Label")
         hlayout.addWidget(self.pol2_lineedit)
 
-        self.pol2_combobox = QComboBox(self.groupbox)
+        self.pol2_combobox = QComboBox(self.section)
         hlayout.addWidget(self.pol2_combobox)
 
         layout.addLayout(hlayout)
 
-        self.freq_groupbox = QGroupBox("Frequency", self.groupbox)
+        self.freq_groupbox = QGroupBox("Frequency", self.section)
         freq_layout = QGridLayout(self.freq_groupbox)
 
         start_freq_label = QLabel("Start", self.freq_groupbox)
@@ -172,6 +175,8 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
 
         layout.addWidget(self.freq_groupbox)
         self.freq_groupbox.setEnabled(False)
+
+        self.section.set_content_layout(layout)
 
     def _init_inputs(self) -> None:
         LOG.debug("Populating models...")
@@ -297,6 +302,35 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         npoints = freq.npoints
         self.n_points_lineedit.setText(str(npoints))
 
+    def _user_settings(self) -> List[Tuple[str, str, Type]]:
+        def backend_browse(text: str) -> None:
+            if text == "Browse...":
+                backend_path, _ = QFileDialog.getOpenFileName()
+                if backend_path != "":
+                    last_idx = backend.count()
+                    backend.insertItem(last_idx, backend_path)
+                    backend.setCurrentIndex(last_idx)
+
+        backend = QComboBox()
+        backend.addItems(["Browse...", "pyvisa-py", "IVI"])
+
+        current_backend = SETTINGS['analyzer/backend']
+        if current_backend != "":
+            idx = backend.findText(current_backend)
+            if idx != -1:
+                backend.setCurrentIndex(idx)
+            else:
+                backend.addItem(current_backend)
+                backend.setCurrentIndex(backend.count() - 1)
+
+        backend.textActivated.connect(backend_browse)
+        backend.currentTextChanged.connect(
+            lambda text: SETTINGS.setval("analyzer/backend", text)
+        )
+
+        settings = [("backend", "VISA Backend", backend)]
+        return settings
+
     # ========== API ==========
     def connect(self, model: str, addr: str) -> None:
         """Connect to the analyzer.
@@ -364,35 +398,6 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         self.pol2_lineedit.blockSignals(False)
         LOG.info("Connected")
         self.analyzer_connected.emit()
-
-    def _user_settings(self) -> List[Tuple[str, str, Type]]:
-        def backend_browse(text: str) -> None:
-            if text == "Browse...":
-                backend_path, _ = QFileDialog.getOpenFileName()
-                if backend_path != "":
-                    last_idx = backend.count()
-                    backend.insertItem(last_idx, backend_path)
-                    backend.setCurrentIndex(last_idx)
-
-        backend = QComboBox()
-        backend.addItems(["Browse...", "pyvisa-py", "IVI"])
-
-        current_backend = SETTINGS['analyzer/backend']
-        if current_backend != "":
-            idx = backend.findText(current_backend)
-            if idx != -1:
-                backend.setCurrentIndex(idx)
-            else:
-                backend.addItem(current_backend)
-                backend.setCurrentIndex(backend.count() - 1)
-
-        backend.textActivated.connect(backend_browse)
-        backend.currentTextChanged.connect(
-            lambda text: SETTINGS.setval("analyzer/backend", text)
-        )
-
-        settings = [("backed", "VISA Backend", backend)]
-        return settings
 
     def analyzer(self) -> vna.VNA:
         """Get the analyzer instance.

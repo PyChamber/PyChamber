@@ -59,6 +59,10 @@ class PyChamberPlot(QWidget):
         """Clear the plot and reset the controls."""
         ...
 
+    def newfig(self) -> None:
+        """Replace the figure. Used to apply new themes"""
+        ...
+
     def _connect_signals(self) -> None:
         ...
 

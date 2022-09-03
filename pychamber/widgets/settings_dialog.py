@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pychamber.settings import SETTINGS
+
 if TYPE_CHECKING:
     from typing import Dict
 
@@ -9,11 +11,13 @@ if TYPE_CHECKING:
     from pychamber.plugins.base import PyChamberPlugin
 
 """Defines a window to change application settings."""
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, pyqtSignal
 from PyQt5.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QLabel,
     QMessageBox,
     QVBoxLayout,
     QWidget,
@@ -28,6 +32,8 @@ class SettingsDialog(QDialog):
 
     This may change soon to enable per-plugin settings.
     """
+
+    main_theme_changed = pyqtSignal(str)
 
     def __init__(self, parent: MainWindow) -> None:
         super().__init__(parent)
@@ -61,6 +67,7 @@ class SettingsDialog(QDialog):
         self.settings_tab_widget = HorizontalTabWidget()
         widget = QWidget()
         _ = QFormLayout(widget)
+        self._load_general_settings(widget)
         self.settings_tab_widget.addTab(widget, "General")
         self.main_layout.addWidget(self.settings_tab_widget)
 
@@ -91,4 +98,11 @@ class SettingsDialog(QDialog):
             parent.layout().addRow(setting[1], setting[2])
 
     def _load_general_settings(self, parent) -> None:
-        pass
+        theme_label = QLabel("Theme")
+        theme_combobox = QComboBox()
+        theme_combobox.addItems(["Light", "Dark"])
+        theme_combobox.setCurrentText(SETTINGS["theme"])
+
+        parent.layout().addRow(theme_label, theme_combobox)
+
+        theme_combobox.currentTextChanged.connect(self.main_theme_changed.emit)

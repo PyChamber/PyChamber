@@ -1,13 +1,8 @@
 <RCC>
-  <qresource prefix="icons/">
-    <file>icons/Check.png</file>
-    <file>icons/RightArrow.png</file>
-    <file>icons/LeftArrow.png</file>
-    <file>icons/DownArrow.png</file>
-    <file>icons/UpArrow.png</file>
-  </qresource>
   <qresource>
     <file>logo.png</file>
+    <file>logo_with_txt_light.png</file>
+    <file>logo_with_txt_dark.png</file>
     <file>splash.png</file>
   </qresource>
 </RCC>

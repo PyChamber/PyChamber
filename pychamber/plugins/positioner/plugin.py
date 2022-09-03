@@ -10,8 +10,9 @@ if TYPE_CHECKING:
 import functools
 
 import numpy as np
+import qtawesome as qta
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap
+from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtTest import QSignalSpy
 from PyQt5.QtWidgets import (
     QComboBox,
@@ -30,7 +31,8 @@ from serial.tools import list_ports
 from pychamber.logger import LOG
 from pychamber.plugins import PyChamberPanelPlugin
 from pychamber.settings import SETTINGS
-from pychamber.ui import font
+from pychamber.ui import font, size_policy
+from pychamber.widgets import CollapsibleSection
 
 from .positioner import JogAxis, JogDir, Positioner
 
@@ -66,16 +68,20 @@ class PositionerPlugin(PyChamberPanelPlugin):
     jog_started = pyqtSignal()
     jog_complete = pyqtSignal()
 
-    def __init__(self, parent: MainWindow) -> None:
+    def __init__(self, main_window: MainWindow) -> None:
         """Instantiate the plugin.
 
         Arguments:
             parent: the PyChamber main window
         """
-        super().__init__(parent)
+        assert self.NAME is not None
+        PyChamberPanelPlugin.__init__(self, main_window=main_window)
+        self.section = CollapsibleSection(title=self.NAME.capitalize(), parent=self)
+        layout = QVBoxLayout()
+        layout.addWidget(self.section)
+        self.setLayout(layout)
 
         self.setObjectName('positioner')
-        self.setLayout(QVBoxLayout())
 
         self._positioner: Optional[Positioner] = None
 
@@ -88,6 +94,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self.listen_to_jog_complete_signals = True  # FIXME: This is gross
 
     def _setup(self) -> None:
+        LOG.debug("Creating Positioner widget...")
         self._add_widgets()
 
     def _post_visible_setup(self) -> None:
@@ -105,40 +112,40 @@ class PositionerPlugin(PyChamberPanelPlugin):
         super().closeEvent(event)
 
     def _add_widgets(self) -> None:
-        LOG.debug("Creating Positioner widget...")
-        self.groupbox = QGroupBox("Positioner", self)
-        self.layout().addWidget(self.groupbox)
+        self._layout = QVBoxLayout()
 
-        self.groupbox_layout = QVBoxLayout(self.groupbox)
         hlayout = QHBoxLayout()
 
-        model_label = QLabel("Model", self.groupbox)
+        model_label = QLabel("Model", self.section)
         hlayout.addWidget(model_label)
 
-        self.model_combobox = QComboBox(self.groupbox)
+        self.model_combobox = QComboBox(self.section)
         hlayout.addWidget(self.model_combobox)
 
-        port_label = QLabel("Port", self.groupbox)
+        port_label = QLabel("Port", self.section)
         hlayout.addWidget(port_label)
 
-        self.port_combobox = QComboBox(self.groupbox)
+        self.port_combobox = QComboBox(self.section)
         hlayout.addWidget(self.port_combobox)
 
-        self.connect_btn = QPushButton("Connect", self.groupbox)
+        self.connect_btn = QPushButton("Connect", self.section)
+        self.connect_btn.setSizePolicy(size_policy["PREF_PREF"])
         hlayout.addWidget(self.connect_btn)
 
-        self.groupbox_layout.addLayout(hlayout)
+        self._layout.addLayout(hlayout)
 
-        self.extents_groupbox = QGroupBox(self.groupbox)
+        self.extents_groupbox = QGroupBox(self.section)
         self.extents_layout = QHBoxLayout(self.extents_groupbox)
         self._setup_az_extent_widget()
         self._setup_el_extent_widget()
-        self.groupbox_layout.addWidget(self.extents_groupbox)
+        self._layout.addWidget(self.extents_groupbox)
 
-        self.jog_groupbox = QGroupBox(self.groupbox)
+        self.jog_groupbox = QGroupBox(self.section)
         self.jog_layout = QVBoxLayout(self.jog_groupbox)
         self._setup_jog_box()
-        self.groupbox_layout.addWidget(self.jog_groupbox)
+        self._layout.addWidget(self.jog_groupbox)
+
+        self.section.set_content_layout(self._layout)
 
     def _init_inputs(self) -> None:
         LOG.debug("Populating models...")
@@ -392,8 +399,10 @@ class PositionerPlugin(PyChamberPanelPlugin):
         jog_az_to_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_az_to_label, 0, 4, 1, 1)
 
-        self.jog_az_left_btn = QPushButton(self.jog_groupbox)
-        self.jog_az_left_btn.setIcon(QIcon(QPixmap(":/icons/icons/LeftArrow.png")))
+        jog_left_icon = qta.icon('fa.arrow-left')
+        self.jog_az_left_btn = QPushButton(
+            text="", icon=jog_left_icon, parent=self.jog_groupbox
+        )
         self.jog_az_left_btn.setIconSize(QSize(32, 32))
         layout.addWidget(self.jog_az_left_btn, 1, 0, 1, 1)
 
@@ -401,13 +410,17 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self.jog_az_zero_btn.setFont(font["BOLD_20"])
         layout.addWidget(self.jog_az_zero_btn, 1, 1, 1, 1)
 
-        self.jog_az_right_btn = QPushButton(self.jog_groupbox)
-        self.jog_az_right_btn.setIcon(QIcon(QPixmap(":/icons/icons/RightArrow.png")))
+        jog_right_icon = qta.icon('fa.arrow-right')
+        self.jog_az_right_btn = QPushButton(
+            text="", icon=jog_right_icon, parent=self.jog_groupbox
+        )
         self.jog_az_right_btn.setIconSize(QSize(32, 32))
         layout.addWidget(self.jog_az_right_btn, 1, 2, 1, 1)
 
-        self.jog_az_submit_btn = QPushButton(self.jog_groupbox)
-        self.jog_az_submit_btn.setIcon(QIcon(QPixmap(":/icons/icons/Check.png")))
+        jog_az_submit_icon = qta.icon('fa.check')
+        self.jog_az_submit_btn = QPushButton(
+            text="", icon=jog_az_submit_icon, parent=self.jog_groupbox
+        )
         self.jog_az_submit_btn.setIconSize(QSize(32, 32))
         layout.addWidget(self.jog_az_submit_btn, 1, 5, 1, 1)
 
@@ -436,22 +449,28 @@ class PositionerPlugin(PyChamberPanelPlugin):
         jog_el_to_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(jog_el_to_label, 2, 4, 1, 1)
 
-        self.jog_el_cw_btn = QPushButton("", self.jog_groupbox)
-        self.jog_el_cw_btn.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
-        self.jog_el_cw_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_el_cw_btn, 3, 0, 1, 1)
+        jog_ccw_icon = qta.icon('ph.arrow-counter-clockwise-bold')
+        self.jog_el_ccw_btn = QPushButton(
+            text="", icon=jog_ccw_icon, parent=self.jog_groupbox
+        )
+        self.jog_el_ccw_btn.setIconSize(QSize(32, 32))
+        layout.addWidget(self.jog_el_ccw_btn, 3, 0, 1, 1)
 
         self.jog_el_zero_btn = QPushButton("0", self.jog_groupbox)
         self.jog_el_zero_btn.setFont(font["BOLD_20"])
         layout.addWidget(self.jog_el_zero_btn, 3, 1, 1, 1)
 
-        self.jog_el_ccw_btn = QPushButton("", self.jog_groupbox)
-        self.jog_el_ccw_btn.setIcon(QIcon(QPixmap(":/icons/icons/DownArrow.png")))
-        self.jog_el_ccw_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_el_ccw_btn, 3, 2, 1, 1)
+        jog_cw_icon = qta.icon('ph.arrow-clockwise-bold')
+        self.jog_el_cw_btn = QPushButton(
+            text="", icon=jog_cw_icon, parent=self.jog_groupbox
+        )
+        self.jog_el_cw_btn.setIconSize(QSize(32, 32))
+        layout.addWidget(self.jog_el_cw_btn, 3, 2, 1, 1)
 
-        self.jog_el_submit_btn = QPushButton("", self.jog_groupbox)
-        self.jog_el_submit_btn.setIcon(QIcon(QPixmap(":/icons/icons/Check.png")))
+        jog_el_submit_icon = qta.icon('fa.check')
+        self.jog_el_submit_btn = QPushButton(
+            text="", icon=jog_el_submit_icon, parent=self.jog_groupbox
+        )
         self.jog_el_submit_btn.setIconSize(QSize(32, 32))
         layout.addWidget(self.jog_el_submit_btn, 3, 5, 1, 1)
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+from pychamber.settings import SETTINGS
+
 if TYPE_CHECKING:
     from typing import Dict
 
@@ -10,12 +12,16 @@ import textwrap
 import webbrowser
 
 import cloudpickle as pickle
+import qdarkstyle
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCloseEvent, QIcon
+from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap
 from PyQt5.QtWidgets import (
+    QApplication,
     QDesktopWidget,
     QFileDialog,
+    QGroupBox,
     QHBoxLayout,
+    QLabel,
     QMainWindow,
     QMessageBox,
     QScrollArea,
@@ -58,6 +64,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("PyChamber")
         self.setWindowIcon(QIcon(":/logo.png"))
+        self.app = QApplication.instance()
 
         self.main_widget = QWidget(self)
         self.setCentralWidget(self.main_widget)
@@ -127,6 +134,7 @@ class MainWindow(QMainWindow):
         """Setup the window's menu and widgets."""
         self._setup_menu()
         self._add_widgets()
+        self.apply_theme(SETTINGS["theme"])
 
     def post_visible_setup(self) -> None:
         """Initialize registered plugins."""
@@ -135,6 +143,7 @@ class MainWindow(QMainWindow):
         for plugin in to_init:
             plugin._post_visible_setup()
 
+        self.settings_dialog.main_theme_changed.connect(self.apply_theme)
         self.statusBar().showMessage("Welcome to PyChamber!", 2000)
 
     def center(self) -> None:
@@ -186,12 +195,18 @@ class MainWindow(QMainWindow):
         plugin._register()
         self.registered_plugins[plugin.NAME] = plugin
 
-        if isinstance(plugin, PyChamberPanelPlugin):
-            LOG.debug(f"Adding {plugin.NAME} to panel")
-            self.panel_layout.addWidget(plugin)
-        elif isinstance(plugin, PyChamberPlugin):
+        if plugin.NAME == "experiment":
+            LOG.debug(f"Adding {plugin.NAME} to left side")
+            self.left_side_layout.insertWidget(0, plugin)
+        elif plugin.NAME == "plots":
             LOG.debug(f"Adding {plugin.NAME} to right side")
             self.right_side_layout.addWidget(plugin)
+        else:
+            if isinstance(plugin, PyChamberPanelPlugin):
+                LOG.debug(f"Adding {plugin.NAME} to panel")
+                self.panel_layout.addWidget(plugin)
+            elif isinstance(plugin, PyChamberPlugin):
+                pass
 
     def unregister_plugin(self, name: str) -> None:
         """Remove a plugin from PyChamber (NOT IMPLEMENTED).
@@ -256,16 +271,25 @@ class MainWindow(QMainWindow):
     def _add_widgets(self) -> None:
         LOG.debug("Setting up widgets...")
 
+        self.panel_groupbox = QGroupBox("Plugins")
         self.panel_scroll_area = QScrollArea(widgetResizable=True)
+        self.panel_scroll_area.setStyleSheet("QScrollArea {border: none;}")
+        self.panel_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         self.panel_widget = QWidget()
         self.panel_scroll_area.setWidget(self.panel_widget)
+
         self.panel_layout = QVBoxLayout(self.panel_widget)
-        self.panel_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.panel_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.panel_groupbox.setLayout(QVBoxLayout())
+        self.panel_groupbox.layout().addWidget(self.panel_scroll_area)
+
+        self.left_side_layout = QVBoxLayout()
         self.right_side_layout = QVBoxLayout()
 
-        self.main_layout.addWidget(self.panel_scroll_area)
-        self.main_layout.addLayout(self.right_side_layout)
+        self.left_side_layout.addWidget(self.panel_groupbox)
+
+        self.main_layout.addLayout(self.left_side_layout, stretch=1)
+        self.main_layout.addLayout(self.right_side_layout, stretch=3)
 
         for plugin in self.REQUIRED_PLUGINS:
             self.register_plugin(cast(PyChamberPlugin, plugin(self)))
@@ -276,7 +300,29 @@ class MainWindow(QMainWindow):
             plugin._setup()
 
         self.panel_layout.addStretch()
-        self.panel_scroll_area.setFixedWidth(
-            self.panel_widget.minimumSizeHint().width()
-            + self.panel_scroll_area.verticalScrollBar().sizeHint().width()
+        self.panel_groupbox.setMinimumWidth(500)
+
+        self.logo_label = QLabel()
+        self.logo_label.setAlignment(Qt.AlignCenter)
+        self.logo_label.setStyleSheet(
+            "QLabel {padding-top: 5px; margin-bottom: 0px;"
+            "padding-left: 10px; padding-right: 10px;}"
         )
+        self.left_side_layout.insertWidget(0, self.logo_label)
+
+    def apply_theme(self, theme: str) -> None:
+        from qdarkstyle.light.palette import LightPalette
+
+        if theme.lower() == "light":
+            logo = QPixmap(":/logo_with_txt_light.png")
+            self.logo_label.setPixmap(logo.scaledToWidth(350))
+            self.app.setStyleSheet(
+                qdarkstyle.load_stylesheet(qt_api='pyqt5', palette=LightPalette)
+            )
+
+        elif theme.lower() == "dark":
+            logo = QPixmap(":/logo_with_txt_dark.png")
+            self.logo_label.setPixmap(logo.scaledToWidth(350))
+            self.app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
+        else:
+            QMessageBox.critical(self, "Unrecognized theme", "Unrecognized color theme.")

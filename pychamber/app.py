@@ -24,6 +24,7 @@ def run(args: Dict):
     app.setOrganizationName("pychamber")
     app.setApplicationName("pychamber")
     app.setApplicationVersion(pychamber.__version__)
+
     main = MainWindow()
     main.setup()
     main.show()
