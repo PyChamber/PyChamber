@@ -132,8 +132,10 @@ class RectangularPlot(PyChamberPlot):
 
     def newfig(self) -> None:
         newplot = MplRectWidget(self)
-        self.layout().replaceWidget(self.plot, newplot)
+        oldplot = self.layout().replaceWidget(self.plot, newplot)
+        oldplot.widget().close()
         self.plot: MplRectWidget = newplot
+        self.post_visible_setup()
         self.plot.update_scale()
 
     def _add_widgets(self) -> None:
@@ -190,6 +192,7 @@ class RectangularPlot(PyChamberPlot):
         hlayout.addWidget(self.autoscale_chkbox)
 
         self.autoscale_btn = QPushButton("Auto Scale", self)
+        self.autoscale_btn.setSizePolicy(size_policy["PREF_PREF"])
         hlayout.addWidget(self.autoscale_btn)
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)

@@ -99,6 +99,10 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         if SETTINGS["calibration/file"] != "":
             self.load_cal_file(SETTINGS["calibration/file"])
 
+    def _post_visible_setup(self) -> None:
+        super()._post_visible_setup()
+        self.setStyleSheet("QPushButton {padding: 5px;}")
+
     def _connect_signals(self) -> None:
         self.cal_btn.clicked.connect(self._on_cal_btn_clicked)
         self.cal_file_browse_btn.clicked.connect(self._on_cal_file_browse_btn_clicked)
@@ -176,12 +180,11 @@ class CalibrationPlugin(PyChamberPanelPlugin):
         self.cal_file_lineedit = QLineEdit(self.section)
         self.cal_file_lineedit.setReadOnly(True)
         self.cal_file_lineedit.setText(SETTINGS["calibration/file"])
+        self.cal_file_lineedit.setSizePolicy(size_policy["EXP_PREF"])
         hlayout.addWidget(self.cal_file_lineedit)
 
         self.cal_file_browse_btn = QPushButton("Browse", self.section)
-        self.cal_file_browse_btn.setFixedHeight(
-            self.cal_file_lineedit.sizeHint().height()
-        )
+        # self.cal_file_browse_btn.setSizePolicy(size_policy["PREF_MIN"])
         hlayout.addWidget(self.cal_file_browse_btn)
 
         self.cal_toggle = Toggle(self.section)
@@ -195,11 +198,11 @@ class CalibrationPlugin(PyChamberPanelPlugin):
 
         hlayout = QHBoxLayout()
         self.cal_btn = QPushButton("Calibration Wizard", self.section)
-        self.cal_btn.setSizePolicy(size_policy["PREF_MINEXP"])
+        self.cal_btn.setSizePolicy(size_policy["PREF_PREF"])
         hlayout.addWidget(self.cal_btn)
 
         self.cal_view_btn = QPushButton("View Calibration", self.section)
-        self.cal_view_btn.setSizePolicy(size_policy["PREF_MINEXP"])
+        self.cal_view_btn.setSizePolicy(size_policy["PREF_PREF"])
         self.cal_view_btn.setEnabled(False)
         hlayout.addWidget(self.cal_view_btn)
 

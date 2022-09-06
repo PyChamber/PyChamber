@@ -126,6 +126,8 @@ class ExperimentPlugin(PyChamberPlugin):
     def _add_widgets(self) -> None:
         LOG.debug("Creating Experiment widget...")
         self.groupbox = QGroupBox("Experiment", self)
+        self.groupbox.setFont(font["BOLD_12"])
+        self.groupbox.setStyleSheet("QGroupBox {padding: 20px;}")
         self.layout().addWidget(self.groupbox)
 
         layout = QHBoxLayout(self.groupbox)

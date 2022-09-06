@@ -1,5 +1,7 @@
 """Defines the PositionerPlugin."""
 from __future__ import annotations
+from multiprocessing.sharedctypes import Value
+from turtle import left
 
 from typing import TYPE_CHECKING
 
@@ -101,6 +103,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
         LOG.debug("Post-visible setup...")
         self._init_inputs()
         self._connect_signals()
+        self._apply_theme(SETTINGS["theme"])
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Ensures jog threads are closed and stores current position."""
@@ -113,6 +116,7 @@ class PositionerPlugin(PyChamberPanelPlugin):
 
     def _add_widgets(self) -> None:
         self._layout = QVBoxLayout()
+        self.setStyleSheet("QLabel {padding: 5px;}")
 
         hlayout = QHBoxLayout()
 
@@ -134,16 +138,14 @@ class PositionerPlugin(PyChamberPanelPlugin):
 
         self._layout.addLayout(hlayout)
 
-        self.extents_groupbox = QGroupBox(self.section)
+        self.extents_groupbox = QGroupBox("Extents", self.section)
+        self.extents_groupbox.setFont(font["BOLD_12"])
         self.extents_layout = QHBoxLayout(self.extents_groupbox)
         self._setup_az_extent_widget()
         self._setup_el_extent_widget()
         self._layout.addWidget(self.extents_groupbox)
 
-        self.jog_groupbox = QGroupBox(self.section)
-        self.jog_layout = QVBoxLayout(self.jog_groupbox)
         self._setup_jog_box()
-        self._layout.addWidget(self.jog_groupbox)
 
         self.section.set_content_layout(self._layout)
 
@@ -302,10 +304,10 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self.set_enabled(True and self.listen_to_jog_complete_signals)
 
     def _setup_az_extent_widget(self) -> None:
+        LOG.debug("Setting up az extents")
         layout = QVBoxLayout()
 
         az_extent_label = QLabel("Azimuth", self.extents_groupbox)
-        az_extent_label.setFont(font["BOLD_14"])
         az_extent_label.setAlignment(Qt.AlignHCenter)
         layout.addWidget(az_extent_label)
 
@@ -342,11 +344,11 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self.extents_layout.addLayout(layout)
 
     def _setup_el_extent_widget(self) -> None:
+        LOG.debug("Setting up el extents")
         layout = QVBoxLayout()
 
         el_extent_label = QLabel("Elevation", self.extents_groupbox)
         el_extent_label.setAlignment(Qt.AlignHCenter)
-        el_extent_label.setFont(font["BOLD_14"])
         layout.addWidget(el_extent_label)
 
         hlayout = QHBoxLayout()
@@ -382,153 +384,207 @@ class PositionerPlugin(PyChamberPanelPlugin):
         self.extents_layout.addLayout(layout)
 
     def _setup_jog_box(self) -> None:
-        layout = QGridLayout()
+        LOG.debug("Setting up jog box")
+        layout = QHBoxLayout()
 
-        jog_az_label = QLabel("Azimuth", self.jog_groupbox)
-        jog_az_label.setFont(font["BOLD_12"])
-        jog_az_label.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(jog_az_label, 0, 0, 1, 3)
+        LOG.debug("Creating az_groupbox")
+        self.az_groupbox = QGroupBox("Azimuth")
+        self.az_groupbox.setFont(font["BOLD_12"])
+        az_layout = QVBoxLayout(self.az_groupbox)
 
-        jog_az_step_label = QLabel("Step", self.jog_groupbox)
-        jog_az_step_label.setFont(font["BOLD_12"])
-        jog_az_step_label.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(jog_az_step_label, 0, 3, 1, 1)
-
-        jog_az_to_label = QLabel("Jog Azimuth To", self.jog_groupbox)
-        jog_az_to_label.setFont(font["BOLD_12"])
-        jog_az_to_label.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(jog_az_to_label, 0, 4, 1, 1)
-
-        jog_left_icon = qta.icon('fa.arrow-left')
-        self.jog_az_left_btn = QPushButton(
-            text="", icon=jog_left_icon, parent=self.jog_groupbox
-        )
-        self.jog_az_left_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_az_left_btn, 1, 0, 1, 1)
-
-        self.jog_az_zero_btn = QPushButton("0", self.jog_groupbox)
-        self.jog_az_zero_btn.setFont(font["BOLD_20"])
-        layout.addWidget(self.jog_az_zero_btn, 1, 1, 1, 1)
-
-        jog_right_icon = qta.icon('fa.arrow-right')
-        self.jog_az_right_btn = QPushButton(
-            text="", icon=jog_right_icon, parent=self.jog_groupbox
-        )
-        self.jog_az_right_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_az_right_btn, 1, 2, 1, 1)
-
-        jog_az_submit_icon = qta.icon('fa.check')
-        self.jog_az_submit_btn = QPushButton(
-            text="", icon=jog_az_submit_icon, parent=self.jog_groupbox
-        )
-        self.jog_az_submit_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_az_submit_btn, 1, 5, 1, 1)
-
-        self.jog_az_step_spinbox = QDoubleSpinBox(self.jog_groupbox)
-        self.jog_az_step_spinbox.setRange(0.0, 180.0)
-        self.jog_az_step_spinbox.setSingleStep(0.5)
-        self.jog_az_step_spinbox.setDecimals(2)
-        layout.addWidget(self.jog_az_step_spinbox, 1, 3, 1, 1)
-
-        self.jog_az_to_lineedit = QLineEdit(self.jog_groupbox)
-        self.jog_az_to_lineedit.setPlaceholderText("0.0")
-        layout.addWidget(self.jog_az_to_lineedit, 1, 4, 1, 1)
-
-        jog_el_label = QLabel("Elevation", self.jog_groupbox)
-        jog_el_label.setFont(font["BOLD_12"])
-        jog_el_label.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(jog_el_label, 2, 0, 1, 3)
-
-        jog_el_step_label = QLabel("Step", self.jog_groupbox)
-        jog_el_step_label.setFont(font["BOLD_12"])
-        jog_el_step_label.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(jog_el_step_label, 2, 3, 1, 1)
-
-        jog_el_to_label = QLabel("Jog Elevation To", self.jog_groupbox)
-        jog_el_to_label.setFont(font["BOLD_12"])
-        jog_el_to_label.setAlignment(Qt.AlignHCenter)
-        layout.addWidget(jog_el_to_label, 2, 4, 1, 1)
-
-        jog_ccw_icon = qta.icon('ph.arrow-counter-clockwise-bold')
-        self.jog_el_ccw_btn = QPushButton(
-            text="", icon=jog_ccw_icon, parent=self.jog_groupbox
-        )
-        self.jog_el_ccw_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_el_ccw_btn, 3, 0, 1, 1)
-
-        self.jog_el_zero_btn = QPushButton("0", self.jog_groupbox)
-        self.jog_el_zero_btn.setFont(font["BOLD_20"])
-        layout.addWidget(self.jog_el_zero_btn, 3, 1, 1, 1)
-
-        jog_cw_icon = qta.icon('ph.arrow-clockwise-bold')
-        self.jog_el_cw_btn = QPushButton(
-            text="", icon=jog_cw_icon, parent=self.jog_groupbox
-        )
-        self.jog_el_cw_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_el_cw_btn, 3, 2, 1, 1)
-
-        jog_el_submit_icon = qta.icon('fa.check')
-        self.jog_el_submit_btn = QPushButton(
-            text="", icon=jog_el_submit_icon, parent=self.jog_groupbox
-        )
-        self.jog_el_submit_btn.setIconSize(QSize(32, 32))
-        layout.addWidget(self.jog_el_submit_btn, 3, 5, 1, 1)
-
-        self.jog_el_step_spinbox = QDoubleSpinBox(self.jog_groupbox)
-        self.jog_el_step_spinbox.setRange(0.0, 180.0)
-        self.jog_el_step_spinbox.setSingleStep(0.5)
-        self.jog_el_step_spinbox.setDecimals(2)
-        layout.addWidget(self.jog_el_step_spinbox, 3, 3, 1, 1)
-
-        self.jog_el_to_lineedit = QLineEdit(self.jog_groupbox)
-        self.jog_el_to_lineedit.setPlaceholderText("0.0")
-        layout.addWidget(self.jog_el_to_lineedit, 3, 4, 1, 1)
-
-        self.jog_layout.addLayout(layout)
-
-        hlayout = QHBoxLayout()
-
-        az_pos_layout = QVBoxLayout()
-
-        az_pos_label = QLabel("Azimuth", self.jog_groupbox)
-        az_pos_label.setFont(font["BOLD_12"])
-        az_pos_label.setAlignment(Qt.AlignHCenter)
-        az_pos_layout.addWidget(az_pos_label)
-
-        self.az_pos_lineedit = QLineEdit(self.jog_groupbox)
+        LOG.debug("Creating current position lineedit")
+        self.az_pos_lineedit = QLineEdit(self.az_groupbox)
         self.az_pos_lineedit.setReadOnly(True)
         self.az_pos_lineedit.setFont(font["BOLD_20_IBM"])
         self.az_pos_lineedit.setAlignment(Qt.AlignHCenter)
-        az_pos_layout.addWidget(self.az_pos_lineedit)
+        az_layout.addWidget(self.az_pos_lineedit)
 
-        hlayout.addLayout(az_pos_layout)
+        hlayout = QHBoxLayout()
 
-        el_pos_layout = QVBoxLayout()
+        LOG.debug("Creating az_step_label")
+        jog_az_step_label = QLabel("Step", self.az_groupbox)
+        jog_az_step_label.setFont(font["BOLD_12"])
+        jog_az_step_label.setAlignment(Qt.AlignHCenter)
+        hlayout.addWidget(jog_az_step_label)
 
-        el_pos_label = QLabel("Elevation", self.jog_groupbox)
-        el_pos_label.setFont(font["BOLD_12"])
-        el_pos_label.setAlignment(Qt.AlignHCenter)
-        el_pos_layout.addWidget(el_pos_label)
+        LOG.debug("Creating az_step_spinbox")
+        self.jog_az_step_spinbox = QDoubleSpinBox(self.az_groupbox)
+        self.jog_az_step_spinbox.setSizePolicy(size_policy["EXP_EXP"])
+        self.jog_az_step_spinbox.setRange(0.0, 180.0)
+        self.jog_az_step_spinbox.setSingleStep(0.5)
+        self.jog_az_step_spinbox.setDecimals(2)
+        hlayout.addWidget(self.jog_az_step_spinbox)
 
-        self.el_pos_lineedit = QLineEdit(self.jog_groupbox)
+        az_layout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+
+        LOG.debug("Creating az jog buttons")
+        jog_left_icon = qta.icon('fa.arrow-left')
+        self.jog_az_left_btn = QPushButton(
+            text="", icon=jog_left_icon, parent=self.az_groupbox
+        )
+        self.jog_az_left_btn.setIconSize(QSize(32, 32))
+        self.jog_az_left_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_az_left_btn)
+
+        self.jog_az_zero_btn = QPushButton("0", self.az_groupbox)
+        self.jog_az_zero_btn.setFont(font["BOLD_20"])
+        self.jog_az_zero_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_az_zero_btn)
+
+        jog_right_icon = qta.icon('fa.arrow-right')
+        self.jog_az_right_btn = QPushButton(
+            text="", icon=jog_right_icon, parent=self.az_groupbox
+        )
+        self.jog_az_right_btn.setIconSize(QSize(32, 32))
+        self.jog_az_right_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_az_right_btn)
+
+        az_layout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+
+        LOG.debug("Creating jog_az_to line")
+        jog_az_to_label = QLabel("Jog To", self.az_groupbox)
+        jog_az_to_label.setFont(font["BOLD_12"])
+        jog_az_to_label.setAlignment(Qt.AlignHCenter)
+        hlayout.addWidget(jog_az_to_label)
+
+        self.jog_az_to_lineedit = QLineEdit(self.az_groupbox)
+        self.jog_az_to_lineedit.setSizePolicy(size_policy["EXP_EXP"])
+        self.jog_az_to_lineedit.setPlaceholderText("0.0")
+        hlayout.addWidget(self.jog_az_to_lineedit)
+
+        jog_az_submit_icon = qta.icon('fa.check')
+        self.jog_az_submit_btn = QPushButton(
+            text="", icon=jog_az_submit_icon, parent=self.az_groupbox
+        )
+        self.jog_az_submit_btn.setIconSize(QSize(32, 32))
+        self.jog_az_submit_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_az_submit_btn)
+
+        az_layout.addLayout(hlayout)
+        LOG.debug("Adding az groupbox to layout")
+        layout.addWidget(self.az_groupbox)
+
+        LOG.debug("Creating el_groupbox")
+        self.el_groupbox = QGroupBox("Elevation")
+        self.el_groupbox.setFont(font["BOLD_12"])
+        el_layout = QVBoxLayout(self.el_groupbox)
+
+        LOG.debug("Creating current el position")
+        self.el_pos_lineedit = QLineEdit(self.el_groupbox)
         self.el_pos_lineedit.setReadOnly(True)
         self.el_pos_lineedit.setFont(font["BOLD_20_IBM"])
         self.el_pos_lineedit.setAlignment(Qt.AlignHCenter)
-        el_pos_layout.addWidget(self.el_pos_lineedit)
+        el_layout.addWidget(self.el_pos_lineedit)
 
-        hlayout.addLayout(el_pos_layout)
+        hlayout = QHBoxLayout()
 
-        zero_btn_layout = QHBoxLayout()
-        self.set_zero_btn = QPushButton("Set 0,0", self.jog_groupbox)
-        zero_btn_layout.addWidget(self.set_zero_btn)
+        LOG.debug("Creating el step line")
+        jog_el_step_label = QLabel("Step", self.el_groupbox)
+        jog_el_step_label.setFont(font["BOLD_12"])
+        jog_el_step_label.setAlignment(Qt.AlignHCenter)
+        hlayout.addWidget(jog_el_step_label)
 
-        self.ret_to_zero_btn = QPushButton("Return to 0,0", self.jog_groupbox)
-        zero_btn_layout.addWidget(self.ret_to_zero_btn)
+        self.jog_el_step_spinbox = QDoubleSpinBox(self.el_groupbox)
+        self.jog_el_step_spinbox.setSizePolicy(size_policy["EXP_EXP"])
+        self.jog_el_step_spinbox.setRange(0.0, 180.0)
+        self.jog_el_step_spinbox.setSingleStep(0.5)
+        self.jog_el_step_spinbox.setDecimals(2)
+        hlayout.addWidget(self.jog_el_step_spinbox)
 
-        self.jog_layout.addLayout(hlayout)
-        self.jog_layout.addLayout(zero_btn_layout)
+        el_layout.addLayout(hlayout)
 
-        self.jog_groupbox.setEnabled(False)
+        hlayout = QHBoxLayout()
+
+        LOG.debug("Creating jog el buttons")
+        jog_ccw_icon = qta.icon('ph.arrow-counter-clockwise-bold')
+        self.jog_el_ccw_btn = QPushButton(
+            text="", icon=jog_ccw_icon, parent=self.el_groupbox
+        )
+        self.jog_el_ccw_btn.setIconSize(QSize(32, 32))
+        self.jog_el_ccw_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_el_ccw_btn)
+
+        self.jog_el_zero_btn = QPushButton("0", self.el_groupbox)
+        self.jog_el_zero_btn.setFont(font["BOLD_20"])
+        self.jog_el_zero_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_el_zero_btn)
+
+        jog_cw_icon = qta.icon('ph.arrow-clockwise-bold')
+        self.jog_el_cw_btn = QPushButton(
+            text="", icon=jog_cw_icon, parent=self.el_groupbox
+        )
+        self.jog_el_cw_btn.setIconSize(QSize(32, 32))
+        self.jog_el_cw_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_el_cw_btn)
+
+        el_layout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+
+        LOG.debug("Creating jog el to line")
+        jog_el_to_label = QLabel("Jog To", self.el_groupbox)
+        jog_el_to_label.setFont(font["BOLD_12"])
+        jog_el_to_label.setAlignment(Qt.AlignHCenter)
+        hlayout.addWidget(jog_el_to_label)
+
+        self.jog_el_to_lineedit = QLineEdit(self.el_groupbox)
+        self.jog_el_to_lineedit.setSizePolicy(size_policy["EXP_EXP"])
+        self.jog_el_to_lineedit.setPlaceholderText("0.0")
+        hlayout.addWidget(self.jog_el_to_lineedit)
+
+        jog_el_submit_icon = qta.icon('fa.check')
+        self.jog_el_submit_btn = QPushButton(
+            text="", icon=jog_el_submit_icon, parent=self.el_groupbox
+        )
+        self.jog_el_submit_btn.setIconSize(QSize(32, 32))
+        self.jog_el_submit_btn.setSizePolicy(size_policy["EXP_EXP"])
+        hlayout.addWidget(self.jog_el_submit_btn)
+
+        el_layout.addLayout(hlayout)
+
+        layout.addWidget(self.el_groupbox)
+        self._layout.addLayout(layout)
+
+        hlayout = QHBoxLayout()
+        self.set_zero_btn = QPushButton("Set 0,0", self.section)
+        self.set_zero_btn.setFont(font["BOLD_12"])
+        self.set_zero_btn.setToolTip("Define the current position as the origin")
+        self.set_zero_btn.setStyleSheet("QPushButton {padding: 10px;}")
+        hlayout.addWidget(self.set_zero_btn)
+
+        self.ret_to_zero_btn = QPushButton("Return to 0,0", self.section)
+        self.ret_to_zero_btn.setFont(font["BOLD_12"])
+        self.ret_to_zero_btn.setStyleSheet("QPushButton {padding: 10px;}")
+        hlayout.addWidget(self.ret_to_zero_btn)
+
+        self._layout.addLayout(hlayout)
+
+        self.set_enabled(False)
+
+    def _apply_theme(self, theme: str) -> None:
+        if theme.lower() == "dark":
+            icon_color = "white"
+        elif theme.lower() == "light":
+            icon_color = "black"
+        else:
+            raise ValueError(f"Unrecognized theme: {theme}")
+
+        left_icon = qta.icon('fa.arrow-left', color=icon_color)
+        self.jog_az_left_btn.setIcon(left_icon)
+        right_icon = qta.icon('fa.arrow-right', color=icon_color)
+        self.jog_az_right_btn.setIcon(right_icon)
+        az_check_icon = qta.icon('fa.check', color=icon_color)
+        self.jog_az_submit_btn.setIcon(az_check_icon)
+        ccw_icon = qta.icon('ph.arrow-counter-clockwise-bold', color=icon_color)
+        self.jog_el_ccw_btn.setIcon(ccw_icon)
+        cw_icon = qta.icon('ph.arrow-clockwise-bold', color=icon_color)
+        self.jog_el_cw_btn.setIcon(cw_icon)
+        el_check_icon = qta.icon('fa.check', color=icon_color)
+        self.jog_el_submit_btn.setIcon(el_check_icon)
 
     def _jog(self, axis: JogAxis, direction: JogDir, relative: bool) -> None:
         if self._positioner is None:
@@ -654,4 +710,8 @@ class PositionerPlugin(PyChamberPanelPlugin):
         Arguments:
             enable: True to enable, False to disable
         """
-        self.jog_groupbox.setEnabled(enable)
+        self.extents_groupbox.setEnabled(enable)
+        self.az_groupbox.setEnabled(enable)
+        self.el_groupbox.setEnabled(enable)
+        self.set_zero_btn.setEnabled(enable)
+        self.ret_to_zero_btn.setEnabled(enable)

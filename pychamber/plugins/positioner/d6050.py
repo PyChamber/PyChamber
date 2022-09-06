@@ -288,7 +288,7 @@ class D6050(Positioner):
         if np.isclose(angle, 0.0):
             self.el_move_complete.emit()
             return
-        steps = -int(self.el_steps_per_deg * angle)
+        steps = int(self.el_steps_per_deg * angle)
         LOG.debug(f"move el relative: {angle} degrees / {steps} steps")
         self.move(self.elevation, f"{steps:+}")
         self.current_el += angle

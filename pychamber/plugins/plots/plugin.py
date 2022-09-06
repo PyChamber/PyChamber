@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import QComboBox, QTabWidget, QVBoxLayout
 from pychamber.logger import LOG
 from pychamber.plugins import ExperimentPlugin, PyChamberPlugin
 from pychamber.settings import SETTINGS
-from pychamber.ui import size_policy
+from pychamber.ui import size_policy, font
 
 from .over_freq import OverFreqPlot
 from .polar import PolarPlot
@@ -77,11 +77,19 @@ class PlotsPlugin(PyChamberPlugin):
         LOG.debug("Creating Plots widget...")
         self.tab_widget = QTabWidget(self)
         self.layout().addWidget(self.tab_widget)
+        self.tab_widget.tabBar().setFont(font["BOLD_12"])
+        self.tab_widget.tabBar().setStyleSheet(
+            "QTabBar::tab {"
+            "    padding-left: 10px;"
+            "    padding-right: 10px;"
+            "    padding-top: 5px;"
+            "    padding-bottom: 5px;"
+            "}"
+        )
+        self.setStyleSheet("QPushButton {padding: 5px;}")
 
         self.experiment = cast(ExperimentPlugin, self.main.get_plugin("experiment"))
         self.experiment.ntwk_model.data_loaded.connect(self._on_data_loaded)
-
-        self.apply_theme(SETTINGS["plots/theme"])
 
         # TODO: Make this dynamic for users to be able to add desired plots
         self.add_plot(PolarPlot, "Polar Plot")
@@ -93,6 +101,8 @@ class PlotsPlugin(PyChamberPlugin):
         for plot in self._plots:
             plot.post_visible_setup()
             plot.new_data_requested.connect(self._on_new_data_requested)
+
+        self.apply_plot_theme(SETTINGS["plots/theme"])
 
     def _on_new_data_requested(self, ctrls: PlotControls) -> None:
         assert self.experiment is not None
@@ -131,7 +141,7 @@ class PlotsPlugin(PyChamberPlugin):
             plot.init_controls(**kwargs)
             plot.reset()
 
-    def apply_theme(self, theme_name: str) -> None:
+    def apply_plot_theme(self, theme_name: str) -> None:
         LOG.debug(theme_name)
         try:
             theme = aquarel.load_theme(theme_name)
@@ -158,7 +168,7 @@ class PlotsPlugin(PyChamberPlugin):
                 theme_dropdown.addItem(current_theme)
                 theme_dropdown.setCurrentIndex(theme_dropdown.count() - 1)
 
-        theme_dropdown.currentTextChanged.connect(self.apply_theme)
+        theme_dropdown.currentTextChanged.connect(self.apply_plot_theme)
         settings = [("theme", "Plot Theme", theme_dropdown)]
         return settings
 

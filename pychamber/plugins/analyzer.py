@@ -15,13 +15,14 @@ import itertools
 import numpy as np
 import pyvisa
 import skrf
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import (
     QComboBox,
     QFileDialog,
     QGridLayout,
     QGroupBox,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -35,7 +36,7 @@ from skrf.vi import vna
 from pychamber.logger import LOG
 from pychamber.polarization import Polarization
 from pychamber.settings import SETTINGS
-from pychamber.ui import size_policy
+from pychamber.ui import size_policy, font
 from pychamber.widgets import CollapsibleSection, FrequencyLineEdit
 
 from .base import PyChamberPanelPlugin
@@ -146,32 +147,23 @@ class AnalyzerPlugin(PyChamberPanelPlugin):
         layout.addLayout(hlayout)
 
         self.freq_groupbox = QGroupBox("Frequency", self.section)
-        freq_layout = QGridLayout(self.freq_groupbox)
-
-        start_freq_label = QLabel("Start", self.freq_groupbox)
-        freq_layout.addWidget(start_freq_label, 0, 0, 1, 1)
+        self.freq_groupbox.setFont(font["BOLD_12"])
+        freq_layout = QFormLayout(self.freq_groupbox)
+        freq_layout.setLabelAlignment(Qt.AlignRight)
 
         self.start_freq_lineedit = FrequencyLineEdit(self.freq_groupbox)
-        freq_layout.addWidget(self.start_freq_lineedit, 0, 1, 1, 1)
-
-        stop_freq_label = QLabel("Stop", self.freq_groupbox)
-        freq_layout.addWidget(stop_freq_label, 1, 0, 1, 1)
+        self.start_freq_lineedit.setSizePolicy(size_policy["PREF_PREF"])
+        freq_layout.addRow("Start", self.start_freq_lineedit)
 
         self.stop_freq_lineedit = FrequencyLineEdit(self.freq_groupbox)
-        freq_layout.addWidget(self.stop_freq_lineedit, 1, 1, 1, 1)
-
-        step_freq_label = QLabel("Step", self.freq_groupbox)
-        freq_layout.addWidget(step_freq_label, 2, 0, 1, 1)
+        freq_layout.addRow("Stop", self.stop_freq_lineedit)
 
         self.freq_step_lineedit = FrequencyLineEdit(self.freq_groupbox)
-        freq_layout.addWidget(self.freq_step_lineedit, 2, 1, 1, 1)
-
-        n_points_label = QLabel("Number of Points", self.freq_groupbox)
-        freq_layout.addWidget(n_points_label, 3, 0, 1, 1)
+        freq_layout.addRow("Step", self.freq_step_lineedit)
 
         self.n_points_lineedit = QLineEdit(self.freq_groupbox)
         self.n_points_lineedit.setValidator(QIntValidator(self.n_points_lineedit))
-        freq_layout.addWidget(self.n_points_lineedit, 3, 1, 1, 1)
+        freq_layout.addRow("Number of points", self.n_points_lineedit)
 
         layout.addWidget(self.freq_groupbox)
         self.freq_groupbox.setEnabled(False)

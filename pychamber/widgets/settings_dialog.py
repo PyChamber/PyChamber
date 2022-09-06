@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
 
 from pychamber.logger import LOG
 from pychamber.widgets import HorizontalTabWidget
+from pychamber.ui import font
 
 
 class SettingsDialog(QDialog):
@@ -70,6 +71,16 @@ class SettingsDialog(QDialog):
         self._load_general_settings(widget)
         self.settings_tab_widget.addTab(widget, "General")
         self.main_layout.addWidget(self.settings_tab_widget)
+
+        self.settings_tab_widget.tabBar().setFont(font["BOLD_10"])
+        self.settings_tab_widget.tabBar().setStyleSheet(
+            "QTabBar::tab {"
+            "    padding-top: 10px;"
+            "    padding-bottom: 10px;"
+            "    padding-left: 5px;"
+            "    padding-right: 5px;"
+            "}"
+        )
 
         self.setLayout(self.main_layout)
 

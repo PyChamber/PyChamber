@@ -33,7 +33,7 @@ from pyqtgraph.console import ConsoleWidget
 import pychamber.plugins as plugins
 from pychamber.logger import LOG
 from pychamber.plugins import PyChamberPanelPlugin, PyChamberPlugin, PyChamberPluginError
-from pychamber.ui import resources_rc, size_policy  # noqa: F401
+from pychamber.ui import resources_rc, size_policy, font  # noqa: F401
 from pychamber.widgets import AboutPyChamberDialog, LogViewer, SettingsDialog
 
 
@@ -134,7 +134,6 @@ class MainWindow(QMainWindow):
         """Setup the window's menu and widgets."""
         self._setup_menu()
         self._add_widgets()
-        self.apply_theme(SETTINGS["theme"])
 
     def post_visible_setup(self) -> None:
         """Initialize registered plugins."""
@@ -142,6 +141,8 @@ class MainWindow(QMainWindow):
         to_init = list(self.registered_plugins.values())
         for plugin in to_init:
             plugin._post_visible_setup()
+
+        self.apply_theme(SETTINGS["theme"])
 
         self.settings_dialog.main_theme_changed.connect(self.apply_theme)
         self.statusBar().showMessage("Welcome to PyChamber!", 2000)
@@ -272,6 +273,7 @@ class MainWindow(QMainWindow):
         LOG.debug("Setting up widgets...")
 
         self.panel_groupbox = QGroupBox("Plugins")
+        self.panel_groupbox.setFont(font["BOLD_12"])
         self.panel_scroll_area = QScrollArea(widgetResizable=True)
         self.panel_scroll_area.setStyleSheet("QScrollArea {border: none;}")
         self.panel_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -280,6 +282,7 @@ class MainWindow(QMainWindow):
         self.panel_scroll_area.setWidget(self.panel_widget)
 
         self.panel_layout = QVBoxLayout(self.panel_widget)
+        self.panel_layout.setContentsMargins(0, 0, 0, 0)
         self.panel_groupbox.setLayout(QVBoxLayout())
         self.panel_groupbox.layout().addWidget(self.panel_scroll_area)
 
@@ -288,8 +291,8 @@ class MainWindow(QMainWindow):
 
         self.left_side_layout.addWidget(self.panel_groupbox)
 
-        self.main_layout.addLayout(self.left_side_layout, stretch=1)
-        self.main_layout.addLayout(self.right_side_layout, stretch=3)
+        self.main_layout.addLayout(self.left_side_layout, stretch=2)
+        self.main_layout.addLayout(self.right_side_layout, stretch=5)
 
         for plugin in self.REQUIRED_PLUGINS:
             self.register_plugin(cast(PyChamberPlugin, plugin(self)))
@@ -326,3 +329,9 @@ class MainWindow(QMainWindow):
             self.app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
         else:
             QMessageBox.critical(self, "Unrecognized theme", "Unrecognized color theme.")
+            return
+
+        SETTINGS["theme"] = theme
+
+        for plugin in self.registered_plugins.values():
+            plugin.apply_theme(theme)

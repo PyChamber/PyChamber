@@ -83,6 +83,9 @@ class PyChamberPlugin(QWidget):
     def _user_settings(self) -> List[Tuple[str, str, Type]]:
         return [("", "", QLabel("No user settings available for this plugin."))]
 
+    def apply_theme(self, theme: str) -> None:
+        pass
+
 
 class PyChamberPanelPlugin(PyChamberPlugin):
     """A plugin that should be added to the PyChamber panel.
