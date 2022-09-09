@@ -675,27 +675,34 @@ class CalViewWindow(QWidget):
 
         pol1 = self.cal.pol1
         pol2 = self.cal.pol2
-        assert (pol1 is not None) and (pol2 is not None), "Empty calibration"
+        assert (pol1 is not None) or (pol2 is not None), "Empty calibration"
         if pol1 is not None:
             freqs = pol1.frequency.f.reshape((-1,))
+            pol1_label = pol1.params["polarization"]
+            mags1 = (
+                pol1.s_db.reshape((-1,)) if pol1 is not None else np.array([0.0])  # type: ignore
+            )
+            self.plot.plot_new_data(freqs, mags1)
         else:
             freqs = pol2.frequency.f.reshape((-1,))
+            pol2_label = pol2.params["polarization"]
+            mags2 = (
+                pol2.s_db.reshape((-1,)) if pol2 is not None else np.array([0.0])  # type: ignore
+            )
+            self.plot.add_plot(freqs, mags2)
 
-        mags1 = (
-            pol1.s_db.reshape((-1,)) if pol1 is not None else np.array([])  # type: ignore
-        )
-        mags2 = (
-            pol2.s_db.reshape((-1,)) if pol2 is not None else np.array([])  # type: ignore
-        )
 
-        mags_min = min(mags1.min(), mags2.min())
-        mags_max = max(mags1.max(), mags2.max())
-
-        pol1_label = pol1.params["polarization"]
-        pol2_label = pol2.params["polarization"]
-        self.plot.plot_new_data(freqs, mags1)
-        self.plot.add_plot(freqs, mags2)
-        self.plot.ax.legend([pol1_label, pol2_label])
+        if (pol1 is not None) and (pol2 is not None):
+            mags_min = min(mags1.min(), mags2.min())
+            mags_max = max(mags1.max(), mags2.max())
+            self.plot.ax.legend([pol1_label, pol2_label])
+        elif pol1 is not None:
+            mags_min = mags1.min()
+            mags_max = mags1.max()
+        elif pol2 is not None:
+            mags_min = mags2.min()
+            mags_max = mags2.max()
+            
         self.plot.redraw_plot()
 
         self.plot.xmin = freqs.min()
