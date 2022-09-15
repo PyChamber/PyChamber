@@ -2,7 +2,7 @@
 [tool.poetry]
 name = "pychamber"
 version = "0.1.0"
-homepage = "https://github.com/cafeclimber/pychamber"
+homepage = "https://github.com/pychamber/pychamber"
 description = "Python Package to Control PSU Anechoic Chamber."
 authors = ["Bailey Campbell <baileycampbell@psu.edu>"]
 readme = "README.md"

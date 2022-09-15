@@ -33,7 +33,7 @@ from pyqtgraph.console import ConsoleWidget
 import pychamber.plugins as plugins
 from pychamber.logger import LOG
 from pychamber.plugins import PyChamberPanelPlugin, PyChamberPlugin, PyChamberPluginError
-from pychamber.ui import resources_rc, size_policy, font  # noqa: F401
+from pychamber.ui import font, resources_rc, size_policy  # noqa: F401
 from pychamber.widgets import AboutPyChamberDialog, LogViewer, SettingsDialog
 
 
@@ -264,7 +264,7 @@ class MainWindow(QMainWindow):
         self.about = self.help.addAction("About")
         self.log = self.help.addAction("View Log")
 
-        bug_report_url = "https://github.com/HRG-Lab/PyChamber/issues/new"
+        bug_report_url = "https://github.com/pychamber/PyChamber/issues/new"
         self.bug.triggered.connect(lambda: webbrowser.open(bug_report_url))
         self.about.triggered.connect(AboutPyChamberDialog.display)
         self.log.triggered.connect(LogViewer.display)

@@ -1,7 +1,7 @@
 site_name: PyChamber
-site_url: https://hrg-lab.github.io/pychamber
-repo_url: https://github.com/hrg-lab/pychamber
-repo_name: hrg-lab/pychamber
+site_url: https://pychamber.github.io/pychamber
+repo_url: https://github.com/pychamber/pychamber
+repo_name: pychamber/pychamber
 plugins:
   - search:
       lang: en
