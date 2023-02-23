@@ -1,0 +1,3 @@
+{
+    "files": ["resources.qrc","analyzer_widget.ui","positioner_widget.ui","log_dialog.ui","plot_list_item.ui","mainwindow.ui","plot_widget.ui","mainwindow.py","experiment_widget.ui","cal_wizard.ui"]
+}

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PlotWidget</class>
+ <widget class="QMainWindow" name="PlotWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="DockArea" name="dock_area"/>
+  <widget class="QToolBar" name="plot_toolbar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::RightToolBarArea</set>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>48</width>
+     <height>48</height>
+    </size>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>RightToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="add_polar_action"/>
+   <addaction name="add_cart_action"/>
+   <addaction name="add_3d_action"/>
+  </widget>
+  <action name="add_polar_action">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/add_polar.png</normaloff>:/icons/add_polar.png</iconset>
+   </property>
+   <property name="text">
+    <string>Polar</string>
+   </property>
+   <property name="toolTip">
+    <string>Add Polar Plot</string>
+   </property>
+  </action>
+  <action name="add_cart_action">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/add_cartesian.png</normaloff>:/icons/add_cartesian.png</iconset>
+   </property>
+   <property name="text">
+    <string>Cartesian</string>
+   </property>
+   <property name="toolTip">
+    <string>Add Cartesian Plot</string>
+   </property>
+  </action>
+  <action name="add_3d_action">
+   <property name="text">
+    <string>3D</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DockArea</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph.dockarea</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>

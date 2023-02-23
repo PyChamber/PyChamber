@@ -1,104 +1,57 @@
-"""Persistent application-wide settings.
-
-Defines the SETTINGS global that can be accessed throughout the application.
-
-Each plugin gets its own section e.g. the positioner plugin settings will be:
-
-SETTINGS["positioner/az-start"]
-SETTINGS["positioner/az-stop"]
-...
-
-The defaults are defined per plugin and populate the global defaults when registered.
-"""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Any, Dict
-    from pychamber.plugins.base import PyChamberPlugin
-
-from PyQt5.QtCore import QSettings, pyqtSignal
-
-from pychamber.logger import LOG
-
-ORG_NAME = "PyChamber"
-APP_NAME = "PyChamber"
+from PySide6.QtCore import QObject, QSettings, Signal
 
 
-class Settings(QSettings):
-    """The actual settings object.
+class SettingsManager(QObject):
+    """Persistent Settings.
 
-    Attributes:
-        settings_changed: Signal
+    Thank you, https://www.pythonguis.com/faq/qsettings-usage/
     """
 
-    settings_changed = pyqtSignal(str)
-    _defaults: Dict = {"theme": "Dark"}
+    settingsChanged = Signal()
 
-    def __init__(self, parent=None) -> None:
-        """Create the settings object.
+    widget_fns = {
+        # 'widget class name (e.g. QLineEdit)': (getter, setter)
+        "QComboBox": ("currentText", "setCurrentText"),
+        "QPushButton": ("text", "setText"),
+        "QSpinBox": ("value", "setValue"),
+        "QDoubleSpinBox": ("value", "setValue"),
+        "QLineEdit": ("text", "setText"),
+    }
 
-        Arguments:
-            parent: parent QWidget
-        """
-        super().__init__(ORG_NAME, APP_NAME, parent)
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
 
-    def __getitem__(self, index: str) -> Any:
-        """Retrieve a setting or its default if not set.
+        self.settings = QSettings("PyChamber", "PyChamber")
+        self._widget_map = {}
 
-        Arguments:
-            index: setting name
-        """
-        return self.value(index, self._defaults[index])
+    def __getitem__(self, key):
+        if key in self._widget_map:
+            _, default, type_ = self._widget_map.get(key, (None, None, None))
+            return self.settings.value(key, defaultValue=default, type=type_)
+        else:
+            return self.settings.value(key)
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Change a setting. Emits a settings_changed signal.
+    def __setitem__(self, key, value):
+        self.settings.setValue(key, value)
+        self.settingsChanged.emit()
 
-        Arguments:
-            key: setting name
-            value: new value
-        """
-        LOG.debug(f"Updating setting: {key} = {value}")
-        self.setValue(key, value)
-        self.settings_changed.emit(key)
+    def register_widgets(self, widget_map: dict) -> None:
+        if not set(self._widget_map.keys()).isdisjoint(set(widget_map.keys())):
+            conflicts = set(self._widget_map) & set(widget_map.keys())
+            raise RuntimeError(f"Conflicting widget setting names: {conflicts}")
+        self._widget_map |= widget_map
 
-    def __contains__(self, elem: str) -> bool:
-        """Enable 'in' operator.
-
-        Arguments:
-            elem: element to check existence of
-        """
-        return elem in self.childGroups()
-
-    def setval(self, key: str, value: Any) -> None:
-        """This is needed to connect setting changes to signals with a lambda.
-
-        Arguments:
-            key: setting name
-            value: new value
-        """
-        self[key] = value
-
-    def register_plugin(self, plugin: PyChamberPlugin) -> None:
-        """Creatings a settings entry for a new plugin and populates defaults.
-
-        If the setting already exists, it is set in the plugin, otherwise
-        the default value FROM the plugin's defined defaults is saved to
-        the application settings.
-
-        Arguments:
-            plugin: The plugin to register
-        """
-        assert plugin.NAME is not None
-        LOG.debug(f"Registering plugin: {plugin.NAME}")
-        self.beginGroup(plugin.NAME)
-        for key, val in plugin.CONFIG.items():
-            self._defaults[plugin.NAME + "/" + key] = val
-            if self.contains(key):
-                plugin.CONFIG[key] = self.value(key)
-        self.endGroup()
+    def update_widgets_from_settings(self) -> None:
+        for name, (widget, default, type_) in self._widget_map.items():
+            widget_cls = widget.__class__.__name__
+            _, setter = self.widget_fns.get(widget_cls, (None, None))
+            setting_val = self.settings.value(name, defaultValue=default, type=type_)
+            if setter and setting_val is not None:
+                fn = getattr(widget, setter)
+                try:
+                    fn(setting_val)
+                except Exception as e:
+                    print(e)  # TODO: Logging
 
 
-SETTINGS = Settings()
+CONF = SettingsManager()

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CalWizard</class>
+ <widget class="QWizard" name="CalWizard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>535</width>
+    <height>488</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Wizard</string>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <property name="wizardStyle">
+   <enum>QWizard::AeroStyle</enum>
+  </property>
+  <widget class="QWizardPage" name="intro_pg">
+   <property name="title">
+    <string>Introduction</string>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QLabel" name="label">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>This wizard will walk you through the procedure for generating a calibration file to offset losses. This is only one way to do a chamber calibration, but it is the only one supported at this time.
+
+ This type of calibration works by measuring the response of an antenna with known characteristics and measuring the difference between the manufacurer specified gain and what is actually received. That difference is a determination of the loss in the system over frequency.</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWizardPage" name="setup_pg">
+   <property name="title">
+    <string>Setup</string>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QLabel" name="label_2">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>First, set up your instrument with the proper configuration (e.g. frequencies, power level, IF bandwidth, etc.).
+
+Next, align your antennas as accurately as possible so they are pointing at each other perfectly. A laser is helpful here. The more accurate your setup, the better your calibration.</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWizardPage" name="notes_pg">
+   <property name="title">
+    <string>Notes</string>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_3">
+    <item>
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>Here, you can record some notes detailing the setup. These are optional, but it is highly recommended to take detailed notes on the setup. These notes will be stored in the calibration file. Good things to include: 
+&lt;ul&gt;
+&lt;li&gt;Cables used&lt;/li&gt;
+Connectors used&lt;/li&gt;
+&lt;li&gt;What ports were used for what&lt;/li&gt;
+&lt;li&gt;Other equipment present (e.g. amplifiers)&lt;/li&gt;
+&lt;li&gt;Links to any relevant datasheets&lt;/li&gt;
+&lt;/ul&gt;</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::RichText</enum>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="plainTextEdit"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWizardPage" name="referrence_pg">
+   <property name="title">
+    <string>Referrence Antenna</string>
+   </property>
+  </widget>
+  <widget class="QWizardPage" name="cal_pg">
+   <property name="title">
+    <string>Calibration</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
