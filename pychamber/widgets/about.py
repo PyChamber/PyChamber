@@ -34,7 +34,7 @@ class AboutPyChamberDialog(QDialog):
             <li>Bailey Campbell</li>
             </ul>
             Contribute on <a
-            href="https://github.com/HRG-Lab/pychamber">GitHub</a>
+            href="https://github.com/pychamber/pychamber">GitHub</a>
             </p></html>
             """
         )
