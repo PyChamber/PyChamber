@@ -9,9 +9,11 @@ if TYPE_CHECKING:
     from typing import Dict
 
 import textwrap
+from pathlib import Path
 import webbrowser
 
 import cloudpickle as pickle
+import openpyxl as excel
 import qdarkstyle
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCloseEvent, QIcon, QPixmap
@@ -107,6 +109,59 @@ class MainWindow(QMainWindow):
                     self, "Invalid File", "The specified file is invalid"
                 )
                 return
+
+    def _on_export_mdif_triggered(self) -> None:
+        LOG.debug("Exporting to MDIF")
+        experiment = cast(plugins.ExperimentPlugin, self.get_plugin("experiment"))
+        ntwk_model = experiment.ntwk_model
+        if len(ntwk_model) == 0:
+            QMessageBox.warning(
+                self, "No data", "No data to save. Run an experiment first."
+            )
+            return
+        to_save = ntwk_model.data()
+
+        save_name, _ = QFileDialog.getSaveFileName()
+        if save_name != "":
+            for ntwk in to_save:
+                ntwk.name = ""
+            to_save.write_mdif(save_name)
+
+    def _on_export_excel_triggered(self) -> None:
+        LOG.debug("Exporting to Excel")
+
+        experiment = cast(plugins.ExperimentPlugin, self.get_plugin("experiment"))
+        ntwk_model = experiment.ntwk_model
+        if len(ntwk_model) == 0:
+            QMessageBox.warning(
+                self, "No data", "No data to save. Run an experiment first."
+            )
+            return
+
+        to_save = ntwk_model.data()
+        save_name, _ = QFileDialog.getSaveFileName(self, filter="Excel File (*.xlsx)")
+        if save_name != "":
+            save_name = Path(save_name)
+            workbook = excel.Workbook()
+
+            sheet = workbook.create_sheet(save_name.stem)
+            sheet["A2"] = "azimuth"
+
+            freqs = to_save[0].f
+            for i, f in enumerate(freqs):
+                sheet.cell(row=1, column=i + 2).value = f
+
+            for ntwk in sorted(to_save, key=lambda ntwk: ntwk.params['azimuth']):
+                sheet.append(
+                    [ntwk.params['azimuth']]
+                    + [
+                        f"=COMPLEX({val.real}, {val.imag})"
+                        for val in ntwk.s.reshape((-1,))
+                    ]
+                )
+
+            workbook.remove(workbook['Sheet'])
+            workbook.save(save_name)
 
     def _on_settings_triggered(self) -> None:
         LOG.debug("Launching settings dialog...")
@@ -243,6 +298,8 @@ class MainWindow(QMainWindow):
         self.file = self.menu.addMenu("File")
         self.save = self.file.addAction("Save")
         self.load = self.file.addAction("Load")
+        self.export_mdif = self.file.addAction("Export to MDIF")
+        self.export_excel = self.file.addAction("Export to Excel")
         self.file.addSeparator()
         self.settings = self.file.addAction("Settings")
         self.file.addSeparator()
@@ -250,6 +307,8 @@ class MainWindow(QMainWindow):
 
         self.save.triggered.connect(self._on_save_triggered)
         self.load.triggered.connect(self._on_load_triggered)
+        self.export_mdif.triggered.connect(self._on_export_mdif_triggered)
+        self.export_excel.triggered.connect(self._on_export_excel_triggered)
         self.settings.triggered.connect(self._on_settings_triggered)
         self.quit.triggered.connect(self.close)
 
