@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import math
 from dataclasses import dataclass
 
 import serial
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QWidget
 
 from pychamber.positioner import PositionerConnectionError, PositionerLimitException
+
+from .d6050_widget import Ui_D6050Widget
 
 
 @dataclass
@@ -20,7 +26,17 @@ class BoardResponse:
         return f"{self.type_}{self.address}{self.status}{self.response}"
 
 
-class Diamond_D6050:
+class Diamond_D6050Widget(QWidget, Ui_D6050Widget):
+    def __init__(self, positioner: Diamond_D6050, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setupUi(self)
+
+
+class Diamond_D6050(QObject):
+    jogStarted = Signal()
+    jogCompleted = Signal()
+    jogAborted = Signal()
+
     manufacturer = "Diamond Engineering"
     model = "D6050"
 
@@ -62,7 +78,8 @@ class Diamond_D6050:
     _step_delay = 0.1
     _delay_mode = 1
 
-    def __init__(self, serial_port: str) -> None:
+    def __init__(self, serial_port: str, parent: QObject | None = None) -> None:
+        super().__init__(parent)
         self.serial_connection = serial.Serial(
             port=serial_port, baudrate=self._serial_baudrate, timeout=self._serial_timeout
         )
@@ -73,6 +90,9 @@ class Diamond_D6050:
 
         self.test_connection()
         self.reset()
+
+    def create_widget(self, parent: QWidget | None) -> QWidget | None:
+        return Diamond_D6050Widget(self, parent)
 
     @property
     def azimuth(self) -> float:
@@ -87,6 +107,12 @@ class Diamond_D6050:
         if resp is None:
             raise PositionerConnectionError()
 
+    def abort_movement(self) -> None:
+        self.write("X0*")
+        self.write("Y0*")
+        self.write("Z0*")
+        self.jogAborted.emit()
+
     def zero_all(self) -> None:
         self._azimuth = 0
         self._elevation = 0
@@ -98,6 +124,7 @@ class Diamond_D6050:
         self._elevation = 0
 
     def move(self, axis: str, steps: str) -> None:
+        self.jogStarted.emit()
         self.write(f"{axis}RN{steps}")
         while True:
             resp = self.write(f"{axis}")
@@ -109,6 +136,8 @@ class Diamond_D6050:
                 raise PositionerLimitException("Home limit")
             elif resp.status == "L":
                 raise PositionerLimitException("Max limit")
+
+        self.jogCompleted.emit()
 
     def move_az_absolute(self, azimuth: float) -> None:
         diff = azimuth - self.azimuth

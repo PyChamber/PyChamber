@@ -76,6 +76,10 @@ class PositionerControls(CollapsibleWidget):
             QMessageBox.critical(self, "Connection Error", "Failed to connect to to positioner")
             return
 
+        self.model_widget = self.positioner.widget
+        if self.model_widget is not None:
+            self.widget.controls_layout.addWidget(self.model_widget)
+
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
         self.set_enabled(True)
@@ -93,6 +97,7 @@ class PositionerControls(CollapsibleWidget):
         self.widget.el_gb.setEnabled(enable)
         self.widget.set_origin_btn.setEnabled(enable)
         self.widget.return_to_origin_btn.setEnabled(enable)
+        self.recalculateSize()
 
     def add_models(self):
         for manufacturer, models in positioner.available_models().items():

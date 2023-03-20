@@ -25,9 +25,11 @@ class SettingsManager(QObject):
         self._widget_map = {}
 
     def __getitem__(self, key):
+        # Try to return the value as the expected type if specified
         if key in self._widget_map:
             _, default, type_ = self._widget_map.get(key, (None, None, None))
             return self.settings.value(key, defaultValue=default, type=type_)
+        # Otherwise, just return the value as QSettings interprets it
         else:
             return self.settings.value(key)
 

@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from PySide6.QtWidgets import QWidget
+
 
 class PositionerLimitException(Exception):
     pass
@@ -10,6 +12,9 @@ class PositionerConnectionError(RuntimeError):
 
 
 class Postioner(Protocol):
+    def create_widget(self, parent: QWidget | None = None) -> QWidget | None:
+        return None
+
     @property
     def manufacturer(self) -> str:
         ...
@@ -27,6 +32,9 @@ class Postioner(Protocol):
         ...
 
     def test_connection(self) -> None:
+        ...
+
+    def abort_movement(self) -> None:
         ...
 
     def zero_all(self) -> None:

@@ -33,7 +33,7 @@ def test_calibration_creation():
 
 
 def test_calibration_creation_raises_on_bad_input():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Calibration(None)
 
 

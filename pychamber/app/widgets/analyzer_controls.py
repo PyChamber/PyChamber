@@ -1,4 +1,5 @@
 import functools
+import itertools
 from operator import setitem
 
 import pyvisa
@@ -109,6 +110,12 @@ class AnalyzerControls(CollapsibleWidget):
         available = rm.list_resources()
         rm.close()
         return list(available)
+
+    @property
+    def available_params(self) -> list[tuple[int, int]]:
+        # TODO: Update to nports when new vi implementation is merged
+        port_nums = list(range(1, self.analyzer.NPORTS + 1))
+        return itertools.product(port_nums, repeat=2)
 
     def add_models(self) -> None:
         for manufacturer, models in self.available_analyzer_models.items():
