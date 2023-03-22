@@ -2,8 +2,10 @@ import functools
 from operator import setitem
 
 import qtawesome as qta
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QMessageBox, QWidget, QGroupBox
+from PySide6.QtTest import QSignalSpy
+from PySide6.QtCore import Signal, QThread
+from PySide6.QtGui import QCloseEvent
+from PySide6.QtWidgets import QMessageBox, QWidget
 from serial.tools import list_ports
 
 from pychamber import positioner
@@ -26,6 +28,7 @@ class PositionerControls(CollapsibleWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, name="Positioner")
 
+        self.jog_thread = QThread(None)
         self.positioner: positioner.Postioner | None = None
 
         self.setupUi()
@@ -70,6 +73,7 @@ class PositionerControls(CollapsibleWidget):
         self.widget.el_jog_to_btn.pressed.connect(self.on_el_jog_to_btn_pressed)
 
         self.widget.set_origin_btn.pressed.connect(self.on_set_zero_btn_pressed)
+        self.widget.return_to_origin_btn.pressed.connect(self.on_return_to_origin_pressed)
 
 
     def postvisible_setup(self) -> None:
@@ -112,8 +116,10 @@ class PositionerControls(CollapsibleWidget):
         #     print(self.model_widget.sizeHint())
         #     self.addWidget(self.model_widget)
 
-        self.positioner.jogStarted.connect(self.on_jog_started)
-        self.positioner.jogCompleted.connect(self.on_jog_completed)
+        self.ignore_jog_signals(False)
+
+        self.widget.current_az_lcd_num.display(self.positioner.azimuth)
+        self.widget.current_el_lcd_num.display(self.positioner.elevation)
 
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
@@ -129,52 +135,78 @@ class PositionerControls(CollapsibleWidget):
 
     def on_az_left_btn_pressed(self) -> None:
         angle = self.widget.az_step_dsb.value()
-        self.positioner.move_az_relative(-angle)
+        jog_fn = functools.partial(self.positioner.move_az_relative, -angle)
+        self.run_jog_thread(jog_fn)
 
     def on_az_zero_btn_pressed(self) -> None:
-        self.positioner.move_az_absolute(0)
+        jog_fn = functools.partial(self.positioner.move_az_absolute, 0)
+        self.run_jog_thread(jog_fn)
 
     def on_az_right_btn_pressed(self) -> None:
         angle = self.widget.az_step_dsb.value()
-        self.positioner.move_az_relative(angle)
+        jog_fn = functools.partial(self.positioner.move_az_relative, angle)
+        self.run_jog_thread(jog_fn)
 
     def on_el_ccw_btn_pressed(self) -> None:
         angle = self.widget.el_step_dsb.value()
-        self.positioner.move_el_relative(-angle)
+        jog_fn = functools.partial(self.positioner.move_el_relative, -angle)
+        self.run_jog_thread(jog_fn)
 
     def on_el_zero_btn_pressed(self) -> None:
-        self.positioner.move_el_absolute(0)
+        jog_fn = functools.partial(self.positioner.move_el_absolute, 0)
+        self.run_jog_thread(jog_fn)
 
     def on_el_cw_btn_pressed(self) -> None:
         angle = self.widget.el_step_dsb.value()
-        self.positioner.move_el_relative(angle)
+        jog_fn = functools.partial(self.positioner.move_el_relative, angle)
+        self.run_jog_thread(jog_fn)
 
     def on_az_jog_to_btn_pressed(self) -> None:
-        pass
+        target = self.widget.az_jog_to_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_az_absolute, target)
+        self.run_jog_thread(jog_fn)
 
     def on_el_jog_to_btn_pressed(self) -> None:
-        pass
+        target = self.widget.el_jog_to_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_el_absolute, target)
+        self.run_jog_thread(jog_fn)
 
     def on_set_zero_btn_pressed(self) -> None:
         self.positioner.zero_all()
         self.widget.current_az_lcd_num.display(0.)
         self.widget.current_el_lcd_num.display(0.)
 
+    def on_return_to_origin_pressed(self) -> None:
+        pass # FIXME: Thread shenaningans
+
     def on_jog_started(self) -> None:
-        pass
+        self.setEnabled(False)
 
     def on_jog_completed(self) -> None:
         az = self.positioner.azimuth
         el = self.positioner.elevation
         self.widget.current_az_lcd_num.display(az)
         self.widget.current_el_lcd_num.display(el)
+        self.setEnabled(True)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.jog_thread.quit()
+        self.jog_thread.wait()
+        super().closeEvent(event)
 
     def set_enabled(self, enable: bool) -> None:
         self.widget.az_gb.setEnabled(enable)
         self.widget.el_gb.setEnabled(enable)
         self.widget.set_origin_btn.setEnabled(enable)
         self.widget.return_to_origin_btn.setEnabled(enable)
-        self.recalculateSize()
+
+    def ignore_jog_signals(self, ignore: bool) -> None:
+        if ignore:
+            self.positioner.jogStarted.disconnect(self.on_jog_started)
+            self.positioner.jogCompleted.disconnect(self.on_jog_completed)
+        else:
+            self.positioner.jogStarted.connect(self.on_jog_started)
+            self.positioner.jogCompleted.connect(self.on_jog_completed)
 
     def add_models(self):
         for manufacturer, models in positioner.available_models().items():
@@ -183,3 +215,7 @@ class PositionerControls(CollapsibleWidget):
                 self.widget.model_cb.add_child(model, fn)
 
         self.widget.model_cb.setCurrentIndex(1)  # index 0 will be a category which we don't want to be selectable
+
+    def run_jog_thread(self, jog_fn: callable) -> None:
+        self.jog_thread.run = jog_fn
+        self.jog_thread.start()

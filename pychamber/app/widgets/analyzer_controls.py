@@ -62,6 +62,9 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.freq_stop_le.editingFinished.connect(self.on_freq_stop_changed)
         self.widget.freq_step_le.editingFinished.connect(self.on_freq_step_changed)
         self.widget.freq_n_points_le.editingFinished.connect(self.on_freq_n_points_changed)
+        self.widget.if_bw_le.editingFinished.connect(self.on_if_bw_changed)
+        self.widget.avg_toggle.toggled.connect(lambda state: self.on_avg_toggle_changed(state)) # FIXME: Set spinbox minimum to 1 in designer
+        self.widget.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
 
     def postvisible_setup(self) -> None:
         widget_map = {
@@ -99,7 +102,7 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.freq_gb.setEnabled(True)
         for widget in self.widget.freq_gb.children():
             widget.blockSignals(True)
-        self.update_widgets()
+        self.init_widgets()
         for widget in self.widget.freq_gb.children():
             widget.blockSignals(False)
         self.analyzerConnected.emit()
@@ -127,6 +130,16 @@ class AnalyzerControls(CollapsibleWidget):
         npoints = int(self.widget.freq_n_points_le.text())
         self.analyzer.ch1.npoints = npoints
 
+    def on_if_bw_changed(self) -> None:
+        freq = self.widget.if_bw_le.text()
+        self.analyzer.ch1.if_bandwidth = freq
+
+    def on_avg_toggle_changed(self, state: bool) -> None:
+        self.analyzer.ch1.averaging_on = state
+
+    def on_n_avgs_changed(self, n: int) -> None:
+        self.analyzer.ch1.averaging_count = n
+
     @property
     def available_analyzer_models(self) -> dict:
         return self._analyzer_constructor_fns
@@ -152,7 +165,7 @@ class AnalyzerControls(CollapsibleWidget):
 
         self.widget.model_cb.setCurrentIndex(1)  # index 0 will be a category which we don't want to be selectable
 
-    def update_widgets(self) -> None:
+    def init_widgets(self) -> None:
         # TODO: For scikit-rf. Figure out how to make ch1 default
         freq_start = self.analyzer.ch1.freq_start
         freq_stop = self.analyzer.ch1.freq_stop
@@ -160,6 +173,19 @@ class AnalyzerControls(CollapsibleWidget):
         npoints = self.analyzer.ch1.npoints
         if_bw = self.analyzer.ch1.if_bandwidth
         avg_on = self.analyzer.ch1.averaging_on
+
+        to_block = [
+            self.widget.freq_start_le,
+            self.widget.freq_stop_le,
+            self.widget.freq_step_le,
+            self.widget.freq_n_points_le,
+            self.widget.if_bw_le,
+            self.widget.avg_toggle,
+            self.widget.n_avgs_sb
+        ]
+
+        for widget in to_block:
+            widget.blockSignals(True)
 
         self.widget.freq_start_le.setText(str(freq_start))
         self.widget.freq_stop_le.setText(str(freq_stop))
@@ -169,5 +195,9 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.avg_toggle.setChecked(avg_on)
 
         if avg_on:
+            self.widget.avg_toggle.handle_position = 1
             n_avgs = self.analyzer.ch1.averaging_count
             self.widget.n_avgs_sb.setValue(n_avgs)
+
+        for widget in to_block:
+            widget.blockSignals(False)

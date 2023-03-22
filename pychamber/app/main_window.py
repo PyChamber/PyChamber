@@ -22,7 +22,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
 
         self.log_dialog = LogDialog()
-        CONF['visalib'] = 'C:/Windows/System32/visa64.dll'
 
         self.setupUi(self)
         self.connect_signals()
@@ -139,8 +138,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.controls_area.experiment_controls.update_params(params)
 
     def run_scan(self, azimuths: np.ndarray, elevations: np.ndarray) -> None:
+        self.controls_area.positioner_controls.ignore_jog_signals(True)
         self.thread = QThread()
-        self.worker = ExperimentWorker(self.analyzer, self.positioner, azimuths, elevations, self)
+        self.worker = ExperimentWorker(self.analyzer, self.positioner, azimuths, elevations)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)
@@ -151,6 +151,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.totalIterCountUpdated.connect(self.on_total_progress_updated)
         self.worker.cutIterCountUpdated.connect(self.on_cut_progress_updated)
         self.worker.avgIterTimeUpdated.connect(self.on_avg_iter_time_updated)
+        self.worker.finished.connect(lambda: self.controls_area.positioner_controls.ignore_jog_signals(False))
 
         self.thread.start()
 

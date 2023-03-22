@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QWidget
 
 from pychamber.positioner import PositionerConnectionError, PositionerLimitException
+from pychamber.settings import CONF
 
 from .d6050_widget import Ui_D6050Widget
 
@@ -33,6 +34,7 @@ class Diamond_D6050Widget(QWidget, Ui_D6050Widget):
 
 
 class Diamond_D6050(QObject):
+    # TODO: Make these part of the protocol? ABC?
     jogStarted = Signal()
     jogCompleted = Signal()
     jogAborted = Signal()
@@ -84,9 +86,8 @@ class Diamond_D6050(QObject):
             port=serial_port, baudrate=self._serial_baudrate, timeout=self._serial_timeout
         )
 
-        # TODO: Get stored position info
-        self._azimuth = 0
-        self._elevation = 0
+        self._azimuth = float(CONF['diamond_d6050_azimuth'])
+        self._elevation = float(CONF['diamond_d6050_elevation'])
 
         self.test_connection()
         self.reset()
@@ -116,12 +117,16 @@ class Diamond_D6050(QObject):
     def zero_all(self) -> None:
         self._azimuth = 0
         self._elevation = 0
+        CONF['diamond_d6050_azimuth'] = 0
+        CONF['diamond_d6050_elevation'] = 0
 
     def zero_az(self) -> None:
         self._azimuth = 0
+        CONF['diamond_d6050_azimuth'] = 0
 
     def zero_el(self) -> None:
         self._elevation = 0
+        CONF['diamond_d6050_elevation'] = 0
 
     def move(self, axis: str, steps: str) -> None:
         self.write(f"{axis}RN{steps}")
@@ -138,33 +143,33 @@ class Diamond_D6050(QObject):
 
 
     def move_az_absolute(self, azimuth: float) -> None:
-        self.jogStarted.emit()
         diff = azimuth - self.azimuth
         self.move_az_relative(diff)
-        self.jogCompleted.emit()
 
     def move_az_relative(self, angle: float) -> None:
         self.jogStarted.emit()
         if math.isclose(angle, 0.0):
+            self.jogCompleted.emit()
             return
         steps = -int(self._az_steps_per_deg * angle)
         self.move(self._az_axis, f"{steps:+}")
         self._azimuth += angle
+        CONF['diamond_d6050_azimuth'] = self._azimuth
         self.jogCompleted.emit()
 
     def move_el_absolute(self, elevation: float) -> None:
-        self.jogStarted.emit()
         diff = elevation - self.elevation
         self.move_el_relative(diff)
-        self.jogCompleted.emit()
 
     def move_el_relative(self, angle: float) -> None:
         self.jogStarted.emit()
         if math.isclose(angle, 0.0):
+            self.jogCompleted.emit()
             return
         steps = int(self._el_steps_per_deg * angle)
         self.move(self._el_axis, f"{steps:+}")
         self._elevation += angle
+        CONF['diamond_d6050_elevation'] = self._elevation
         self.jogCompleted.emit()
 
     def write(self, cmd: str) -> BoardResponse | None:

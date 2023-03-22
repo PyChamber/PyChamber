@@ -36,20 +36,26 @@ class ExperimentWorker(QObject):
         self.elevations = elevations
 
     def run(self) -> None:
+        print("Creating move spy")
         move_spy = QSignalSpy(self.positioner.jogCompleted)
         iter_times = np.array([])
 
         total_completed = 0
         for az in self.azimuths:
+            print(f"Moving az to {az}")
             self.positioner.move_az_absolute(az)
+            print("Waiting...")
             move_spy.wait()
 
             cut_completed = 0
             for el in self.elevations:
+                print(f"Moving el to {el}")
                 start = time.time()
                 self.positioner.move_el_absolute(el)
+                print("Waiting...")
                 move_spy.wait()
-                ntwk = self.get_snp_network()
+                print("Getting snp network")
+                ntwk = self.analyzer.ch1.get_snp_network()
                 self.dataAcquired.emit(ntwk)
                 stop = time.time()
 
