@@ -10,7 +10,7 @@ def run(args: dict) -> None:
         Qt.AA_ShareOpenGLContexts
     )  # needed to suppress annoying terminal output. See https://stackoverflow.com/questions/56159475/qt-webengine-seems-to-be-initialized
 
-    app = QApplication(["pychamber"])
+    app = QApplication(["PyChamber"])
     app.setOrganizationName("pychamber")
     app.setApplicationName("pychamber")
     app.setApplicationVersion(pychamber.__version__)
@@ -21,4 +21,5 @@ def run(args: dict) -> None:
     try:
         app.exec_()
     except Exception as e:
+        print(e)
         raise e

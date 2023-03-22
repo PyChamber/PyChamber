@@ -30,7 +30,7 @@ class AnalyzerControls(CollapsibleWidget):
     # manufacturer to make it easier for users to find their VNA.
     _analyzer_constructor_fns = {
         "Keysight": {
-            "PNA": vna.PNA,
+            "PNA": vna.keysight.PNA,
         },
     }
 
@@ -62,6 +62,7 @@ class AnalyzerControls(CollapsibleWidget):
         widget_map = {
             # TODO: Make settings handle CategoryComboBox maybe?
             "analyzer_address": (self.widget.address_cb, "", str),
+            "visalib": (None, "@py", str)
         }
         CONF.register_widgets(widget_map)
 
@@ -82,21 +83,23 @@ class AnalyzerControls(CollapsibleWidget):
         try:
             model = self.widget.model_cb.currentData()
             address = self.widget.address_cb.currentText()
-            self.analyzer = model(address)
-        except Exception:
+            self.analyzer = model(address, backend=CONF['visalib'])
+        except Exception as e:
             QMessageBox.critical(self, "Connection Error", "Failed to connect to analyzer")
+            print(e)
             return
 
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
-        self.widget.frequency_gb.setEnabled(True)
+        self.widget.freq_gb.setEnabled(True)
+        self.update_widgets()
         self.analyzerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
-        self.analyzer.close()
+        self.analyzer.close() # FIXME: no close function
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
-        self.widget.frequency_gb.setEnabled(False)
+        self.widget.freq_gb.setEnabled(False)
         self.analyzerDisonnected.emit()
 
     @property
@@ -105,7 +108,7 @@ class AnalyzerControls(CollapsibleWidget):
 
     @property
     def available_addresses(self) -> list[str]:
-        backend = "@py"
+        backend = CONF['visalib']
         rm = pyvisa.ResourceManager(backend)
         available = rm.list_resources()
         rm.close()
@@ -124,3 +127,16 @@ class AnalyzerControls(CollapsibleWidget):
                 self.widget.model_cb.add_child(model, fn)
 
         self.widget.model_cb.setCurrentIndex(1)  # index 0 will be a category which we don't want to be selectable
+
+    def update_widgets(self) -> None:
+        # TODO: For scikit-rf. Figure out how to make ch1 default
+        freq_start = self.analyzer.ch1.freq_start
+        freq_stop = self.analyzer.ch1.freq_stop
+        freq_step = self.analyzer.ch1.freq_step
+        npoints = self.analyzer.ch1.npoints
+        if_bw = self.analyzer.ch1.if_bandwidth
+
+        self.widget.freq_start_le.setText(str(freq_start))
+        self.widget.freq_stop_le.setText(str(freq_stop))
+        self.widget.freq_step_le.setText(str(freq_step))
+        self.widget.freq_n_points_le.setText(str(npoints))

@@ -22,6 +22,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
 
         self.log_dialog = LogDialog()
+        CONF['visalib'] = 'C:/Windows/System32/visa64.dll'
 
         self.setupUi(self)
         self.connect_signals()
