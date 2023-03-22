@@ -3,7 +3,7 @@ from operator import setitem
 
 import qtawesome as qta
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QMessageBox, QWidget
+from PySide6.QtWidgets import QMessageBox, QWidget, QGroupBox
 from serial.tools import list_ports
 
 from pychamber import positioner
@@ -55,9 +55,9 @@ class PositionerControls(CollapsibleWidget):
         self.widget.disconnect_btn.clicked.connect(self.on_disconnect_btn_clicked)
 
         self.widget.az_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_az_step"))
-        self.widget.az_jog_to_le.textChanged.connect(functools.partial(setitem, CONF, "jog_az_to"))
+        self.widget.az_jog_to_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_az_to"))
         self.widget.el_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_el_step"))
-        self.widget.el_jog_to_le.textChanged.connect(functools.partial(setitem, CONF, "jog_el_to"))
+        self.widget.el_jog_to_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_el_to"))
 
         self.widget.az_left_btn.pressed.connect(self.on_az_left_btn_pressed)
         self.widget.az_zero_btn.pressed.connect(self.on_az_zero_btn_pressed)
@@ -69,12 +69,15 @@ class PositionerControls(CollapsibleWidget):
         self.widget.az_jog_to_btn.pressed.connect(self.on_az_jog_to_btn_pressed)
         self.widget.el_jog_to_btn.pressed.connect(self.on_el_jog_to_btn_pressed)
 
+        self.widget.set_origin_btn.pressed.connect(self.on_set_zero_btn_pressed)
+
+
     def postvisible_setup(self) -> None:
         widget_map = {
             "jog_az_step": (self.widget.az_step_dsb, 0, float),
-            "jog_az_to": (self.widget.az_jog_to_le, 0, float),
+            "jog_az_to": (self.widget.az_jog_to_dsb, 0, float),
             "jog_el_step": (self.widget.el_step_dsb, 0, float),
-            "jog_el_to": (self.widget.el_jog_to_le, 0, float),
+            "jog_el_to": (self.widget.el_jog_to_dsb, 0, float),
         }
         CONF.register_widgets(widget_map)
 
@@ -103,9 +106,14 @@ class PositionerControls(CollapsibleWidget):
             QMessageBox.critical(self, "Connection Error", "Failed to connect to to positioner")
             return
 
-        self.model_widget = self.positioner.widget
-        if self.model_widget is not None:
-            self.widget.controls_layout.addWidget(self.model_widget)
+        # FIXME: This is an issue with CollapsibleSection
+        # self.model_widget = self.positioner.create_widget(None)
+        # if self.model_widget is not None:
+        #     print(self.model_widget.sizeHint())
+        #     self.addWidget(self.model_widget)
+
+        self.positioner.jogStarted.connect(self.on_jog_started)
+        self.positioner.jogCompleted.connect(self.on_jog_completed)
 
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
@@ -120,28 +128,46 @@ class PositionerControls(CollapsibleWidget):
         self.positionerDisonnected.emit()
 
     def on_az_left_btn_pressed(self) -> None:
-        pass
+        angle = self.widget.az_step_dsb.value()
+        self.positioner.move_az_relative(-angle)
 
     def on_az_zero_btn_pressed(self) -> None:
-        pass
+        self.positioner.move_az_absolute(0)
 
     def on_az_right_btn_pressed(self) -> None:
-        pass
+        angle = self.widget.az_step_dsb.value()
+        self.positioner.move_az_relative(angle)
 
     def on_el_ccw_btn_pressed(self) -> None:
-        pass
+        angle = self.widget.el_step_dsb.value()
+        self.positioner.move_el_relative(-angle)
 
     def on_el_zero_btn_pressed(self) -> None:
-        pass
+        self.positioner.move_el_absolute(0)
 
     def on_el_cw_btn_pressed(self) -> None:
-        pass
+        angle = self.widget.el_step_dsb.value()
+        self.positioner.move_el_relative(angle)
 
     def on_az_jog_to_btn_pressed(self) -> None:
         pass
 
     def on_el_jog_to_btn_pressed(self) -> None:
         pass
+
+    def on_set_zero_btn_pressed(self) -> None:
+        self.positioner.zero_all()
+        self.widget.current_az_lcd_num.display(0.)
+        self.widget.current_el_lcd_num.display(0.)
+
+    def on_jog_started(self) -> None:
+        pass
+
+    def on_jog_completed(self) -> None:
+        az = self.positioner.azimuth
+        el = self.positioner.elevation
+        self.widget.current_az_lcd_num.display(az)
+        self.widget.current_el_lcd_num.display(el)
 
     def set_enabled(self, enable: bool) -> None:
         self.widget.az_gb.setEnabled(enable)

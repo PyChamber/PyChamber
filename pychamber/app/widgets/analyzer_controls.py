@@ -58,6 +58,11 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.model_cb.currentTextChanged.connect(functools.partial(setitem, CONF, "analyzer_model"))
         self.widget.address_cb.currentTextChanged.connect(functools.partial(setitem, CONF, "analyzer_address"))
 
+        self.widget.freq_start_le.editingFinished.connect(self.on_freq_start_changed)
+        self.widget.freq_stop_le.editingFinished.connect(self.on_freq_stop_changed)
+        self.widget.freq_step_le.editingFinished.connect(self.on_freq_step_changed)
+        self.widget.freq_n_points_le.editingFinished.connect(self.on_freq_n_points_changed)
+
     def postvisible_setup(self) -> None:
         widget_map = {
             # TODO: Make settings handle CategoryComboBox maybe?
@@ -92,7 +97,11 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
         self.widget.freq_gb.setEnabled(True)
+        for widget in self.widget.freq_gb.children():
+            widget.blockSignals(True)
         self.update_widgets()
+        for widget in self.widget.freq_gb.children():
+            widget.blockSignals(False)
         self.analyzerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
@@ -101,6 +110,22 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.disconnect_btn.show()
         self.widget.freq_gb.setEnabled(False)
         self.analyzerDisonnected.emit()
+
+    def on_freq_start_changed(self) -> None:
+        freq = self.widget.freq_start_le.text()
+        self.analyzer.ch1.freq_start = freq
+
+    def on_freq_stop_changed(self) -> None:
+        freq = self.widget.freq_stop_le.text()
+        self.analyzer.ch1.freq_stop = freq
+
+    def on_freq_step_changed(self) -> None:
+        freq = self.widget.freq_step_le.text()
+        self.analyzer.ch1.freq_step = freq
+
+    def on_freq_n_points_changed(self) -> None:
+        npoints = int(self.widget.freq_n_points_le.text())
+        self.analyzer.ch1.npoints = npoints
 
     @property
     def available_analyzer_models(self) -> dict:
@@ -116,9 +141,8 @@ class AnalyzerControls(CollapsibleWidget):
 
     @property
     def available_params(self) -> list[tuple[int, int]]:
-        # TODO: Update to nports when new vi implementation is merged
-        port_nums = list(range(1, self.analyzer.NPORTS + 1))
-        return itertools.product(port_nums, repeat=2)
+        port_nums = list(range(1, self.analyzer.nports + 1))
+        return list(itertools.product(port_nums, repeat=2))
 
     def add_models(self) -> None:
         for manufacturer, models in self.available_analyzer_models.items():
@@ -135,8 +159,15 @@ class AnalyzerControls(CollapsibleWidget):
         freq_step = self.analyzer.ch1.freq_step
         npoints = self.analyzer.ch1.npoints
         if_bw = self.analyzer.ch1.if_bandwidth
+        avg_on = self.analyzer.ch1.averaging_on
 
         self.widget.freq_start_le.setText(str(freq_start))
         self.widget.freq_stop_le.setText(str(freq_stop))
         self.widget.freq_step_le.setText(str(freq_step))
         self.widget.freq_n_points_le.setText(str(npoints))
+        self.widget.if_bw_le.setText(str(if_bw))
+        self.widget.avg_toggle.setChecked(avg_on)
+
+        if avg_on:
+            n_avgs = self.analyzer.ch1.averaging_count
+            self.widget.n_avgs_sb.setValue(n_avgs)

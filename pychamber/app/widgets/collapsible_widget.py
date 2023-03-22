@@ -17,7 +17,7 @@ class CollapsibleWidget(QWidget):
         self.section = CollapsibleSection(self, name)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addStretch()
+        # layout.addStretch()
         layout.addWidget(self.section)
 
         self.content_layout = QVBoxLayout()

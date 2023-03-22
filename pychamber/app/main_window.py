@@ -44,9 +44,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.exit_action.triggered.connect(self.close)
 
         self.controls_area.analyzer_controls.analyzerConnected.connect(self.on_analyzer_connected)
-        self.controls_area.analyzer_controls.analyzerConnected.connect(
-            lambda: self.controls_area.experiment_controls.update_params(self.analyzer.available_params)
-        )
         self.controls_area.analyzer_controls.analyzerDisonnected.connect(self.on_analyzer_disconnected)
         self.controls_area.positioner_controls.positionerConnected.connect(self.on_positioner_connected)
         self.controls_area.positioner_controls.positionerDisonnected.connect(self.on_positioner_disconnected)
@@ -85,7 +82,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.controls_area.positioner_controls.positioner is not None:
             self.set_scan_btns_enabled(True)
 
-        self.set_pol_params(self.analyzer.available_params)
+        self.set_pol_params()
 
     def on_analyzer_disconnected(self):
         self.set_scan_btns_enabled(False)
@@ -137,6 +134,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def positioner(self) -> Postioner | None:
         return self.controls_area.positioner_controls.positioner
 
+    def set_pol_params(self) -> None:
+        params = self.controls_area.analyzer_controls.available_params
+        self.controls_area.experiment_controls.update_params(params)
+
     def run_scan(self, azimuths: np.ndarray, elevations: np.ndarray) -> None:
         self.thread = QThread()
         self.worker = ExperimentWorker(self.analyzer, self.positioner, azimuths, elevations, self)
@@ -152,3 +153,4 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.avgIterTimeUpdated.connect(self.on_avg_iter_time_updated)
 
         self.thread.start()
+

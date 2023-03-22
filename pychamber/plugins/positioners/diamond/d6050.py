@@ -91,7 +91,7 @@ class Diamond_D6050(QObject):
         self.test_connection()
         self.reset()
 
-    def create_widget(self, parent: QWidget | None) -> QWidget | None:
+    def create_widget(self, parent: QWidget | None = None) -> QWidget | None:
         return Diamond_D6050Widget(self, parent)
 
     @property
@@ -124,7 +124,6 @@ class Diamond_D6050(QObject):
         self._elevation = 0
 
     def move(self, axis: str, steps: str) -> None:
-        self.jogStarted.emit()
         self.write(f"{axis}RN{steps}")
         while True:
             resp = self.write(f"{axis}")
@@ -137,29 +136,36 @@ class Diamond_D6050(QObject):
             elif resp.status == "L":
                 raise PositionerLimitException("Max limit")
 
-        self.jogCompleted.emit()
 
     def move_az_absolute(self, azimuth: float) -> None:
+        self.jogStarted.emit()
         diff = azimuth - self.azimuth
         self.move_az_relative(diff)
+        self.jogCompleted.emit()
 
     def move_az_relative(self, angle: float) -> None:
+        self.jogStarted.emit()
         if math.isclose(angle, 0.0):
             return
         steps = -int(self._az_steps_per_deg * angle)
         self.move(self._az_axis, f"{steps:+}")
         self._azimuth += angle
+        self.jogCompleted.emit()
 
     def move_el_absolute(self, elevation: float) -> None:
+        self.jogStarted.emit()
         diff = elevation - self.elevation
         self.move_el_relative(diff)
+        self.jogCompleted.emit()
 
     def move_el_relative(self, angle: float) -> None:
+        self.jogStarted.emit()
         if math.isclose(angle, 0.0):
             return
-        steps = -int(self._el_steps_per_deg * angle)
+        steps = int(self._el_steps_per_deg * angle)
         self.move(self._el_axis, f"{steps:+}")
         self._elevation += angle
+        self.jogCompleted.emit()
 
     def write(self, cmd: str) -> BoardResponse | None:
         self.serial_connection.reset_input_buffer()

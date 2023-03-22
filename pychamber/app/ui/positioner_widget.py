@@ -17,8 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFormLayout,
     QFrame, QGroupBox, QHBoxLayout, QLCDNumber,
-    QLabel, QLineEdit, QPushButton, QSizePolicy,
-    QVBoxLayout, QWidget)
+    QLabel, QPushButton, QSizePolicy, QVBoxLayout,
+    QWidget)
 
 from ..widgets.category_combobox import CategoryComboBox
 
@@ -26,7 +26,7 @@ class Ui_PositionerWidget(object):
     def setupUi(self, PositionerWidget):
         if not PositionerWidget.objectName():
             PositionerWidget.setObjectName(u"PositionerWidget")
-        PositionerWidget.resize(587, 310)
+        PositionerWidget.resize(595, 409)
         self.verticalLayout_4 = QVBoxLayout(PositionerWidget)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.horizontalLayout = QHBoxLayout()
@@ -171,12 +171,15 @@ class Ui_PositionerWidget(object):
 
         self.horizontalLayout_4.addWidget(self.az_jog_to_label)
 
-        self.az_jog_to_le = QLineEdit(self.az_gb)
-        self.az_jog_to_le.setObjectName(u"az_jog_to_le")
-        sizePolicy4.setHeightForWidth(self.az_jog_to_le.sizePolicy().hasHeightForWidth())
-        self.az_jog_to_le.setSizePolicy(sizePolicy4)
+        self.az_jog_to_dsb = QDoubleSpinBox(self.az_gb)
+        self.az_jog_to_dsb.setObjectName(u"az_jog_to_dsb")
+        sizePolicy5 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy5.setHorizontalStretch(0)
+        sizePolicy5.setVerticalStretch(0)
+        sizePolicy5.setHeightForWidth(self.az_jog_to_dsb.sizePolicy().hasHeightForWidth())
+        self.az_jog_to_dsb.setSizePolicy(sizePolicy5)
 
-        self.horizontalLayout_4.addWidget(self.az_jog_to_le)
+        self.horizontalLayout_4.addWidget(self.az_jog_to_dsb)
 
         self.az_jog_to_btn = QPushButton(self.az_gb)
         self.az_jog_to_btn.setObjectName(u"az_jog_to_btn")
@@ -236,13 +239,13 @@ class Ui_PositionerWidget(object):
 
         self.horizontalLayout_3.addWidget(self.el_ccw_btn)
 
-        self.el_0_btn = QPushButton(self.el_gb)
-        self.el_0_btn.setObjectName(u"el_0_btn")
-        sizePolicy4.setHeightForWidth(self.el_0_btn.sizePolicy().hasHeightForWidth())
-        self.el_0_btn.setSizePolicy(sizePolicy4)
-        self.el_0_btn.setFont(font1)
+        self.el_zero_btn = QPushButton(self.el_gb)
+        self.el_zero_btn.setObjectName(u"el_zero_btn")
+        sizePolicy4.setHeightForWidth(self.el_zero_btn.sizePolicy().hasHeightForWidth())
+        self.el_zero_btn.setSizePolicy(sizePolicy4)
+        self.el_zero_btn.setFont(font1)
 
-        self.horizontalLayout_3.addWidget(self.el_0_btn)
+        self.horizontalLayout_3.addWidget(self.el_zero_btn)
 
         self.el_cw_btn = QPushButton(self.el_gb)
         self.el_cw_btn.setObjectName(u"el_cw_btn")
@@ -263,12 +266,12 @@ class Ui_PositionerWidget(object):
 
         self.horizontalLayout_5.addWidget(self.el_jog_to_label)
 
-        self.el_jog_to_le = QLineEdit(self.el_gb)
-        self.el_jog_to_le.setObjectName(u"el_jog_to_le")
-        sizePolicy4.setHeightForWidth(self.el_jog_to_le.sizePolicy().hasHeightForWidth())
-        self.el_jog_to_le.setSizePolicy(sizePolicy4)
+        self.el_jog_to_dsb = QDoubleSpinBox(self.el_gb)
+        self.el_jog_to_dsb.setObjectName(u"el_jog_to_dsb")
+        sizePolicy5.setHeightForWidth(self.el_jog_to_dsb.sizePolicy().hasHeightForWidth())
+        self.el_jog_to_dsb.setSizePolicy(sizePolicy5)
 
-        self.horizontalLayout_5.addWidget(self.el_jog_to_le)
+        self.horizontalLayout_5.addWidget(self.el_jog_to_dsb)
 
         self.el_jog_to_btn = QPushButton(self.el_gb)
         self.el_jog_to_btn.setObjectName(u"el_jog_to_btn")
@@ -329,7 +332,7 @@ class Ui_PositionerWidget(object):
         self.el_gb.setTitle(QCoreApplication.translate("PositionerWidget", u"Elevation", None))
         self.el_step_label.setText(QCoreApplication.translate("PositionerWidget", u"Step", None))
         self.el_ccw_btn.setText("")
-        self.el_0_btn.setText(QCoreApplication.translate("PositionerWidget", u"0", None))
+        self.el_zero_btn.setText(QCoreApplication.translate("PositionerWidget", u"0", None))
         self.el_cw_btn.setText("")
         self.el_jog_to_label.setText(QCoreApplication.translate("PositionerWidget", u"Jog To", None))
         self.el_jog_to_btn.setText("")
