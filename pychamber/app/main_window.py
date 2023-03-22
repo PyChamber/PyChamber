@@ -114,6 +114,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_full_scan_btn_pressed(self) -> None:
         pass
 
+    def on_total_progress_updated(self, iters: int) -> None:
+        pass
+
+    def on_cut_progress_updated(self, iters: int) -> None:
+        pass
+
+    def on_avg_iter_time_updated(self, iter_time: float) -> None:
+        pass
+
     def set_scan_btns_enabled(self, state: bool) -> None:
         self.full_scan_btn.setEnabled(state)
         self.az_scan_btn.setEnabled(state)

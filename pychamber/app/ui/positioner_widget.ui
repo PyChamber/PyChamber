@@ -229,9 +229,9 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="az_jog_to_le">
+              <widget class="QDoubleSpinBox" name="az_jog_to_dsb">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -344,7 +344,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="el_0_btn">
+              <widget class="QPushButton" name="el_zero_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -396,9 +396,9 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="el_jog_to_le">
+              <widget class="QDoubleSpinBox" name="el_jog_to_dsb">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
