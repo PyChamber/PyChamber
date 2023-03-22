@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>587</width>
-    <height>310</height>
+    <width>595</width>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -442,6 +442,17 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="model_gb">
+        <property name="title">
+         <string>GroupBox</string>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_5"/>
+       </widget>
       </item>
      </layout>
     </widget>
