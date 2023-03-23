@@ -5,15 +5,17 @@ import pathlib
 import skrf
 
 
+# TODO: Write __repr__
 class ExperimentResult(skrf.NetworkSet):
-    def __init__(self, ntwk_set: list | dict | skrf.NetworkSet, name: str = None):
+    def __init__(self, ntwk_set: list | dict | skrf.NetworkSet = [], name: str = None):
         if isinstance(ntwk_set, skrf.NetworkSet):
             super().__init__(ntwk_set.ntwk_set, name)
         else:
             super().__init__(ntwk_set, name)
 
-        if not self.has_params():
-            raise ValueError("Not all networks have the same parameters. Metadata must match *exactly*")
+        if len(self) != 0:
+            if not self.has_params():
+                raise ValueError("Not all networks have similiar metadata. All networks must share the same parameter keys")
 
     @classmethod
     def load(cls, path: str | pathlib.Path) -> ExperimentResult:
@@ -78,3 +80,7 @@ class ExperimentResult(skrf.NetworkSet):
             return subset[0]
 
         return ExperimentResult(subset)
+
+    def append(self, ntwk: skrf.Network) -> None:
+        new_ns = self.ntwk_set + [ntwk]
+        self.__init__(new_ns, self.name)

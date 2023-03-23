@@ -43,6 +43,7 @@ class Ui_MainWindow(object):
         self.central_widget.setObjectName(u"central_widget")
         self.verticalLayout_6 = QVBoxLayout(self.central_widget)
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.verticalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(self.central_widget)
         self.splitter.setObjectName(u"splitter")
         self.splitter.setAutoFillBackground(False)

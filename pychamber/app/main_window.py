@@ -16,7 +16,7 @@ from pychamber.app.objects import ExperimentWorker
 from pychamber.app.ui.mainwindow import Ui_MainWindow
 from pychamber.app.widgets import LogDialog
 from pychamber.settings import CONF
-from pychamber.experiment_result import ExperimentResult
+from pychamber import ExperimentResult
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -24,7 +24,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
 
         self.log_dialog = LogDialog()
-        self.results = []
+        self.results = ExperimentResult()
         self.thread = QThread()
 
         self.setupUi(self)
@@ -193,6 +193,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.controls_area.experiment_controls.update_params(params)
 
     def run_scan(self, azimuths: np.ndarray, elevations: np.ndarray, polarizations: list[tuple[str, int, int]]) -> None:
+        self.results = ExperimentResult()
+
         self.worker = ExperimentWorker(self.analyzer, self.positioner, azimuths, elevations, polarizations)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)

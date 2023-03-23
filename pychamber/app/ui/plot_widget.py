@@ -42,17 +42,16 @@ class Ui_PlotWidget(object):
         self.dock_area = DockArea(PlotWidget)
         self.dock_area.setObjectName(u"dock_area")
         PlotWidget.setCentralWidget(self.dock_area)
-        self.plot_toolbar = QToolBar(PlotWidget)
-        self.plot_toolbar.setObjectName(u"plot_toolbar")
-        self.plot_toolbar.setMovable(False)
-        self.plot_toolbar.setAllowedAreas(Qt.RightToolBarArea)
-        self.plot_toolbar.setIconSize(QSize(48, 48))
-        self.plot_toolbar.setFloatable(False)
-        PlotWidget.addToolBar(Qt.RightToolBarArea, self.plot_toolbar)
+        self.toolBar = QToolBar(PlotWidget)
+        self.toolBar.setObjectName(u"toolBar")
+        self.toolBar.setAutoFillBackground(False)
+        self.toolBar.setMovable(False)
+        self.toolBar.setIconSize(QSize(36, 36))
+        PlotWidget.addToolBar(Qt.TopToolBarArea, self.toolBar)
 
-        self.plot_toolbar.addAction(self.add_polar_action)
-        self.plot_toolbar.addAction(self.add_cart_action)
-        self.plot_toolbar.addAction(self.add_3d_action)
+        self.toolBar.addAction(self.add_polar_action)
+        self.toolBar.addAction(self.add_cart_action)
+        self.toolBar.addAction(self.add_3d_action)
 
         self.retranslateUi(PlotWidget)
 
@@ -61,15 +60,15 @@ class Ui_PlotWidget(object):
 
     def retranslateUi(self, PlotWidget):
         PlotWidget.setWindowTitle(QCoreApplication.translate("PlotWidget", u"MainWindow", None))
-        self.add_polar_action.setText(QCoreApplication.translate("PlotWidget", u"Polar", None))
+        self.add_polar_action.setText(QCoreApplication.translate("PlotWidget", u"New Polar Plot", None))
 #if QT_CONFIG(tooltip)
         self.add_polar_action.setToolTip(QCoreApplication.translate("PlotWidget", u"Add Polar Plot", None))
 #endif // QT_CONFIG(tooltip)
-        self.add_cart_action.setText(QCoreApplication.translate("PlotWidget", u"Cartesian", None))
+        self.add_cart_action.setText(QCoreApplication.translate("PlotWidget", u"New Rectangular Plot", None))
 #if QT_CONFIG(tooltip)
         self.add_cart_action.setToolTip(QCoreApplication.translate("PlotWidget", u"Add Cartesian Plot", None))
 #endif // QT_CONFIG(tooltip)
-        self.add_3d_action.setText(QCoreApplication.translate("PlotWidget", u"3D", None))
-        self.plot_toolbar.setWindowTitle(QCoreApplication.translate("PlotWidget", u"toolBar", None))
+        self.add_3d_action.setText(QCoreApplication.translate("PlotWidget", u"New 3D Plot", None))
+        self.toolBar.setWindowTitle(QCoreApplication.translate("PlotWidget", u"toolBar", None))
     # retranslateUi
 
