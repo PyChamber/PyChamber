@@ -14,27 +14,24 @@
    <string>MainWindow</string>
   </property>
   <widget class="DockArea" name="dock_area"/>
-  <widget class="QToolBar" name="plot_toolbar">
+  <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
     <string>toolBar</string>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
    </property>
    <property name="movable">
     <bool>false</bool>
    </property>
-   <property name="allowedAreas">
-    <set>Qt::RightToolBarArea</set>
-   </property>
    <property name="iconSize">
     <size>
-     <width>48</width>
-     <height>48</height>
+     <width>36</width>
+     <height>36</height>
     </size>
    </property>
-   <property name="floatable">
-    <bool>false</bool>
-   </property>
    <attribute name="toolBarArea">
-    <enum>RightToolBarArea</enum>
+    <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -49,7 +46,7 @@
      <normaloff>:/icons/add_polar.png</normaloff>:/icons/add_polar.png</iconset>
    </property>
    <property name="text">
-    <string>Polar</string>
+    <string>New Polar Plot</string>
    </property>
    <property name="toolTip">
     <string>Add Polar Plot</string>
@@ -61,7 +58,7 @@
      <normaloff>:/icons/add_cartesian.png</normaloff>:/icons/add_cartesian.png</iconset>
    </property>
    <property name="text">
-    <string>Cartesian</string>
+    <string>New Rectangular Plot</string>
    </property>
    <property name="toolTip">
     <string>Add Cartesian Plot</string>
@@ -69,7 +66,7 @@
   </action>
   <action name="add_3d_action">
    <property name="text">
-    <string>3D</string>
+    <string>New 3D Plot</string>
    </property>
   </action>
  </widget>
