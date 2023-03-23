@@ -30,6 +30,7 @@ class PositionerControls(CollapsibleWidget):
 
         self.jog_thread = QThread(None)
         self.positioner: positioner.Postioner | None = None
+        self.enable_on_jog_completed = False
 
         self.setupUi()
         self.postvisible_setup()
@@ -116,7 +117,8 @@ class PositionerControls(CollapsibleWidget):
         #     print(self.model_widget.sizeHint())
         #     self.addWidget(self.model_widget)
 
-        self.ignore_jog_signals(False)
+        self.positioner.jogStarted.connect(self.on_jog_started)
+        self.positioner.jogCompleted.connect(self.on_jog_completed)
 
         self.widget.current_az_lcd_num.display(self.positioner.azimuth)
         self.widget.current_el_lcd_num.display(self.positioner.elevation)
@@ -187,7 +189,7 @@ class PositionerControls(CollapsibleWidget):
         el = self.positioner.elevation
         self.widget.current_az_lcd_num.display(az)
         self.widget.current_el_lcd_num.display(el)
-        self.setEnabled(True)
+        self.setEnabled(True and self.enable_on_jog_completed)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.jog_thread.quit()
@@ -199,14 +201,6 @@ class PositionerControls(CollapsibleWidget):
         self.widget.el_gb.setEnabled(enable)
         self.widget.set_origin_btn.setEnabled(enable)
         self.widget.return_to_origin_btn.setEnabled(enable)
-
-    def ignore_jog_signals(self, ignore: bool) -> None:
-        if ignore:
-            self.positioner.jogStarted.disconnect(self.on_jog_started)
-            self.positioner.jogCompleted.disconnect(self.on_jog_completed)
-        else:
-            self.positioner.jogStarted.connect(self.on_jog_started)
-            self.positioner.jogCompleted.connect(self.on_jog_completed)
 
     def add_models(self):
         for manufacturer, models in positioner.available_models().items():

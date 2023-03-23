@@ -61,6 +61,13 @@ class ExperimentControls(CollapsibleWidget):
 
         self.load_cal(fname)
 
+    @property
+    def polarizations(self) -> list[tuple[str, int, int]]:
+        return [
+            (self.widget.pol1_le.text(), *self.widget.pol1_cb.currentData()),
+            (self.widget.pol2_le.text(), *self.widget.pol2_cb.currentData()),
+        ]
+
     def update_params(self, params: list[tuple[int, int]]) -> None:
         param_strs = [f"S{a}{b}" for a, b in params]
         self.widget.pol1_cb.clear()
