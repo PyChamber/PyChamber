@@ -36,37 +36,11 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="add_polar_action"/>
-   <addaction name="add_cart_action"/>
-   <addaction name="add_3d_action"/>
+   <addaction name="add_plot_action"/>
   </widget>
-  <action name="add_polar_action">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/icons/add_polar.png</normaloff>:/icons/add_polar.png</iconset>
-   </property>
+  <action name="add_plot_action">
    <property name="text">
-    <string>New Polar Plot</string>
-   </property>
-   <property name="toolTip">
-    <string>Add Polar Plot</string>
-   </property>
-  </action>
-  <action name="add_cart_action">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/icons/add_cartesian.png</normaloff>:/icons/add_cartesian.png</iconset>
-   </property>
-   <property name="text">
-    <string>New Rectangular Plot</string>
-   </property>
-   <property name="toolTip">
-    <string>Add Cartesian Plot</string>
-   </property>
-  </action>
-  <action name="add_3d_action">
-   <property name="text">
-    <string>New 3D Plot</string>
+    <string>Add Plot</string>
    </property>
   </action>
  </widget>
@@ -78,8 +52,6 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

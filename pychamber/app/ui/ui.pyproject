@@ -1,3 +1,3 @@
 {
-    "files": ["experiment_widget.ui","mainwindow.ui","log_dialog.ui","plot_list_item.ui","positioner_widget.ui","mainwindow.py","cal_wizard.ui","resources.qrc","plot_widget.ui","analyzer_widget.ui","cal_view_dlg.ui"]
+    "files": ["plot_widget.ui","mainwindow.ui","positioner_widget.ui","plot_list_item.ui","polar_trace_settings.ui","rect_plot_settings.ui","mainwindow.py","rect_trace_settings.ui","polar_plot_settings.ui","log_dialog.ui","new_plot_dlg.ui","cal_view_dlg.ui","experiment_widget.ui","cal_wizard.ui","contour_plot_settings.ui","analyzer_widget.ui","resources.qrc","three_d_plot_settings.ui"]
 }

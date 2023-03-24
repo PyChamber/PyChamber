@@ -77,6 +77,9 @@ class PolarPlotWidget(pg.GraphicsView):
 
         self.plotItem.setMouseEnabled(x=False, y=False)
 
+    def getPlotItem(self) -> pg.PlotItem:
+        return self.plotItem
+
     def viewRangeChanged(self, view_range, view):
         self.sigRangeChanged.emit(self, view_range)
 
