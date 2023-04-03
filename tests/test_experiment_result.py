@@ -60,14 +60,14 @@ def test_experiment_result_get(example_result):
     az_subset = example_result.get(azimuth=0)
     assert len(az_subset) == (len(example_result.elevations) * len(example_result.polarizations))
     assert isinstance(az_subset, ExperimentResult)
-    np.testing.assert_allclose(az_subset.azimuths, [0.0])
-    np.testing.assert_allclose(az_subset.elevations, example_result.elevations)
+    np.testing.assert_allclose(az_subset.thetas, [0.0])
+    np.testing.assert_allclose(az_subset.thetas, example_result.elevations)
 
     el_subset = example_result.get(elevation=0)
     assert len(el_subset) == (len(example_result.azimuths) * len(example_result.polarizations))
     assert isinstance(el_subset, ExperimentResult)
-    np.testing.assert_allclose(el_subset.azimuths, example_result.azimuths)
-    np.testing.assert_allclose(el_subset.elevations, [0.0])
+    np.testing.assert_allclose(el_subset.thetas, example_result.azimuths)
+    np.testing.assert_allclose(el_subset.thetas, [0.0])
 
     specific_value = example_result.get(azimuth=0, elevation=0, polarization="vertical")
     assert isinstance(specific_value, skrf.Network)

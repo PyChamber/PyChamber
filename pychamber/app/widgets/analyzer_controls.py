@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import skrf
+
 import functools
 import itertools
 from operator import setitem
@@ -63,14 +70,16 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.freq_step_le.editingFinished.connect(self.on_freq_step_changed)
         self.widget.freq_n_points_le.editingFinished.connect(self.on_freq_n_points_changed)
         self.widget.if_bw_le.editingFinished.connect(self.on_if_bw_changed)
-        self.widget.avg_toggle.toggled.connect(lambda state: self.on_avg_toggle_changed(state)) # FIXME: Set spinbox minimum to 1 in designer
+        self.widget.avg_toggle.toggled.connect(
+            lambda state: self.on_avg_toggle_changed(state)
+        )  # FIXME: Set spinbox minimum to 1 in designer
         self.widget.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
 
     def postvisible_setup(self) -> None:
         widget_map = {
             # TODO: Make settings handle CategoryComboBox maybe?
             "analyzer_address": (self.widget.address_cb, "", str),
-            "visalib": (None, "@py", str)
+            "visalib": (None, "@py", str),
         }
         CONF.register_widgets(widget_map)
 
@@ -91,7 +100,7 @@ class AnalyzerControls(CollapsibleWidget):
         try:
             model = self.widget.model_cb.currentData()
             address = self.widget.address_cb.currentText()
-            self.analyzer = model(address, backend=CONF['visalib'])
+            self.analyzer = model(address, backend=CONF["visalib"])
         except Exception as e:
             QMessageBox.critical(self, "Connection Error", "Failed to connect to analyzer")
             print(e)
@@ -108,7 +117,7 @@ class AnalyzerControls(CollapsibleWidget):
         self.analyzerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
-        self.analyzer.close() # FIXME: no close function
+        self.analyzer.close()  # FIXME: no close function
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
         self.widget.freq_gb.setEnabled(False)
@@ -146,7 +155,7 @@ class AnalyzerControls(CollapsibleWidget):
 
     @property
     def available_addresses(self) -> list[str]:
-        backend = CONF['visalib']
+        backend = CONF["visalib"]
         rm = pyvisa.ResourceManager(backend)
         available = rm.list_resources()
         rm.close()
@@ -156,6 +165,10 @@ class AnalyzerControls(CollapsibleWidget):
     def available_params(self) -> list[tuple[int, int]]:
         port_nums = list(range(1, self.analyzer.nports + 1))
         return list(itertools.product(port_nums, repeat=2))
+
+    @property
+    def frequency(self) -> skrf.Frequency:
+        return self.analyzer.ch1.frequency
 
     def add_models(self) -> None:
         for manufacturer, models in self.available_analyzer_models.items():
@@ -181,7 +194,7 @@ class AnalyzerControls(CollapsibleWidget):
             self.widget.freq_n_points_le,
             self.widget.if_bw_le,
             self.widget.avg_toggle,
-            self.widget.n_avgs_sb
+            self.widget.n_avgs_sb,
         ]
 
         for widget in to_block:

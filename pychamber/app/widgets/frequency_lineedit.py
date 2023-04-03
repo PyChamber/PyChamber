@@ -24,3 +24,9 @@ class FrequencyLineEdit(QLineEdit):
         """
         val = quantiphy.Quantity(text, units="Hz")
         return super().setText(val.render())
+
+    def value(self) -> quantiphy.Quantity | None:
+        if self.text() == "" or not self.hasAcceptableInput():
+            return None
+        val = quantiphy.Quantity(self.text(), units="Hz")
+        return val

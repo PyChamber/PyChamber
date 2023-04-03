@@ -141,34 +141,10 @@ QGroupBox::title {
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="polar_plot_pg">
-         <layout class="QVBoxLayout" name="verticalLayout_3">
-          <item>
-           <widget class="PolarPlotSettings" name="polar_settings" native="true"/>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="rect_plot_pg">
-         <layout class="QVBoxLayout" name="verticalLayout_4">
-          <item>
-           <widget class="RectPlotSettings" name="rect_settings" native="true"/>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="contour_plot_pg">
-         <layout class="QVBoxLayout" name="verticalLayout_5">
-          <item>
-           <widget class="ContourPlotSettings" name="contour_settings" native="true"/>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="three_d_plot_pg">
-         <layout class="QVBoxLayout" name="verticalLayout_6">
-          <item>
-           <widget class="ThreeDPlotSettings" name="three_d_settings" native="true"/>
-          </item>
-         </layout>
-        </widget>
+        <widget class="PolarPlotSettings" name="polar_settings"/>
+        <widget class="RectPlotSettings" name="rect_settings"/>
+        <widget class="ContourPlotSettings" name="contour_settings"/>
+        <widget class="ThreeDPlotSettings" name="three_d_settings"/>
        </widget>
       </item>
      </layout>
@@ -190,7 +166,7 @@ QGroupBox::title {
   <customwidget>
    <class>ColorButton</class>
    <extends>QPushButton</extends>
-   <header>..widgets.color_button</header>
+   <header>pyqtgraph</header>
   </customwidget>
   <customwidget>
    <class>PolarPlotSettings</class>

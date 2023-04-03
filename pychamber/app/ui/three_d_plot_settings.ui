@@ -6,26 +6,42 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>330</width>
+    <height>525</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
-   <property name="leftMargin">
-    <number>0</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>0</number>
-   </property>
-   <property name="bottomMargin">
-    <number>0</number>
-   </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout_2">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Title</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="title_le"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Background Color</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="ColorButton" name="bg_color_btn">
+       <property name="text">
+        <string>PushButton</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
@@ -69,69 +85,87 @@
    <item>
     <layout class="QFormLayout" name="formLayout">
      <item row="0" column="0">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>Frequency</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="FrequencyLineEdit" name="freq_le"/>
+     </item>
+     <item row="1" column="0">
       <widget class="QLabel" name="r_var_label">
        <property name="text">
         <string>R Variable</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
+     <item row="1" column="1">
       <widget class="QComboBox" name="r_var_cb"/>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="x_var_label">
-       <property name="text">
-        <string>X Variable</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="x_var_cb"/>
-     </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="y_var_label">
-       <property name="text">
-        <string>Y Variable</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="y_var_cb"/>
-     </item>
-     <item row="3" column="0">
       <widget class="QLabel" name="z_var_label">
        <property name="text">
         <string>Z Variable</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
+     <item row="2" column="1">
       <widget class="QComboBox" name="z_var_cb"/>
      </item>
-     <item row="4" column="0">
+     <item row="3" column="0">
       <widget class="QLabel" name="pol_label">
        <property name="text">
         <string>Polarization</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="3" column="1">
       <widget class="QComboBox" name="pol_cb"/>
      </item>
-     <item row="5" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="cmap_label">
        <property name="text">
         <string>Colormap</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="contour_cmap_cb"/>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="cmap_cb"/>
      </item>
     </layout>
    </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ColorButton</class>
+   <extends>QPushButton</extends>
+   <header>pyqtgraph</header>
+  </customwidget>
+  <customwidget>
+   <class>FrequencyLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>..widgets.frequency_lineedit</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

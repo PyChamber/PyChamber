@@ -2,8 +2,7 @@ import functools
 from operator import setitem
 
 import qtawesome as qta
-from PySide6.QtTest import QSignalSpy
-from PySide6.QtCore import Signal, QThread
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMessageBox, QWidget
 from serial.tools import list_ports
@@ -75,7 +74,6 @@ class PositionerControls(CollapsibleWidget):
 
         self.widget.set_origin_btn.pressed.connect(self.on_set_zero_btn_pressed)
         self.widget.return_to_origin_btn.pressed.connect(self.on_return_to_origin_pressed)
-
 
     def postvisible_setup(self) -> None:
         widget_map = {
@@ -175,11 +173,11 @@ class PositionerControls(CollapsibleWidget):
 
     def on_set_zero_btn_pressed(self) -> None:
         self.positioner.zero_all()
-        self.widget.current_az_lcd_num.display(0.)
-        self.widget.current_el_lcd_num.display(0.)
+        self.widget.current_az_lcd_num.display(0.0)
+        self.widget.current_el_lcd_num.display(0.0)
 
     def on_return_to_origin_pressed(self) -> None:
-        pass # FIXME: Thread shenaningans
+        pass  # FIXME: Thread shenaningans
 
     def on_jog_started(self) -> None:
         self.setEnabled(False)

@@ -3,20 +3,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pychamber.app.widgets import AnalyzerControls, ExperimentControls, PositionerControls
     from pychamber.positioner import Postioner
-    from pychamber.app.widgets import AnalyzerControls, PositionerControls, ExperimentControls
+
 
 import numpy as np
 import skrf
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, QTimer
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QMainWindow, QMessageBox
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QPushButton, QVBoxLayout
 
+from pychamber import ExperimentResult
 from pychamber.app.objects import ExperimentWorker
 from pychamber.app.ui.mainwindow import Ui_MainWindow
 from pychamber.app.widgets import LogDialog
 from pychamber.settings import CONF
-from pychamber import ExperimentResult
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -24,12 +25,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
 
         self.log_dialog = LogDialog()
-        self.results = ExperimentResult()
+        self.results = None
         self.thread = QThread()
 
         self.setupUi(self)
         self.connect_signals()
         self.post_visible_setup()
+
+        test_dlg = QDialog(self)
+        layout = QVBoxLayout(test_dlg)
+        hlayout = QHBoxLayout()
+        phi_label = QLabel("Phi: ")
+        self.current_phi = QLabel("")
+        theta_label = QLabel("Theta: ")
+        self.current_theta = QLabel("")
+        hlayout.addWidget(phi_label)
+        hlayout.addWidget(self.current_phi)
+        hlayout.addWidget(theta_label)
+        hlayout.addWidget(self.current_theta)
+        self.status_label = QLabel("Not Running")
+        test_scan_btn = QPushButton("Run Test Scan")
+        test_scan_btn.pressed.connect(self.run_test_scan)
+        self.stop_test_btn = QPushButton("Stop Scan")
+        layout.addWidget(self.status_label)
+        layout.addLayout(hlayout)
+        layout.addWidget(test_scan_btn)
+        layout.addWidget(self.stop_test_btn)
+        test_dlg.show()
 
     def post_visible_setup(self):
         self.total_progress_gb.hide()
@@ -140,12 +162,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         time_str = f"{hours} hours {minutes:0>2} minutes {seconds:0>2} seconds"
         self.time_remaining_le.setText(time_str)
 
-    def on_data_acquired(self, ntwk: skrf.Network) -> None:
-        self.results.append(ntwk)
-        self.plot_widget.update_data(self.results)
-
     def on_experiment_started(self) -> None:
-        self.results = []
         self.total_progress_bar.setValue(0)
         self.cut_progress_bar.setValue(0)
         self.set_controls_enabled(False)
@@ -192,17 +209,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         params = self.controls_area.analyzer_controls.available_params
         self.controls_area.experiment_controls.update_params(params)
 
-    def run_scan(self, azimuths: np.ndarray, elevations: np.ndarray, polarizations: list[tuple[str, int, int]]) -> None:
-        self.results = ExperimentResult()
+    def run_scan(self, phis: np.ndarray, thetas: np.ndarray, polarizations: list[tuple[str, int, int]]) -> None:
+        freq = self.analyzer_controls.frequency
+        self.results = ExperimentResult(thetas, phis, [p[0] for p in polarizations], freq)
+        self.plot_dock_widget.results = self.results
 
-        self.worker = ExperimentWorker(self.analyzer, self.positioner, azimuths, elevations, polarizations)
+        self.worker = ExperimentWorker(self.analyzer, self.positioner, phis, thetas, polarizations)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
 
         self.worker.started.connect(self.on_experiment_started)
-        self.worker.dataAcquired.connect(lambda ntwk: self.on_data_acquired(ntwk))
+        self.worker.dataAcquired.connect(self.results.append)
         self.worker.totalIterCountUpdated.connect(self.on_total_progress_updated)
         self.worker.cutIterCountUpdated.connect(self.on_cut_progress_updated)
         self.worker.timeEstUpdated.connect(self.on_time_est_updated)
@@ -212,3 +231,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.finished.connect(self.cut_progress_gb.hide)
 
         self.thread.start()
+
+    def run_test_scan(self):
+        timer = QTimer(self)
+        timer.setInterval(100)
+        self.stop_test_btn.pressed.connect(timer.stop)
+        self.status_label.setText("Running")
+
+        thetas = np.arange(-180, 181, 1)
+        phis = np.arange(-90, 91, 1)
+        P, T = np.meshgrid(np.deg2rad(phis), np.deg2rad(thetas))
+        ntwk = np.sinc(T) * np.sinc(P)
+        index = iter(range(0, len(thetas) * len(phis)))
+        freq = skrf.Frequency(start=1_000_000, stop=3_000_000, npoints=11, unit="Hz")
+
+        self.results = ExperimentResult(thetas, phis, ["Horizontal"], freq)
+        self.plot_dock_widget.results = self.results
+
+        def append_data():
+            try:
+                i = next(index)
+            except StopIteration:
+                self.status_label.setText("Finished")
+                timer.stop()
+                return
+            p, t = divmod(i, len(thetas))
+            self.current_phi.setText(f"{phis[p]:.3g}")
+            self.current_theta.setText(f"{thetas[t]:.3g}")
+            val = skrf.Network()
+            val.frequency = freq.copy()
+            val.params = {"polarization": "Horizontal", "phi": phis[p], "theta": thetas[t]}
+            val.s = np.repeat(ntwk[t, p], 11).reshape((-1, 1, 1))
+
+            self.results.append(val)
+
+        timer.timeout.connect(append_data)
+        timer.start()

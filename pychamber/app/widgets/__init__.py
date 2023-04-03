@@ -7,6 +7,6 @@ from .experiment_controls import ExperimentControls
 from .frequency_lineedit import FrequencyLineEdit
 from .frequency_validator import FrequencyValidator
 from .log_dialog import LogDialog
-from .plot_widget import PlotWidget
+from .plot_dock_widget import PlotDockWidget
 from .positioner_controls import PositionerControls
 from .toggle import Toggle

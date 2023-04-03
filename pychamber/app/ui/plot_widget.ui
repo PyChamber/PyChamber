@@ -36,11 +36,49 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="add_plot_action"/>
+   <addaction name="add_polar_action"/>
+   <addaction name="add_rect_action"/>
+   <addaction name="add_contour_action"/>
+   <addaction name="add_three_d_action"/>
   </widget>
-  <action name="add_plot_action">
+  <action name="add_polar_action">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/add_polar.png</normaloff>:/icons/add_polar.png</iconset>
+   </property>
    <property name="text">
-    <string>Add Plot</string>
+    <string>Polar Plot</string>
+   </property>
+   <property name="toolTip">
+    <string>Add Polar Plot</string>
+   </property>
+  </action>
+  <action name="add_rect_action">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/add_cartesian.png</normaloff>:/icons/add_cartesian.png</iconset>
+   </property>
+   <property name="text">
+    <string>Rectangular Plot</string>
+   </property>
+   <property name="toolTip">
+    <string>Add Rectangular Plot</string>
+   </property>
+  </action>
+  <action name="add_contour_action">
+   <property name="text">
+    <string>Contour Plot</string>
+   </property>
+   <property name="toolTip">
+    <string>Add Contour Plot</string>
+   </property>
+  </action>
+  <action name="add_three_d_action">
+   <property name="text">
+    <string>Add 3D Plot</string>
+   </property>
+   <property name="toolTip">
+    <string>3D Plot</string>
    </property>
   </action>
  </widget>
@@ -52,6 +90,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

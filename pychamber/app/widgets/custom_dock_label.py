@@ -1,8 +1,9 @@
+import qtawesome as qta
 from pyqtgraph.dockarea import DockLabel
 
 
 class CustomDockLabel(DockLabel):
-    def __init__(self, text, closable=False, fontSize="12px", **kwargs):
+    def __init__(self, text, closable=True, fontSize="12px", **kwargs):
         self._bg = kwargs.pop("background_color", "#66c")
         self._bg_dim = kwargs.pop("background_color_inactive", "#44a")
         self._fg = kwargs.pop("font_color", "#fff")
@@ -11,6 +12,10 @@ class CustomDockLabel(DockLabel):
         self._border_dim = kwargs.pop("border_color_inactive", "#339")
 
         super().__init__(text, closable, fontSize)
+
+        close_icon = qta.icon("fa5s.times")
+        self.closeButton.setIcon(close_icon)
+        self.closeButton.setStyleSheet("QToolButton { background: none; border: none;}")
 
     def updateStyle(self):
         r = "3px"

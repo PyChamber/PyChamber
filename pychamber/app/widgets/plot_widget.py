@@ -1,48 +1,57 @@
-from pyqtgraph import dockarea
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMainWindow
+from __future__ import annotations
 
-from pychamber.experiment_result import ExperimentResult
+from typing import TYPE_CHECKING
 
-from ..ui.plot_widget import Ui_PlotWidget
-from .custom_dock_label import CustomDockLabel
-from .new_plot_dlg import NewPlotDialog
+if TYPE_CHECKING:
+    pass
+
+import qtawesome as qta
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+
+from pychamber import ExperimentResult
 
 
-class PlotWidget(QMainWindow, Ui_PlotWidget):
-    def __init__(self, parent=None):
+class PlotWidget(QWidget):
+    # Contains pg plot widget, mechanisms to update that plot
+    # And controls relevant to that plot
+    def __init__(self, plot, controls, data: ExperimentResult, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowFlags(Qt.Widget)
-        self.setupUi(self)
 
-        self.results = None
-        self.plots = []
-        self.new_plot_dlg = NewPlotDialog(self)
+        self.plot = plot
+        self.callbacks = []
+        self._data = data
+        self.controls = controls
 
-        self.add_plot_action.triggered.connect(self.add_plot)
+        self.setupUi()
 
-    def update_data(self, results: ExperimentResult) -> None:
-        self.results = results
-        self.update_all_plots()
+    def setupUi(self) -> None:
+        self.ctrls_drawer = QFrame()
+        ctrls_layout = QVBoxLayout(self.ctrls_drawer)
+        ctrls_layout.addWidget(self.controls)
+        ctrls_layout.setContentsMargins(0, 0, 0, 0)
 
-    def update_all_plots(self) -> None:
-        if self.results is None:
-            return
+        self.drawer_btn = QPushButton()
+        self.drawer_btn.setStyleSheet("QPushButton::flat { background-color: #9b9b9b; border: none;}")
+        self.drawer_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.drawer_btn.setFixedWidth(10)
+        self.drawer_btn.setFlat(True)
+        self.drawer_close_icon = qta.icon("fa5s.caret-right")
+        self.drawer_open_icon = qta.icon("fa5s.caret-left")
+        self.drawer_btn.setIcon(self.drawer_close_icon)
+        self.drawer_btn.pressed.connect(self.on_drawer_btn_pressed)
 
-    def add_plot(
-        self,
-    ) -> None:
-        res = self.new_plot_dlg.exec()
-        if res == 0:
-            return
-        widget = self.new_plot_dlg.construct_widget()
-        if widget is None:
-            return
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(1, 1, 1, 1)
+        layout.addWidget(self.plot)
+        layout.addWidget(self.drawer_btn)
+        layout.addWidget(self.ctrls_drawer)
+        layout.setStretch(0, 1)
+        layout.setSpacing(2)
 
-        label = CustomDockLabel(self.new_plot_dlg.title, fontSize="16px", background_color="#00CC00")
-        dock = dockarea.Dock(name=None, label=label, size=(1, 1), autoOrientation=False)
-        dock.setOrientation("horizontal")
-        dock.addWidget(widget)
-        self.dock_area.addDock(dock, "below")
-
-        self.plots.append(widget)
+    def on_drawer_btn_pressed(self) -> None:
+        self.ctrls_drawer.setVisible(not self.ctrls_drawer.isVisible())
+        if self.ctrls_drawer.isVisible():
+            self.drawer_btn.setIcon(self.drawer_close_icon)
+        else:
+            self.drawer_btn.setIcon(self.drawer_open_icon)
+            self.drawer_btn.setIcon(self.drawer_open_icon)

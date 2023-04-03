@@ -1,86 +1,132 @@
 from __future__ import annotations
 
-import pathlib
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from typing import Any
+
+import numpy as np
 import skrf
+from PySide6.QtCore import QObject, QReadWriteLock, Signal
 
 
-# TODO: Write __repr__
-class ExperimentResult(skrf.NetworkSet):
-    def __init__(self, ntwk_set: list | dict | skrf.NetworkSet = [], name: str = None):
-        if isinstance(ntwk_set, skrf.NetworkSet):
-            super().__init__(ntwk_set.ntwk_set, name)
-        else:
-            super().__init__(ntwk_set, name)
+class ExperimentResult(QObject):
+    dataAppended = Signal()
 
-        if len(self) != 0:
-            if not self.has_params():
-                raise ValueError("Not all networks have similiar metadata. All networks must share the same parameter keys")
+    def __init__(
+        self,
+        thetas: np.ndarray,
+        phis: np.ndarray,
+        polarizations: list[str],
+        frequency: skrf.Frequency,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
 
-    @classmethod
-    def load(cls, path: str | pathlib.Path) -> ExperimentResult:
-        ns = skrf.NetworkSet.from_mdif(str(path))
-        return cls(ns.ntwk_set)
+        self.rw_lock = QReadWriteLock()
+        self._ntwk_set = skrf.NetworkSet()
+        self._thetas = np.sort(thetas)
+        self._phis = np.sort(phis)
+        self._polarizations = polarizations
+        self._frequency = frequency
+        self._s_data = {pol: np.zeros((len(frequency), len(phis), len(thetas)), dtype=complex) for pol in polarizations}
 
-    def save(self, path: str | pathlib.Path) -> None:
-        # Saving to MDIF fails if networks dont have a name, so just set the names to ""
-        for ntwk in self.ntwk_set:
-            ntwk.name = ""
+    def __str__(self) -> str:
+        return (
+            f"ExperimentResult(frequencies={self.frequency}, polarizations={self.polarizations}, azimuths={self.phis},"
+            f" elevations={self.thetas}"
+        )
 
-        # use .sel to convert back to a skrf.NetworkSet. Fails because we overwrote __getitem__
-        self.sel().write_mdif(path)
+    def __len__(self) -> int:
+        return len(self._ntwk_set)
 
-    def get_unique_param_vals(self, param: str) -> list[any]:
+    def __iter__(self):
+        return iter(self._ntwk_set)
+
+    def __getitem__(self, index: int):
+        return self._ntwk_set[index]
+
+    # @classmethod
+    # def load(cls, path: str | pathlib.Path) -> ExperimentResult:
+    #     ns = skrf.NetworkSet.from_mdif(str(path))
+    #     return cls(ns.ntwk_set)
+
+    # def save(self, path: str | pathlib.Path) -> None:
+    #     # Saving to MDIF fails if networks dont have a name, so just set the names to ""
+    #     for ntwk in self._ntwk_set:
+    #         if ntwk.name is None:
+    #             ntwk.name = ""
+
+    #     self._ntwk_set.write_mdif(path)
+
+    def get_unique_param_vals(self, param: str) -> list[Any]:
+        if len(self._ntwk_set) == 0:
+            return []
+        if self._ntwk_set.params_values is None:
+            return []
         try:
-            return list(set(self.params_values[param]))
+            return list(set(self._ntwk_set.params_values[param]))
         except KeyError:
             return []
 
+    def find_nearest(self, array, value) -> tuple:
+        idx = np.nanargmin(np.abs(array - value))
+        return (idx, array[idx])
+
     @property
-    def frequencies(self) -> skrf.Frequency:
-        return self.ntwk_set[0].frequency
+    def frequency(self) -> skrf.Frequency:
+        return self._frequency
+
+    @property
+    def f(self) -> np.ndarray:
+        return self.frequency.f
 
     @property
     def polarizations(self) -> list[str]:
-        return self.get_unique_param_vals("polarization")
+        return self._polarizations
 
     @property
-    def azimuths(self) -> list[int | float]:
-        return sorted(self.get_unique_param_vals("azimuth"))
+    def phis(self) -> np.ndarray:
+        return self._phis
 
     @property
-    def elevations(self) -> list[int | float]:
-        return sorted(self.get_unique_param_vals("elevation"))
+    def thetas(self) -> np.ndarray:
+        return self._thetas
 
-    def get(
-        self,
-        *,
-        azimuth: int | float | None = None,
-        elevation: int | float | None = None,
-        polarization: str | None = None,
-    ) -> skrf.Network | ExperimentResult:
-        if azimuth is not None and azimuth not in self.azimuths:
-            raise KeyError(f"No results exist for azimuth: {azimuth}")
-        if elevation is not None and elevation not in self.elevations:
-            raise KeyError(f"No results exist for elevation: {elevation}")
-        if polarization is not None and polarization not in self.polarizations:
-            raise KeyError(f"No results exist for polarization: '{polarization}'")
+    @property
+    def params(self) -> dict | None:
+        return self._ntwk_set.params
 
-        sel_params = {}
-        if azimuth is not None:
-            sel_params |= {"azimuth": azimuth}
-        if elevation is not None:
-            sel_params |= {"elevation": elevation}
-        if polarization is not None:
-            sel_params |= {"polarization": polarization}
-        subset = self.sel(sel_params)
+    def get_theta_cut(self, polarization: str, frequency: float, phi: float):
+        f_idx, _ = self.find_nearest(self.f, frequency)
+        phi_idx, _ = self.find_nearest(self._phis, phi)
+        return self._s_data[polarization][f_idx, phi_idx, :]
 
-        # If we request a single item, it should be returned as a skrf.Network
-        if len(subset) == 1:
-            return subset[0]
+    def get_phi_cut(self, polarization: str, frequency: float, theta: float):
+        f_idx, _ = self.find_nearest(self.f, frequency)
+        theta_idx, _ = self.find_nearest(self._thetas, theta)
+        return self._s_data[polarization][f_idx, :, theta_idx]
 
-        return ExperimentResult(subset)
+    def get_over_freq_vals(self, polarization: str, theta: float, phi: float):
+        phi_idx, _ = self.find_nearest(self._phis, phi)
+        theta_idx, _ = self.find_nearest(self._thetas, theta)
+        return self._s_data[polarization][:, phi_idx, theta_idx]
+
+    def get_2d_cut(self, polarization: str, frequency: float):
+        f_idx, _ = self.find_nearest(self.f, frequency)
+        return self._s_data[polarization][f_idx]
 
     def append(self, ntwk: skrf.Network) -> None:
-        new_ns = self.ntwk_set + [ntwk]
-        self.__init__(new_ns, self.name)
+        new_ns_list = [*self._ntwk_set, ntwk]
+        name = self._ntwk_set.name
+        new_ns = skrf.NetworkSet(new_ns_list, name=name)
+        pol = ntwk.params["polarization"]
+        phi_idx = np.where(self._phis == ntwk.params["phi"])[0]
+        theta_idx = np.where(self._thetas == ntwk.params["theta"])[0]
+
+        self.rw_lock.lockForWrite()
+        self._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+        self._ntwk_set = new_ns
+        self.rw_lock.unlock()
+
+        self.dataAppended.emit()
