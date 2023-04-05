@@ -106,6 +106,8 @@ class AnalyzerControls(CollapsibleWidget):
 
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
+        self.widget.model_cb.setEnabled(False)
+        self.widget.address_cb.setEnabled(False)
         self.widget.freq_gb.setEnabled(True)
         for widget in self.widget.freq_gb.children():
             widget.blockSignals(True)
@@ -119,6 +121,8 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
         self.widget.freq_gb.setEnabled(False)
+        self.widget.model_cb.setEnabled(True)
+        self.widget.address_cb.setEnabled(True)
         self.analyzerDisonnected.emit()
 
     def on_freq_start_changed(self) -> None:

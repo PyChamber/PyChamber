@@ -124,12 +124,16 @@ class PositionerControls(CollapsibleWidget):
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
         self.set_enabled(True)
+        self.widget.model_cb.setEnabled(False)
+        self.widget.address_cb.setEnabled(False)
         self.positionerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
         self.positioner = None
         self.widget.connect_btn.show()
         self.widget.disconnect_btn.hide()
+        self.widget.model_cb.setEnabled(True)
+        self.widget.address_cb.setEnabled(True)
         self.set_enabled(False)
         self.positionerDisonnected.emit()
 
