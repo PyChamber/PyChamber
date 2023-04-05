@@ -242,7 +242,11 @@
          </widget>
         </item>
         <item>
-         <widget class="FileBrowseLineEdit" name="cal_file_le"/>
+         <widget class="QLineEdit" name="cal_file_le">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QPushButton" name="cal_file_browse_btn">
@@ -314,11 +318,6 @@
    <class>Toggle</class>
    <extends>QCheckBox</extends>
    <header>..widgets.toggle</header>
-  </customwidget>
-  <customwidget>
-   <class>FileBrowseLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>..widgets.filebrowse_lineedit</header>
   </customwidget>
  </customwidgets>
  <resources/>

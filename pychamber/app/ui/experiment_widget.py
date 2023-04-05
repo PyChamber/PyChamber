@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QGridLay
     QGroupBox, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QSizePolicy, QVBoxLayout, QWidget)
 
-from ..widgets.filebrowse_lineedit import FileBrowseLineEdit
 from ..widgets.toggle import Toggle
 
 class Ui_ExperimentWidget(object):
@@ -188,8 +187,9 @@ class Ui_ExperimentWidget(object):
 
         self.horizontalLayout_3.addWidget(self.cal_file_label)
 
-        self.cal_file_le = FileBrowseLineEdit(self.cal_gb)
+        self.cal_file_le = QLineEdit(self.cal_gb)
         self.cal_file_le.setObjectName(u"cal_file_le")
+        self.cal_file_le.setReadOnly(True)
 
         self.horizontalLayout_3.addWidget(self.cal_file_le)
 

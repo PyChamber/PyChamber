@@ -39,6 +39,10 @@ class ExperimentControls(CollapsibleWidget):
         self.widget.theta_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_start"))
         self.widget.theta_stop_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_stop"))
         self.widget.theta_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_step"))
+        self.widget.pol1_le.textChanged.connect(functools.partial(setitem, CONF, "pol_1_label"))
+        self.widget.pol2_le.textChanged.connect(functools.partial(setitem, CONF, "pol_2_label"))
+        self.widget.cal_file_le.textChanged.connect(functools.partial(setitem, CONF, "cal_file"))
+        self.widget.cal_file_toggle.toggled.connect(functools.partial(setitem, CONF, "cal_on"))
         self.widget.cal_file_browse_btn.pressed.connect(self.on_cal_browse_btn_pressed)
         self.widget.cal_wizard_btn.pressed.connect(self.run_cal_wizard)
         self.widget.view_cal_btn.pressed.connect(self.view_cal)
@@ -51,6 +55,10 @@ class ExperimentControls(CollapsibleWidget):
             "theta_start": (self.widget.theta_start_dsb, 0, float),
             "theta_stop": (self.widget.theta_stop_dsb, 90, float),
             "theta_step": (self.widget.theta_step_dsb, 1, float),
+            "pol_1_label": (self.widget.pol1_le, "", str),
+            "pol_2_label": (self.widget.pol2_le, "", str),
+            "cal_file": (self.widget.cal_file_le, "", str),
+            "cal_on": (self.widget.cal_file_toggle, False, bool),
         }
         CONF.register_widgets(widget_map)
 
