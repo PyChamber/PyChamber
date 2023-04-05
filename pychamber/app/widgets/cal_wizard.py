@@ -32,7 +32,7 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.loss_pens = [pg.mkPen((143, 175, 217), width=3), pg.mkPen((255, 212, 59), width=3)]
 
         self.ref_ntwk: skrf.Network | None = None
-        self.losses: list[skrf.Network] = [skrf.Network() for _ in range(2)]
+        self.losses: list[skrf.Network | None] = [None] * 2
         self.cal_saved = False
 
         self.loss_plotitems = []
@@ -102,7 +102,9 @@ class CalWizard(QWizard, Ui_CalWizard):
         loss.name = pol_name
 
         self.losses[polarization] = loss
-        self.loss_plotitems[polarization].setData(loss.f, -1 * loss.s_db.flatten(), name=pol_name)
+        self.loss_plotitems[polarization].setData(
+            loss.f, -1 * loss.s_db.flatten(), pen=self.loss_pens[polarization], name=pol_name
+        )
         self.loss_plot.getPlotItem().legend.removeItem(self.loss_plotitems[polarization])
         self.loss_plot.getPlotItem().legend.addItem(self.loss_plotitems[polarization], pol_name)
 
@@ -129,7 +131,8 @@ class CalWizard(QWizard, Ui_CalWizard):
             # own delimiter
             *(f"{line}@" for line in self.notes_pte.toPlainText().split("\n")),
         ]
-        cal = Calibration(self.losses, notes=notes)
+        to_save = [ntwk for ntwk in self.losses if ntwk is not None]
+        cal = Calibration(to_save, notes=notes)
         cal.save(self.cal_path)
 
         self.cal_saved = True
