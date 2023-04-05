@@ -224,7 +224,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.experiment_controls.widget.setEnabled(state)
         self.analyzer_controls.widget.setEnabled(state)
         self.positioner_controls.enable_on_jog_completed = state
-        self.positioner_controls.widget.setEnabled(state)
+        self.positioner_controls.set_enabled(state)
 
     def apply_theme(self, theme: str | None) -> None:
         if theme is None:

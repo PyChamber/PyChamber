@@ -180,14 +180,14 @@ class PositionerControls(CollapsibleWidget):
         pass  # FIXME: Thread shenaningans
 
     def on_jog_started(self) -> None:
-        self.setEnabled(False)
+        self.set_enabled(False)
 
     def on_jog_completed(self) -> None:
         phi = self.positioner.phi
         theta = self.positioner.theta
         self.widget.current_phi_lcd_num.display(phi)
         self.widget.current_theta_lcd_num.display(theta)
-        self.setEnabled(self.enable_on_jog_completed)
+        self.set_enabled(self.enable_on_jog_completed)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.jog_thread.quit()
