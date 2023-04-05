@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'mainwindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.2
+## Created by: Qt User Interface Compiler version 6.4.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QGroupBox, QHBoxLayout, QLabel,
     QProgressBar, QPushButton, QSizePolicy, QSpacerItem,
     QSplitter, QStatusBar, QVBoxLayout, QWidget)
 
-from pychamber.app.widgets import (ControlsArea, PlotWidget)
+from pychamber.app.widgets import (ControlsArea, PlotDockWidget)
 from  . import resources_rc
 
 class Ui_MainWindow(object):
@@ -33,8 +33,6 @@ class Ui_MainWindow(object):
         self.save_action.setObjectName(u"save_action")
         self.load_action = QAction(MainWindow)
         self.load_action.setObjectName(u"load_action")
-        self.export_action = QAction(MainWindow)
-        self.export_action.setObjectName(u"export_action")
         self.exit_action = QAction(MainWindow)
         self.exit_action.setObjectName(u"exit_action")
         self.view_logs_action = QAction(MainWindow)
@@ -209,14 +207,14 @@ class Ui_MainWindow(object):
         self.verticalLayout_5.addWidget(self.controls_area)
 
         self.splitter.addWidget(self.left_pane)
-        self.plot_widget = PlotWidget(self.splitter)
-        self.plot_widget.setObjectName(u"plot_widget")
+        self.plot_dock_widget = PlotDockWidget(self.splitter)
+        self.plot_dock_widget.setObjectName(u"plot_dock_widget")
         sizePolicy4 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy4.setHorizontalStretch(1)
         sizePolicy4.setVerticalStretch(0)
-        sizePolicy4.setHeightForWidth(self.plot_widget.sizePolicy().hasHeightForWidth())
-        self.plot_widget.setSizePolicy(sizePolicy4)
-        self.splitter.addWidget(self.plot_widget)
+        sizePolicy4.setHeightForWidth(self.plot_dock_widget.sizePolicy().hasHeightForWidth())
+        self.plot_dock_widget.setSizePolicy(sizePolicy4)
+        self.splitter.addWidget(self.plot_dock_widget)
 
         self.verticalLayout_6.addWidget(self.splitter)
 
@@ -240,7 +238,6 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.save_action)
         self.menuFile.addAction(self.load_action)
-        self.menuFile.addAction(self.export_action)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.exit_action)
         self.menuHelp.addAction(self.view_logs_action)
@@ -254,7 +251,6 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
         self.save_action.setText(QCoreApplication.translate("MainWindow", u"Save", None))
         self.load_action.setText(QCoreApplication.translate("MainWindow", u"Load", None))
-        self.export_action.setText(QCoreApplication.translate("MainWindow", u"Export", None))
         self.exit_action.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.view_logs_action.setText(QCoreApplication.translate("MainWindow", u"View Logs", None))
         self.label.setText("")

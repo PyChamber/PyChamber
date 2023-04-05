@@ -3,7 +3,7 @@
 import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.functions as fn
-from OpenGL.GL import GL
+from OpenGL import GL
 from pyqtgraph.opengl import GLGraphicsItem
 from pyqtgraph.Qt import QtCore, QtGui
 
