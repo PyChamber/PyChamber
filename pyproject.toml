@@ -10,9 +10,23 @@ packages = [{ include = "pychamber" }]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12.0"
-numpy = "^1.24.2"
-platformdirs = "^3.0.0"
-pyserial = "^3.5"
+
+pyserial = "^3.5"black = { version = "^22.3.0", optional = true }
+isort = { version = "^5.8.0", optional = true }
+flake8 = { version = "^3.9.2", optional = true }
+flake8-docstrings = { version = "^1.6.0", optional = true }
+mypy = { version = "^0.900", optional = true }
+pytest = { version = "^6.2.4", optional = true }
+pytest-cov = { version = "^2.12.0", optional = true }
+tox = { version = "^3.20.1", optional = true }
+virtualenv = { version = "^20.2.2", optional = true }
+mkdocs = { version = "^1.3.0", optional = true }
+twine = { version = "^3.3.0", optional = true }
+pre-commit = { version = "^2.12.0", optional = true }
+bump2version = { version = "^1.0.1", optional = true }
+matplotlib = "^3.5.1"
+numpy = "^1.22.3"
+scikit-rf = { path = "../scikit-rf", extras = ["vi"] }
 pyqtgraph = "^0.13.1"
 quantiphy = "^2.19"
 qtawesome = "^1.2.2"
