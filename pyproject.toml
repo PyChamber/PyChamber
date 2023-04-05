@@ -1,132 +1,119 @@
-[tool]
 [tool.poetry]
 name = "pychamber"
-version = "0.1.0"
-homepage = "https://github.com/cafeclimber/pychamber"
-description = "Python Package to Control PSU Anechoic Chamber."
-authors = ["Bailey Campbell <baileycampbell@psu.edu>"]
+version = "0.0.1"
+description = "Run anechoic chamber experiments from Python!"
+authors = ["Bailey Campbell <fbaileycampbell1990@gmail.com>"]
+repository = "https://github.com/pychamber/pychamber"
+documentation = "https://pychamber.github.io/pychamber/"
 readme = "README.md"
-license = "MIT"
-classifiers = [
-    'Development Status :: 3 - Alpha',
-    'Intended Audience :: Developers',
-    'Natural Language :: English',
-]
-packages = [{ include = "pychamber" }, { include = "tests", format = "sdist" }]
+packages = [{ include = "pychamber" }]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
-
-black = { version = "^22.3.0", optional = true }
-isort = { version = "^5.8.0", optional = true }
-flake8 = { version = "^3.9.2", optional = true }
-flake8-docstrings = { version = "^1.6.0", optional = true }
-mypy = { version = "^0.900", optional = true }
-pytest = { version = "^6.2.4", optional = true }
-pytest-cov = { version = "^2.12.0", optional = true }
-tox = { version = "^3.20.1", optional = true }
-virtualenv = { version = "^20.2.2", optional = true }
-mkdocs = { version = "^1.3.0", optional = true }
-twine = { version = "^3.3.0", optional = true }
-pre-commit = { version = "^2.12.0", optional = true }
-bump2version = { version = "^1.0.1", optional = true }
-matplotlib = "^3.5.1"
-numpy = "^1.22.3"
-scikit-rf = { git = "https://github.com/cafeclimber/scikit-rf", branch = "vi", extras = [
-    "vi",
-] }
+python = ">=3.8,<3.12.0"
+numpy = "^1.24.2"
+platformdirs = "^3.0.0"
 pyserial = "^3.5"
-omegaconf = "^2.1.1"
-types-pkg_resources = { version = "^0.1.3", optional = true }
-PyQt5 = "^5.15.6"
-cloudpickle = "^2.0.0"
-quantiphy = "^2.17.0"
-pyqtconsole = "^1.2.2"
-mkdocs-material = "^8.2.15"
-mkdocs-include-markdown-plugin = "^3.5.1"
-mkdocstrings = { version = "^0.19.0", extras = ["python"], optional = true }
-mkdocs-gen-files = { version = "^0.3.5", optional = true }
-mkdocs-literate-nav = { version = "^0.4.1", optional = true }
-mkdocs-section-index = { version = "^0.3.4", optional = true }
-pyinstaller = { version = "^5.3", optional = true }
-qtwidgets = "^0.18"
-pyqtgraph = "^0.12.4"
-vermin = { version = "^1.4.2", optional = true }
-pyinstaller-hooks-contrib = { version = "^2022.10", optional = true }
-tk = { version = "^0.1.0", optional = true }
+pyqtgraph = "^0.13.1"
+quantiphy = "^2.19"
+qtawesome = "^1.2.2"
+pytest-qt = "^4.2.0"
+pyvisa = "^1.13.0"
+pyvisa-py = "^0.6.2"
+psutil = "^5.9.4"
+zeroconf = "^0.47.3"
+qtwidgets = "^1.1"
+PySide6 = "^6.4.2"
+# scikit-rf = "^0.26.0"
+scikit-rf = { git = "https://github.com/cafeclimber/scikit-rf.git", branch = "vi" }
+QtPy = "^2.3.1"
 QDarkStyle = "^3.1"
-aquarel = "^0.0.4"
-QtAwesome = "^1.1.1"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+pytest-cov = "^4.0.0"
+mypy = "^0.981"
+pre-commit = "^2.20.0"
+tox = "^3.25.1"
+pytest-mock = "^3.10.0"
+dummyserial = "^1.0.0"
+ruff = { version = "^0.0.257", optional = true }
 
-[tool.poetry.extras]
-test = ["pytest", "flake8", "flake8-docstrings", "pytest-cov", "vermin"]
-
-dev = [
-    "tox",
-    "black",
-    "isort",
-    "mypy",
-    "pre-commit",
-    "virtualenv",
-    "pip",
-    "twine",
-    "toml",
-    "tk",
-    "bump2version",
-    "types-pkg_resources",
-    "pyinstaller",
-    "pyinstaller-hooks-contrib",
-]
-
-doc = [
-    "mkdocs",
-    "mkdocs-include-markdown-plugin",
-    "mkdocs-material",
-    "mkdocstrings",
-    "mkdocs-material-extension",
-    "mkdocs-autorefs",
-    "mkdocs-gen-files",
-    "mkdocs-literate-nav",
-    "mkdocs-section-index",
-]
-
-[tool.poetry.dev-dependencies]
-PyQt5-stubs = "^5.15.2"
-types-pkg-resources = "^0.1.3"
-black = "^22.3.0"
-
-[tool.black]
-line-length = 90
-skip-string-normalization = true
-target-version = ['py38', 'py39', 'py310']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
-
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 90
-skip_gitignore = true
-# you can skip files as below
-#skip_glob = docs/conf.py
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.4.2"
+mkdocs-material = "^8.5.10"
+mkdocstrings = { extras = ["python"], version = "^0.19.0" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+preview = true
+
+[tool.mypy]
+files = ["pychamber"]
+disallow_untyped_defs = "True"
+disallow_any_unimported = "True"
+no_implicit_optional = "True"
+check_untyped_defs = "True"
+warn_return_any = "True"
+warn_unused_ignores = "True"
+show_error_codes = "True"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+fix = true
+select = [
+  # flake8-2020
+  "YTT",
+  # flake8-bandit
+  "S",
+  # flake8-bugbear
+  "B",
+  # flake8-builtins
+  "A",
+  # flake8-comprehensions
+  "C4",
+  # flake8-debugger
+  "T10",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+  # mccabe
+  "C90",
+  # pycodestyle
+  "E",
+  "W",
+  # pyflakes
+  "F",
+  # pygrep-hooks
+  "PGH",
+  # pyupgrade
+  "UP",
+  # ruff
+  "RUF",
+  # tryceratops
+  "TRY",
+]
+ignore = [
+  # LineTooLong
+  "E501",
+  # DoNotAssignLambda
+  "E731",
+]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S101"]
+"test_*.py" = ["S101"]
+"__init__.py" = ["F401"]
+
+[tool.coverage.report]
+skip_empty = true
+
+[tool.coverage.run]
+branch = true
+source = ["pychamber"]

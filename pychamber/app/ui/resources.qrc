@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/logo.png</file>
+        <file>images/logo_dark_text.png</file>
+        <file>images/logo_light_text.png</file>
+        <file>icons/add_polar.png</file>
+        <file>icons/add_rect.png</file>
+        <file>icons/add_contour.png</file>
+        <file>icons/add_3d.png</file>
+        <file>icons/splitter.png</file>
+        <file>experiment_widget.ui</file>
+        <file>analyzer_widget.ui</file>
+        <file>positioner_widget.ui</file>
+    </qresource>
+</RCC>

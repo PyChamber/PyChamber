@@ -1,34 +1,68 @@
-sources = pychamber
+UIFILES := $(wildcard pychamber/app/ui/*.ui)
+UIPYFILES := $(UIFILES:.ui=.py)
+RESOURCEQRC := pychamber/app/ui/resources.qrc
+RESOURCEPYFILE := pychamber/app/ui/resources_rc.py
 
-.PHONY: test format lint unittest coverage pre-commit clean build
-test: format lint unittest
+.PHONY: install
+install: ## Install the poetry environment and install the pre-commit hooks
+	@echo "🚀 Creating virtual environment using pyenv and poetry"
+	@poetry install	
+	@ poetry run pre-commit install
+	@poetry shell
 
-format:
-	isort $(sources) tests
-	black $(sources) tests
+.PHONY: check
+check: ## Run code quality tools.
+	@echo "🚀 Checking Poetry lock file consistency with 'pyproject.toml': Running poetry lock --check"
+	@poetry lock --check
+	@echo "🚀 Linting code: Running pre-commit"
+	@poetry run pre-commit run -a
+	@echo "🚀 Static type checking: Running mypy"
+	@poetry run mypy
 
-lint:
-	flake8 $(sources) tests
-	mypy $(sources) tests
+.PHONY: test
+test: ## Test the code with pytest
+	@echo "🚀 Testing code: Running pytest"
+	@poetry run pytest --cov --cov-config=pyproject.toml --cov-report=xml
 
-unittest:
-	pytest
+.PHONY: build
+build: clean-build ## Build wheel file using poetry
+	@echo "🚀 Creating wheel file"
+	@poetry build
 
-coverage:
-	pytest --cov=$(sources) --cov-branch --cov-report=term-missing tests
+.PHONY: clean-build
+clean-build: ## clean build artifacts
+	@rm -rf dist
 
-pre-commit:
-	pre-commit run --all-files
+.PHONY: build-ui
+build-ui: $(UIPYFILES) $(RESOURCEPYFILE) ## compile all .ui files
+	@echo "🚀 Compiling UI Files"
+	poetry run pyside6-rcc $(RESOURCEQRC) -o $(RESOURCEPYFILE)
 
-clean:
-	rm -rf .mypy_cache .pytest_cache
-	rm -rf *.egg-info
-	rm -rf .tox dist site
-	rm -rf coverage.xml .coverage
+%.py:%.ui
+	poetry run pyside6-uic --from-imports $< -o $@
 
-build:
-	pyrcc5 resources/resources.qrc -o pychamber/ui/resources_rc.py
-	poetry install
 
-package:
-	pyinstaller PyChamber.spec
+.PHONY: publish
+publish: ## publish a release to pypi.
+	@echo "🚀 Publishing: Dry run."
+	@poetry config pypi-token.pypi $(PYPI_TOKEN)
+	@poetry publish --dry-run
+	@echo "🚀 Publishing."
+	@poetry publish
+
+.PHONY: build-and-publish
+build-and-publish: build publish ## Build and publish.
+
+.PHONY: docs-test
+docs-test: ## Test if documentation can be built without warnings or errors
+	@poetry run mkdocs build -s
+
+.PHONY: docs
+docs: ## Build and serve the documentation
+	@poetry run mkdocs serve
+
+.PHONY: help
+help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

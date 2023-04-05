@@ -1,56 +1,53 @@
-site_name: PyChamber
-site_url: https://hrg-lab.github.io/pychamber
-repo_url: https://github.com/hrg-lab/pychamber
-repo_name: hrg-lab/pychamber
+site_name: pychamber
+repo_url: https://github.com/pychamber/pychamber
+site_url: https://pychamber.github.io/pychamber
+site_description: Run anechoic chamber experiments from Python!
+site_author: Bailey Campbell
+edit_uri: edit/main/docs/
+repo_name: pychamber/pychamber
+
+nav:
+  - Home: index.md
+  - Modules: modules.md
 plugins:
-  - search:
-      lang: en
-  - literate-nav:
-      nav_file: SUMMARY.md
-  - section-index
+  - search
   - mkdocstrings:
-      default_handler: python
-      watch:
-        - pychamber
       handlers:
         python:
-          paths: [pychamber]
-          import:
-            - https://scikit-rf.readthedocs.io/en/latest/objects.inv
-            - https://numpy.org/doc/stable/objects.inv
+            setup_commands:
+                - import sys
+                - sys.path.append('../')
 theme:
   name: material
-  language: en
-  logo: assets/logo.png
+  feature:
+    tabs: true
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: teal
-      accent: purple
+      primary: white
+      accent: deep orange
       toggle:
-        icon: material/weather-sunny
+        icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: black
-      accent: lime
+      accent: deep orange
       toggle:
-        icon: material/weather-night
+        icon: material/brightness-4
         name: Switch to light mode
-  features:
-    - navigation.indexes
-    - navigation.instant
-    - navigation.tabs.sticky
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/pychamber/pychamber
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/pychamber
+
 markdown_extensions:
+  - toc:
+      permalink: true
   - pymdownx.arithmatex:
       generic: true
-  - pymdownx.highlight:
-      linenums: false
-  - pymdownx.superfences
-  - pymdownx.details
-  - admonition
-  - toc:
-      baselevel: 2
-      permalink: true
-      slugify: !!python/name:pymdownx.slugs.uslugify
-  - meta
