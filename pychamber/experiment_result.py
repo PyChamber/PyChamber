@@ -12,6 +12,8 @@ import numpy as np
 import skrf
 from qtpy.QtCore import QObject, QReadWriteLock, Signal
 
+from pychamber import Calibration
+
 
 class InvalidFileError(Exception):
     pass
@@ -41,6 +43,7 @@ class ExperimentResult(QObject):
         }
 
         self._created = datetime.now()
+        self._calibrated = None
 
     def __str__(self) -> str:
         return (
@@ -127,6 +130,14 @@ class ExperimentResult(QObject):
     def params(self) -> dict | None:
         return self._ntwk_set.params
 
+    @property
+    def calibrated(self) -> skrf.NetworkSet | None:
+        return self._calibrated
+
+    @property
+    def raw_data(self) -> skrf.NetworkSet:
+        return self._ntwk_set
+
     def get_theta_cut(self, polarization: str, frequency: float, phi: float):
         f_idx, _ = self.find_nearest(self.f, frequency)
         phi_idx, _ = self.find_nearest(self._phis, phi)
@@ -160,3 +171,21 @@ class ExperimentResult(QObject):
         self.rw_lock.unlock()
 
         self.dataAppended.emit()
+
+    # FIXME: Should be able to iteratively add calibrated values
+    def apply_calibration(self, cal: Calibration) -> None:
+        for pol in self.polarizations:
+            if pol not in self.polarizations:
+                raise ValueError(f"Cannot apply this calibration. It does not contain data for polarization: {pol}.")
+
+        calibrated_result_ntwks = []
+        for cal_ntwk in list(cal._data):
+            try:
+                uncalibrated = self._ntwk_set.sel({"polarization": cal_ntwk.name})
+            except KeyError:
+                continue
+
+            calibrated = uncalibrated / cal_ntwk
+            calibrated_result_ntwks += calibrated.ntwk_set
+
+        self._calibrated = skrf.NetworkSet(calibrated_result_ntwks)

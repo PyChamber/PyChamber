@@ -7,8 +7,6 @@ if TYPE_CHECKING:
 
 import skrf
 
-from pychamber.experiment_result import ExperimentResult
-
 
 class Calibration:
     def __init__(self, networks: list[skrf.Network] | skrf.NetworkSet, notes: list[str] | None = None) -> None:
@@ -34,23 +32,6 @@ class Calibration:
     @property
     def frequency(self) -> skrf.Frequency:
         return self._data[0].frequency
-
-    def apply_to(self, measurements: ExperimentResult) -> ExperimentResult:
-        for pol in measurements.polarizations:
-            if pol not in self.polarizations:
-                raise ValueError(f"Cannot apply this calibration. It does not contain data for polarization: {pol}.")
-
-        calibrated_result_ntwks = []
-        for cal in self._data:
-            try:
-                uncalibrated = measurements.get(polarization=cal.name)
-            except KeyError:
-                continue
-
-            calibrated = uncalibrated / cal
-            calibrated_result_ntwks += calibrated.ntwk_set
-
-        return ExperimentResult(calibrated_result_ntwks)
 
     def save(self, path: str | Path) -> None:
         self._data.write_mdif(self.cal_path, comments=self.notes)
