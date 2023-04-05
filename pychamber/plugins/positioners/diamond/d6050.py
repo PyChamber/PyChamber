@@ -39,8 +39,8 @@ class Diamond_D6050(Postioner):
     _serial_baudrate = 57600
     _serial_timeout = 1
 
-    _phi_steps_per_deg = 800
-    _theta_steps_per_deg = 320
+    _phi_steps_per_deg = 320
+    _theta_steps_per_deg = 800
 
     _x = "X0"
     _y = "Y0"
