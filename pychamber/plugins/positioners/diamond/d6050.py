@@ -151,7 +151,7 @@ class Diamond_D6050(Postioner):
         if math.isclose(angle, 0.0):
             self.jogCompleted.emit()
             return
-        steps = -int(self._phi_steps_per_deg * angle)
+        steps = int(self._phi_steps_per_deg * angle)
         self.move(self._phi_axis, f"{steps:+}")
         self._phi += angle
         CONF["diamond_d6050_phi"] = self._phi
@@ -166,7 +166,7 @@ class Diamond_D6050(Postioner):
         if math.isclose(angle, 0.0):
             self.jogCompleted.emit()
             return
-        steps = int(self._theta_steps_per_deg * angle)
+        steps = -int(self._theta_steps_per_deg * angle)
         self.move(self._theta_axis, f"{steps:+}")
         self._theta += angle
         CONF["diamond_d6050_theta"] = self._theta
