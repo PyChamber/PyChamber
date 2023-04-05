@@ -54,10 +54,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.exit_action.triggered.connect(self.close)
 
-        self.controls_area.analyzer_controls.analyzerConnected.connect(self.on_analyzer_connected)
-        self.controls_area.analyzer_controls.analyzerDisonnected.connect(self.on_analyzer_disconnected)
-        self.controls_area.positioner_controls.positionerConnected.connect(self.on_positioner_connected)
-        self.controls_area.positioner_controls.positionerDisonnected.connect(self.on_positioner_disconnected)
+        self.analyzer_controls.analyzerConnected.connect(self.on_analyzer_connected)
+        self.analyzer_controls.analyzerDisonnected.connect(self.on_analyzer_disconnected)
+        self.positioner_controls.positionerConnected.connect(self.on_positioner_connected)
+        self.positioner_controls.positionerDisonnected.connect(self.on_positioner_disconnected)
 
         self.phi_scan_btn.pressed.connect(self.on_phi_scan_btn_pressed)
         self.theta_scan_btn.pressed.connect(self.on_theta_scan_btn_pressed)
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.log_dialog.show()
 
     def on_analyzer_connected(self):
-        if self.controls_area.positioner_controls.positioner is not None:
+        if self.positioner is not None:
             self.set_scan_btns_enabled(True)
 
         self.set_pol_params()
@@ -125,8 +125,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_scan_btns_enabled(False)
 
     def on_positioner_connected(self):
-        if self.controls_area.analyzer_controls.analyzer is not None:
+        if self.analyzer is not None:
             self.set_scan_btns_enabled(True)
+        self.positioner.jogStarted.connect(lambda: self.set_scan_btns_enabled(False))
+        self.positioner.jogCompleted.connect(lambda: self.set_scan_btns_enabled(True))
 
     def on_positioner_disconnected(self):
         self.set_scan_btns_enabled(False)
@@ -261,8 +263,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return self.controls_area.positioner_controls.positioner
 
     def set_pol_params(self) -> None:
-        params = self.controls_area.analyzer_controls.available_params
-        self.controls_area.experiment_controls.update_params(params)
+        params = self.analyzer_controls.available_params
+        self.experiment_controls.update_params(params)
 
     def run_scan(self, phis: np.ndarray, thetas: np.ndarray, polarizations: list[tuple[str, int, int]]) -> None:
         freq = self.analyzer_controls.frequency
