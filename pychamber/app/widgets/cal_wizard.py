@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from qtpy.QtWidgets import QWidget
 
 import functools
+import itertools
 from pathlib import Path
 
 import numpy as np
@@ -51,6 +52,10 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.loss_plot.getPlotItem().showGrid(True, True)
         self.loss_plot.getPlotItem().addLegend(brush=(240, 240, 240), pen=(120, 120, 120), labelTextColor=(0, 0, 0))
 
+        port_nums = list(range(1, self.analyzer.nports + 1))
+        params = list(itertools.product(port_nums, repeat=2))
+        self.update_params(params)
+
     def connect_signals(self) -> None:
         self.ref_ant_browse_btn.pressed.connect(self.load_ref_antenna)
         self.meas_pol1_btn.pressed.connect(functools.partial(self.measure_polarization, 1))
@@ -58,6 +63,15 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.save_cal_btn.pressed.connect(self.save_cal)
         self.pol1_cb.currentTextChanged.connect(lambda text: self.meas_pol1_btn.setEnabled(text != ""))
         self.pol2_cb.currentTextChanged.connect(lambda text: self.meas_pol2_btn.setEnabled(text != ""))
+
+    def update_params(self, params: list[tuple[int, int]]) -> None:
+        param_strs = [f"S{a}{b}" for a, b in params]
+        self.pol1_cb.clear()
+        self.pol2_cb.clear()
+
+        for param_str, param in zip(param_strs, params, strict=True):
+            self.pol1_cb.addItem(param_str, userData=param)
+            self.pol2_cb.addItem(param_str, userData=param)
 
     def load_ref_antenna(self) -> None:
         fname, _ = QFileDialog.getOpenFileName(self, "Open File")
