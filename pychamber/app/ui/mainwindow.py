@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'mainwindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.3
+## Created by: Qt User Interface Compiler version 6.4.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -105,17 +105,17 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_4.addWidget(self.full_scan_btn)
 
-        self.az_scan_btn = QPushButton(self.experiment_buttons)
-        self.az_scan_btn.setObjectName(u"az_scan_btn")
-        self.az_scan_btn.setEnabled(False)
+        self.phi_scan_btn = QPushButton(self.experiment_buttons)
+        self.phi_scan_btn.setObjectName(u"phi_scan_btn")
+        self.phi_scan_btn.setEnabled(False)
 
-        self.verticalLayout_4.addWidget(self.az_scan_btn)
+        self.verticalLayout_4.addWidget(self.phi_scan_btn)
 
-        self.el_scan_btn = QPushButton(self.experiment_buttons)
-        self.el_scan_btn.setObjectName(u"el_scan_btn")
-        self.el_scan_btn.setEnabled(False)
+        self.theta_scan_btn = QPushButton(self.experiment_buttons)
+        self.theta_scan_btn.setObjectName(u"theta_scan_btn")
+        self.theta_scan_btn.setEnabled(False)
 
-        self.verticalLayout_4.addWidget(self.el_scan_btn)
+        self.verticalLayout_4.addWidget(self.theta_scan_btn)
 
         self.abort_btn = QPushButton(self.experiment_buttons)
         self.abort_btn.setObjectName(u"abort_btn")
@@ -255,8 +255,8 @@ class Ui_MainWindow(object):
         self.view_logs_action.setText(QCoreApplication.translate("MainWindow", u"View Logs", None))
         self.label.setText("")
         self.full_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Full Scan", None))
-        self.az_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Azimuth", None))
-        self.el_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Elevation", None))
+        self.phi_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Phi", None))
+        self.theta_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Theta", None))
         self.abort_btn.setText(QCoreApplication.translate("MainWindow", u"Abort", None))
         self.total_progress_gb.setTitle(QCoreApplication.translate("MainWindow", u"Total Progress", None))
         self.cut_progress_gb.setTitle(QCoreApplication.translate("MainWindow", u"Cut Progress", None))

@@ -12,19 +12,9 @@ import pathlib
 import numpy as np
 import qdarkstyle
 import skrf
-from qtpy.QtCore import QThread, QTimer
+from qtpy.QtCore import QThread
 from qtpy.QtGui import QCloseEvent
-from qtpy.QtWidgets import (
-    QApplication,
-    QDialog,
-    QFileDialog,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QVBoxLayout,
-)
+from qtpy.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
 from pychamber import ExperimentResult
 from pychamber.app.objects import ExperimentWorker
@@ -50,28 +40,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect_signals()
         self.post_visible_setup()
 
-        # TESTING
-        test_dlg = QDialog(self)
-        layout = QVBoxLayout(test_dlg)
-        hlayout = QHBoxLayout()
-        phi_label = QLabel("Phi: ")
-        self.current_phi = QLabel("")
-        theta_label = QLabel("Theta: ")
-        self.current_theta = QLabel("")
-        hlayout.addWidget(phi_label)
-        hlayout.addWidget(self.current_phi)
-        hlayout.addWidget(theta_label)
-        hlayout.addWidget(self.current_theta)
-        self.status_label = QLabel("Not Running")
-        test_scan_btn = QPushButton("Run Test Scan")
-        test_scan_btn.pressed.connect(self.run_test_scan)
-        self.stop_test_btn = QPushButton("Stop Scan")
-        layout.addWidget(self.status_label)
-        layout.addLayout(hlayout)
-        layout.addWidget(test_scan_btn)
-        layout.addWidget(self.stop_test_btn)
-        test_dlg.show()
-
     def post_visible_setup(self):
         self.total_progress_gb.hide()
         self.cut_progress_gb.hide()
@@ -91,8 +59,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.controls_area.positioner_controls.positionerConnected.connect(self.on_positioner_connected)
         self.controls_area.positioner_controls.positionerDisonnected.connect(self.on_positioner_disconnected)
 
-        self.az_scan_btn.pressed.connect(self.on_az_scan_btn_pressed)
-        self.el_scan_btn.pressed.connect(self.on_el_scan_btn_pressed)
+        self.phi_scan_btn.pressed.connect(self.on_phi_scan_btn_pressed)
+        self.theta_scan_btn.pressed.connect(self.on_theta_scan_btn_pressed)
         self.full_scan_btn.pressed.connect(self.on_full_scan_btn_pressed)
         self.abort_btn.pressed.connect(self.on_abort_btn_pressed)
 
@@ -167,28 +135,60 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.thread.isRunning():
             self.thread.requestInterruption()
 
-    def on_az_scan_btn_pressed(self) -> None:
-        start = CONF["az_start"]
-        stop = CONF["az_stop"]
-        step = CONF["az_step"]
-        azs = np.arange(start, stop + step, step)
-        els = np.array([self.positioner.theta])
+    def on_phi_scan_btn_pressed(self) -> None:
+        start = CONF["phi_start"]
+        stop = CONF["phi_stop"]
+        step = CONF["phi_step"]
+        phis = np.arange(start, stop + step, step)
+        thetas = np.array([self.positioner.theta])
 
         self.total_progress_gb.show()
         self.cut_progress_gb.hide()
         self.time_remaining_gb.show()
 
-        self.total_progress_bar.setMaximum(len(azs))
+        self.total_progress_bar.setMaximum(len(phis))
         self.time_remaining_le.setText("00:00:00")
 
         pols = self.experiment_controls.polarizations
-        self.run_scan(azs, els, pols)
+        self.run_scan(phis, thetas, pols)
 
-    def on_el_scan_btn_pressed(self) -> None:
-        pass
+    def on_theta_scan_btn_pressed(self) -> None:
+        start = CONF["theta_start"]
+        stop = CONF["theta_stop"]
+        step = CONF["theta_step"]
+        phis = np.array([self.positioner.phi])
+        thetas = np.arange(start, stop + step, step)
+
+        self.total_progress_gb.show()
+        self.cut_progress_gb.hide()
+        self.time_remaining_gb.show()
+
+        self.total_progress_bar.setMaximum(len(thetas))
+        self.time_remaining_le.setText("00:00:00")
+
+        pols = self.experiment_controls.polarizations
+        self.run_scan(phis, thetas, pols)
 
     def on_full_scan_btn_pressed(self) -> None:
-        pass
+        phi_start = CONF["phi_start"]
+        phi_stop = CONF["phi_stop"]
+        phi_step = CONF["phi_step"]
+        theta_start = CONF["theta_start"]
+        theta_stop = CONF["theta_stop"]
+        theta_step = CONF["theta_step"]
+        phis = np.arange(phi_start, phi_stop + phi_step, phi_step)
+        thetas = np.arange(theta_start, theta_stop + theta_step, theta_step)
+
+        self.total_progress_gb.show()
+        self.cut_progress_gb.show()
+        self.time_remaining_gb.show()
+
+        self.total_progress_bar.setMaximum(len(phis) + len(thetas))
+        self.cut_progress_bar.setMaximum(len(phis))
+        self.time_remaining_le.setText("00:00:00")
+
+        pols = self.experiment_controls.polarizations
+        self.run_scan(phis, thetas, pols)
 
     def on_total_progress_updated(self, iters: int) -> None:
         self.total_progress_bar.setValue(iters)
@@ -217,8 +217,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_scan_btns_enabled(self, state: bool) -> None:
         self.full_scan_btn.setEnabled(state)
-        self.az_scan_btn.setEnabled(state)
-        self.el_scan_btn.setEnabled(state)
+        self.phi_scan_btn.setEnabled(state)
+        self.theta_scan_btn.setEnabled(state)
 
     def set_controls_enabled(self, state: bool) -> None:
         self.experiment_controls.widget.setEnabled(state)
@@ -287,40 +287,3 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.finished.connect(self.cut_progress_gb.hide)
 
         self.thread.start()
-
-    def run_test_scan(self):
-        timer = QTimer(self)
-        timer.setInterval(100)
-        self.stop_test_btn.pressed.connect(timer.stop)
-        self.status_label.setText("Running")
-
-        thetas = np.arange(-180, 15, 15)
-        phis = np.arange(-180, 181, 15)
-        P, T = np.meshgrid(np.deg2rad(phis), np.deg2rad(thetas))
-        ntwk = np.abs(np.sinc(T))
-        index = iter(range(0, len(thetas) * len(phis)))
-        freq = skrf.Frequency(start=1_000_000, stop=3_000_000, npoints=11, unit="Hz")
-
-        self.active_result = ExperimentResult(thetas, phis, ["Horizontal"], freq)
-        self.results.append(self.active_result)
-        self.plot_dock_widget.results = self.active_result
-
-        def append_data():
-            try:
-                i = next(index)
-            except StopIteration:
-                self.status_label.setText("Finished")
-                timer.stop()
-                return
-            t, p = divmod(i, len(phis))
-            self.current_phi.setText(f"{phis[p]:.3g}")
-            self.current_theta.setText(f"{thetas[t]:.3g}")
-            val = skrf.Network()
-            val.frequency = freq.copy()
-            val.params = {"polarization": "Horizontal", "phi": phis[p], "theta": thetas[t]}
-            val.s = np.repeat(ntwk[t, p], 11).reshape((-1, 1, 1))
-
-            self.active_result.append(val)
-
-        timer.timeout.connect(append_data)
-        timer.start()

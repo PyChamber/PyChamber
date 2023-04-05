@@ -137,22 +137,22 @@ border-radius: 4px;
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="az_scan_btn">
+            <widget class="QPushButton" name="phi_scan_btn">
              <property name="enabled">
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Scan Azimuth</string>
+              <string>Scan Phi</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="el_scan_btn">
+            <widget class="QPushButton" name="theta_scan_btn">
              <property name="enabled">
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Scan Elevation</string>
+              <string>Scan Theta</string>
              </property>
             </widget>
            </item>
