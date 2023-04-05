@@ -58,8 +58,8 @@ class CalWizard(QWizard, Ui_CalWizard):
 
     def connect_signals(self) -> None:
         self.ref_ant_browse_btn.pressed.connect(self.load_ref_antenna)
-        self.meas_pol1_btn.pressed.connect(functools.partial(self.measure_polarization, 1))
-        self.meas_pol2_btn.pressed.connect(functools.partial(self.measure_polarization, 2))
+        self.meas_pol1_btn.pressed.connect(functools.partial(self.measure_polarization, 0))
+        self.meas_pol2_btn.pressed.connect(functools.partial(self.measure_polarization, 1))
         self.save_cal_btn.pressed.connect(self.save_cal)
         self.pol1_cb.currentTextChanged.connect(lambda text: self.meas_pol1_btn.setEnabled(text != ""))
         self.pol2_cb.currentTextChanged.connect(lambda text: self.meas_pol2_btn.setEnabled(text != ""))
@@ -93,11 +93,8 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.reference_pg.completeChanged.emit()
 
     def measure_polarization(self, polarization: int) -> None:
-        msmnt_name = "PYCHAMBER_TEMP"
-        msmnt_param = self.pol1_cb.currentText() if polarization == 1 else self.pol2_cb.currentText()
-        self.analyzer.create_measurement(msmnt_name, msmnt_param)
-        ntwk = self.analyzer.get_data(msmnt_name)
-        self.analyzer.delete_measurement(msmnt_name)
+        msmnt_param = self.pol1_cb.currentData() if polarization == 1 else self.pol2_cb.currentData()
+        ntwk = self.analyzer.ch1.get_sdata(*msmnt_param)
 
         loss = self.calc_loss(ntwk)
         pol_name = self.pol1_le.text() if polarization == 1 else self.pol2_le.text()
@@ -105,7 +102,7 @@ class CalWizard(QWizard, Ui_CalWizard):
         loss.name = pol_name
 
         self.losses[polarization] = loss
-        self.loss_plotitems[polarization].setData(loss.f, -1 * loss.s_db.flatten(), pen=self.loss1_pen, name=pol_name)
+        self.loss_plotitems[polarization].setData(loss.f, -1 * loss.s_db.flatten(), name=pol_name)
         self.loss_plot.getPlotItem().legend.removeItem(self.loss_plotitems[polarization])
         self.loss_plot.getPlotItem().legend.addItem(self.loss_plotitems[polarization], pol_name)
 
@@ -132,7 +129,7 @@ class CalWizard(QWizard, Ui_CalWizard):
             # own delimiter
             *(f"{line}@" for line in self.notes_pte.toPlainText().split("\n")),
         ]
-        cal = Calibration([self.pol1_loss, self.pol2_loss], notes=notes)
+        cal = Calibration(self.losses, notes=notes)
         cal.save(self.cal_path)
 
         self.cal_saved = True

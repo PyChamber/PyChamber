@@ -34,7 +34,7 @@ class Calibration:
         return self._data[0].frequency
 
     def save(self, path: str | Path) -> None:
-        self._data.write_mdif(self.cal_path, comments=self.notes)
+        self._data.write_mdif(path, comments=self.notes)
 
     @classmethod
     def load(cls, path: str | Path) -> Calibration:

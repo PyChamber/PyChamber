@@ -152,6 +152,8 @@ class Ui_CalWizard(object):
 
         self.pol1_cb = QComboBox(self.cal_pg)
         self.pol1_cb.setObjectName(u"pol1_cb")
+        self.pol1_cb.setMinimumSize(QSize(75, 0))
+        self.pol1_cb.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
         self.horizontalLayout_2.addWidget(self.pol1_cb)
 
@@ -173,6 +175,8 @@ class Ui_CalWizard(object):
 
         self.pol2_cb = QComboBox(self.cal_pg)
         self.pol2_cb.setObjectName(u"pol2_cb")
+        self.pol2_cb.setMinimumSize(QSize(75, 0))
+        self.pol2_cb.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
         self.horizontalLayout_3.addWidget(self.pol2_cb)
 
