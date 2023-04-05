@@ -12,8 +12,8 @@ import functools
 import numpy as np
 import pyqtgraph as pg
 import qtawesome as qta
-from PySide6.QtCore import QThreadPool
-from PySide6.QtWidgets import QWidget
+from qtpy.QtCore import QThreadPool
+from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
 from pychamber.app.task_runner import TaskRunner
@@ -40,18 +40,10 @@ class RectTraceSettings(QWidget, Ui_RectTraceSettings):
         self._x_param = x_param
         self._y_func = y_func
 
-        if len(self.data) > 0:
-            self.freq_le.setText(self.data.f[0])
-            self.phi_lsb.setValues(self.data.phis)
-            self.theta_lsb.setValues(self.data.thetas)
-            self.pol_cb.addItems(self.data.polarizations)
-
         x_icon = qta.icon("fa5s.times-circle")
         self.remove_rect_trace.setIcon(x_icon)
         self.connect_signals()
-
-        self.x_param = x_param
-        self.y_func = y_func
+        self.on_new_data()
 
     def connect_signals(self):
         self.trace_color_btn.sigColorChanged.connect(self.on_pen_settings_changed)
@@ -112,6 +104,9 @@ class RectTraceSettings(QWidget, Ui_RectTraceSettings):
         if set(current_pols_list) != set(self.data.polarizations):
             self.pol_cb.clear()
             self.pol_cb.addItems(self.data.polarizations)
+
+        self.phi_lsb.setValues(self.data.phis)
+        self.theta_lsb.setValues(self.data.thetas)
 
         x_param = self.x_param
         y_func = self.y_func
@@ -195,16 +190,20 @@ class RectPlotSettings(QWidget, Ui_RectPlotSettings):
 
 
 class RectPlotWidget(PlotWidget):
-    def __init__(self, data: ExperimentResult, parent: QWidget | None = None) -> None:
+    def __init__(self, data: ExperimentResult, title: str, parent: QWidget | None = None) -> None:
         plot = pg.PlotWidget()
         controls = RectPlotSettings()
-        super().__init__(plot=plot, controls=controls, data=data, parent=parent)
+        super().__init__(plot=plot, controls=controls, data=data, title=title, parent=parent)
+
+        self.plot.getPlotItem().setTitle(title)
 
         self._traces = []
         self.connect_signals()
         self.postvisible_setup()
 
     def connect_signals(self) -> None:
+        self.controls.title_le.textChanged.connect(self.titleChanged.emit)
+        self.controls.title_le.textChanged.connect(self.plot.getPlotItem().setTitle)
         self.controls.add_trace_btn.pressed.connect(self.on_add_trace_btn_pressed)
         self.controls.bg_color_btn.sigColorChanged.connect(lambda btn: self.on_bg_color_changed(btn.color()))
         self.controls.x_var_cb.currentIndexChanged.connect(lambda _: self.on_xvar_changed())

@@ -1,7 +1,7 @@
 """A lineedit that only accepts valid frequency strings."""
 
 import quantiphy
-from PySide6.QtWidgets import QLineEdit
+from qtpy.QtWidgets import QLineEdit
 
 from .frequency_validator import FrequencyValidator
 

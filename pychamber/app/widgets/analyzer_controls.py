@@ -10,8 +10,8 @@ import itertools
 from operator import setitem
 
 import pyvisa
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QMessageBox, QWidget
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import QMessageBox, QWidget
 from skrf.vi import vna
 
 from pychamber.app.ui.analyzer_widget import Ui_AnalyzerWidget
@@ -70,9 +70,7 @@ class AnalyzerControls(CollapsibleWidget):
         self.widget.freq_step_le.editingFinished.connect(self.on_freq_step_changed)
         self.widget.freq_n_points_le.editingFinished.connect(self.on_freq_n_points_changed)
         self.widget.if_bw_le.editingFinished.connect(self.on_if_bw_changed)
-        self.widget.avg_toggle.toggled.connect(
-            lambda state: self.on_avg_toggle_changed(state)
-        )  # FIXME: Set spinbox minimum to 1 in designer
+        self.widget.avg_toggle.toggled.connect(lambda state: self.on_avg_toggle_changed(state))
         self.widget.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
 
     def postvisible_setup(self) -> None:
@@ -117,7 +115,7 @@ class AnalyzerControls(CollapsibleWidget):
         self.analyzerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
-        self.analyzer.close()  # FIXME: no close function
+        self.analyzer = None
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
         self.widget.freq_gb.setEnabled(False)

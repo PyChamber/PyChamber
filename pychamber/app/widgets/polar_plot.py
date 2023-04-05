@@ -177,6 +177,9 @@ class PolarPlot(pg.GraphicsView):
         self.autoScale = state
         self.redraw()
 
+    def setTitle(self, text: str) -> None:
+        self.plotItem.setTitle(text)
+
     def auto_scale(self):
         if len(self.plotItems) == 0 or any(len(item.r) == 0 for item in self.plotItems):
             return
@@ -196,15 +199,10 @@ class PolarPlot(pg.GraphicsView):
         self.circleLabel[0].setPos(0, 0)
         self.circleLabel[0].setText(f"{self.r_min:.2g} {self.circle_units}")
         circles = np.arange(self.r_max, self.r_min, -self.r_step)
-        # FIXME: This can be annoying. Changing the value of the range spinboxes
-        # immediately sends the signal while typing which triggers this,
-        # updating the value...endless loop
-        # if len(circles) > 10:
-        #     circles = np.linspace(self.r_min, self.r_max, 10)
-        #     self.r_min = np.amin(circles)
-        #     self.r_max = np.amax(circles)
-        #     self.r_step = circles[1] - circles[0]
-        #     self.rRangeUpdated.emit(self.r_min, self.r_max, self.r_step)
+        if len(circles) > 10:
+            circles = np.linspace(self.r_max, self.r_min, 5)
+            self.r_step = np.abs(circles[1] - circles[0])
+            self.rRangeUpdated.emit(self.r_min, self.r_max, self.r_step)
         if len(self.circleList) > len(circles):
             n = len(circles)
             to_remove = zip(self.circleList[n:], self.circleLabel[n + 1 :], strict=False)
@@ -217,7 +215,7 @@ class PolarPlot(pg.GraphicsView):
             n = len(circles)
             num_to_add = n - len(self.circleList)
             for _ in range(num_to_add):
-                self.add_circle(0)  # Don't care about the position since we're setting it just below
+                self.add_circle(0)
 
         for i, (line, ang_label) in enumerate(zip(self.angleList, self.angleLabel, strict=False)):
             angle = self.angle_ticks[i] + np.deg2rad(self.angle_zero_location)

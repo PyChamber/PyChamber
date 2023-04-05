@@ -13,11 +13,14 @@ def cartesian_to_spherical(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> tuple
 def spherical_to_cartesian(
     r: np.ndarray, theta: np.ndarray, phi: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    theta_rad = np.deg2rad(theta)
-    phi_rad = np.deg2rad(phi)
-
-    x = r * np.sin(phi_rad) * np.cos(theta_rad)
-    y = r * np.sin(phi_rad) * np.sin(theta_rad)
-    z = r * np.cos(phi_rad)
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
 
     return x, y, z
+
+
+def clean_complex_to_db(array: np.ndarray) -> np.ndarray:
+    mag = np.abs(array)
+    clean_array = np.where(mag == 0, 1e-20, mag)
+    return 20 * np.log10(clean_array)

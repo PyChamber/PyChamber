@@ -4,10 +4,9 @@ import math
 from dataclasses import dataclass
 
 import serial
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QWidget
+from qtpy.QtWidgets import QWidget
 
-from pychamber.positioner import PositionerConnectionError, PositionerLimitException
+from pychamber.positioner import PositionerConnectionError, PositionerLimitException, Postioner
 from pychamber.settings import CONF
 
 from .d6050_widget import Ui_D6050Widget
@@ -33,26 +32,21 @@ class Diamond_D6050Widget(QWidget, Ui_D6050Widget):
         self.setupUi(self)
 
 
-class Diamond_D6050(QObject):
-    # TODO: Make these part of the protocol? ABC?
-    jogStarted = Signal()
-    jogCompleted = Signal()
-    jogAborted = Signal()
-
-    manufacturer = "Diamond Engineering"
-    model = "D6050"
+class Diamond_D6050(Postioner):
+    _manufacturer = "Diamond Engineering"
+    _model = "D6050"
 
     _serial_baudrate = 57600
     _serial_timeout = 1
 
-    _az_steps_per_deg = 800
-    _el_steps_per_deg = 320
+    _phi_steps_per_deg = 800
+    _theta_steps_per_deg = 320
 
     _x = "X0"
     _y = "Y0"
 
-    _az_axis = _y
-    _el_axis = _x
+    _phi_axis = _x
+    _theta_axis = _y
 
     _initial_pos_x = 2000000000
     _initial_pos_y = 2000000000
@@ -63,9 +57,9 @@ class Diamond_D6050(QObject):
     _x_stepping_mode = 4
     _x_encoder_mode = "C"
     _x_axis_direction = "-"
-    _x_start_speed = "1000"
-    _x_end_speed = "5000"
-    _x_slope = "8"
+    _x_start_speed = 1000
+    _x_end_speed = 5000
+    _x_slope = 8
 
     _y_run_current = 200
     _y_hold_current = 50
@@ -73,21 +67,21 @@ class Diamond_D6050(QObject):
     _y_stepping_mode = 4
     _y_encoder_mode = "C"
     _y_axis_direction = "-"
-    _y_start_speed = "1000"
-    _y_end_speed = "8000"
-    _y_slope = "8"
+    _y_start_speed = 1000
+    _y_end_speed = 8000
+    _y_slope = 8
 
     _step_delay = 0.1
     _delay_mode = 1
 
-    def __init__(self, serial_port: str, parent: QObject | None = None) -> None:
-        super().__init__(parent)
+    def __init__(self, serial_port: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent=parent)
         self.serial_connection = serial.Serial(
             port=serial_port, baudrate=self._serial_baudrate, timeout=self._serial_timeout
         )
 
-        self._azimuth = float(CONF['diamond_d6050_azimuth'])
-        self._elevation = float(CONF['diamond_d6050_elevation'])
+        self._phi = float(CONF["diamond_d6050_phi"])
+        self._theta = float(CONF["diamond_d6050_theta"])
 
         self.test_connection()
         self.reset()
@@ -96,12 +90,12 @@ class Diamond_D6050(QObject):
         return Diamond_D6050Widget(self, parent)
 
     @property
-    def azimuth(self) -> float:
-        return self._azimuth
+    def phi(self) -> float:
+        return self._phi
 
     @property
-    def elevation(self) -> float:
-        return self._elevation
+    def theta(self) -> float:
+        return self._theta
 
     def test_connection(self) -> None:
         resp = self.write("X0")
@@ -115,18 +109,18 @@ class Diamond_D6050(QObject):
         self.jogAborted.emit()
 
     def zero_all(self) -> None:
-        self._azimuth = 0
-        self._elevation = 0
-        CONF['diamond_d6050_azimuth'] = 0
-        CONF['diamond_d6050_elevation'] = 0
+        self._phi = 0
+        self._theta = 0
+        CONF["diamond_d6050_phi"] = 0
+        CONF["diamond_d6050_theta"] = 0
 
-    def zero_az(self) -> None:
-        self._azimuth = 0
-        CONF['diamond_d6050_azimuth'] = 0
+    def zero_phi(self) -> None:
+        self._phi = 0
+        CONF["diamond_d6050_phi"] = 0
 
-    def zero_el(self) -> None:
-        self._elevation = 0
-        CONF['diamond_d6050_elevation'] = 0
+    def zero_theta(self) -> None:
+        self._theta = 0
+        CONF["diamond_d6050_theta"] = 0
 
     def move(self, axis: str, steps: str) -> None:
         self.write(f"{axis}RN{steps}")
@@ -141,35 +135,34 @@ class Diamond_D6050(QObject):
             elif resp.status == "L":
                 raise PositionerLimitException("Max limit")
 
+    def move_phi_absolute(self, phi: float) -> None:
+        diff = phi - self.phi
+        self.move_phi_relative(diff)
 
-    def move_az_absolute(self, azimuth: float) -> None:
-        diff = azimuth - self.azimuth
-        self.move_az_relative(diff)
-
-    def move_az_relative(self, angle: float) -> None:
+    def move_phi_relative(self, angle: float) -> None:
         self.jogStarted.emit()
         if math.isclose(angle, 0.0):
             self.jogCompleted.emit()
             return
-        steps = -int(self._az_steps_per_deg * angle)
-        self.move(self._az_axis, f"{steps:+}")
-        self._azimuth += angle
-        CONF['diamond_d6050_azimuth'] = self._azimuth
+        steps = -int(self._phi_steps_per_deg * angle)
+        self.move(self._phi_axis, f"{steps:+}")
+        self._phi += angle
+        CONF["diamond_d6050_phi"] = self._phi
         self.jogCompleted.emit()
 
-    def move_el_absolute(self, elevation: float) -> None:
-        diff = elevation - self.elevation
-        self.move_el_relative(diff)
+    def move_theta_absolute(self, theta: float) -> None:
+        diff = theta - self.theta
+        self.move_theta_relative(diff)
 
-    def move_el_relative(self, angle: float) -> None:
+    def move_theta_relative(self, angle: float) -> None:
         self.jogStarted.emit()
         if math.isclose(angle, 0.0):
             self.jogCompleted.emit()
             return
-        steps = int(self._el_steps_per_deg * angle)
-        self.move(self._el_axis, f"{steps:+}")
-        self._elevation += angle
-        CONF['diamond_d6050_elevation'] = self._elevation
+        steps = int(self._theta_steps_per_deg * angle)
+        self.move(self._theta_axis, f"{steps:+}")
+        self._theta += angle
+        CONF["diamond_d6050_theta"] = self._theta
         self.jogCompleted.emit()
 
     def write(self, cmd: str) -> BoardResponse | None:
@@ -179,7 +172,6 @@ class Diamond_D6050(QObject):
         return self.check_response()
 
     def abort_all(self) -> None:
-        print("ABORTING")
         self.write("X0*")
         self.write("Y0*")
         self.write("Z0*")
@@ -249,7 +241,7 @@ class Diamond_D6050(QObject):
     def set_stepping_mode(self, axis: str, mode: int) -> None:
         self.write(f"{axis}H{mode}")
 
-    def set_encoder_mode(self, axis: str, mode: int) -> None:
+    def set_encoder_mode(self, axis: str, mode: str) -> None:
         self.write(f"{axis}qm{mode}")
 
     def set_axis_direction(self, axis: str, direction: str) -> None:

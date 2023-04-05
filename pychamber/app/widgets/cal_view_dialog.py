@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+    from qtpy.QtWidgets import QWidget
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QTableWidgetItem
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QDialog, QTableWidgetItem
 
 from pychamber.app.ui.cal_view_dlg import Ui_CalViewDialog
 from pychamber.calibration import Calibration

@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QLayout
+    from qtpy.QtWidgets import QLayout
 
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from .collapsible_section import CollapsibleSection
 

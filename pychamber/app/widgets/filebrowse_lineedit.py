@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+    from qtpy.QtWidgets import QWidget
 
-from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QFileDialog, QLineEdit
+from qtpy.QtGui import QMouseEvent
+from qtpy.QtWidgets import QFileDialog, QLineEdit
 
 
 class FileBrowseLineEdit(QLineEdit):

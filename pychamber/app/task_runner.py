@@ -1,7 +1,7 @@
 import sys
 import traceback
 
-from PySide6.QtCore import QObject, QRunnable, Signal
+from qtpy.QtCore import QObject, QRunnable, Signal
 
 # https://www.pythonguis.com/tutorials/multithreading-pyqt6-applications-qthreadpool/
 

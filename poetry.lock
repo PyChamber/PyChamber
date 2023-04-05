@@ -495,7 +495,7 @@ markdown = ">=3.2"
 
 [[package]]
 name = "pyqtgraph"
-version = "0.13.1"
+version = "0.13.2"
 description = "Scientific Graphics and GUI Library for Python"
 category = "main"
 optional = false
@@ -628,7 +628,7 @@ six = ">=1.5"
 
 [[package]]
 name = "pytz"
-version = "2022.7.1"
+version = "2023.3"
 description = "World timezone definitions, modern and historical"
 category = "main"
 optional = false
@@ -685,6 +685,22 @@ python-versions = ">=3.6"
 pyyaml = "*"
 
 [[package]]
+name = "QDarkStyle"
+version = "3.1"
+description = "The most complete dark/light style sheet for C++/Python and Qt applications"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+qtpy = ">=1.9"
+
+[package.extras]
+develop = ["qtsass", "watchdog"]
+docs = ["sphinx", "sphinx-rtd-theme"]
+example = ["pyqt5", "pyside2"]
+
+[[package]]
 name = "qtawesome"
 version = "1.2.2"
 description = "FontAwesome icons in PyQt and PySide applications"
@@ -696,8 +712,8 @@ python-versions = ">=3.7"
 qtpy = "*"
 
 [[package]]
-name = "qtpy"
-version = "2.3.0"
+name = "QtPy"
+version = "2.3.1"
 description = "Provides an abstraction layer on top of the various Qt bindings (PyQt5/6 and PySide2/6)."
 category = "main"
 optional = false
@@ -761,6 +777,7 @@ description = "Object Oriented Microwave Engineering"
 category = "main"
 optional = false
 python-versions = ">=3.7"
+develop = false
 
 [package.dependencies]
 numpy = ">=1.21,<2.0"
@@ -772,9 +789,15 @@ docs = ["ipykernel (>=6.15)", "ipython (>=7)", "ipywidgets (>=8.0.2)", "jupyter-
 netw = ["networkx (>=2.0,<3.0)"]
 plot = ["matplotlib (>=3.5,<4.0)"]
 qtapps = ["pyqt5 (>=5.15,<6.0)", "pyqtgraph (>=0.13,<1.0)", "qtpy (>=2.2,<3.0)"]
-test = ["coverage (>=6.0,<7.0)", "flake8 (>=5.0,<6.0)", "nbval (>=0.9,<1.0)", "pytest (>=7.0,<8.0)", "pytest-cov (>=4.0,<5.0)", "tox (>=3.26.0)"]
-visa = ["PyVISA (>=1.12,<2.0)"]
+test = ["coverage (>=6.0,<7.0)", "flake8 (>=5.0,<6.0)", "nbval (>=0.9,<1.0)", "pytest (>=7.0,<8.0)", "pytest-cov (>=4.0,<5.0)", "pytest-mock (>=3.10,<4.0)", "tox (>=3.26.0)"]
+visa = ["PyVISA (>=1.12,<2.0)", "pyvisa-py (>=0.6,<1.0)"]
 xlsx = ["openpyxl (>=3.0,<4.0)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/cafeclimber/scikit-rf.git"
+reference = "vi"
+resolved_reference = "0b1fc090acb6336a3bd619839498a7be15da3a14"
 
 [[package]]
 name = "scipy"
@@ -927,7 +950,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.12.0"
-content-hash = "799d31267f0572bbc50a49772c21a48312946cb9c9c549f06d7de5ae89d8fc72"
+content-hash = "9176ac187a03f19c5e02e71021cb27b2aa5fa5ebd6e6ec02107b94eb1b113160"
 
 [metadata.files]
 async-timeout = [
@@ -1366,8 +1389,8 @@ pymdown-extensions = [
     {file = "pymdown_extensions-9.9.2.tar.gz", hash = "sha256:ebb33069bafcb64d5f5988043331d4ea4929325dc678a6bcf247ddfcf96499f8"},
 ]
 pyqtgraph = [
-    {file = "pyqtgraph-0.13.1-py3-none-any.whl", hash = "sha256:906b2784c213890bf2a1df43e3675eff1921ee894ab9673468747fb993ea2d6c"},
-    {file = "pyqtgraph-0.13.1.tar.gz", hash = "sha256:698f87f59db965727b33602a0b29058de21291d8b143dea878b50578aec0dc08"},
+    {file = "pyqtgraph-0.13.2-py3-none-any.whl", hash = "sha256:078afbd9528164f3dd524f68cbf56618055b851384cfacc675ac189d919544a8"},
+    {file = "pyqtgraph-0.13.2.tar.gz", hash = "sha256:751790759adb3baa03a03ea5785e4c874c962a6107500d66811842f2dda6d28d"},
 ]
 pyserial = [
     {file = "pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0"},
@@ -1418,8 +1441,8 @@ python-dateutil = [
     {file = "python_dateutil-2.8.2-py2.py3-none-any.whl", hash = "sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9"},
 ]
 pytz = [
-    {file = "pytz-2022.7.1-py2.py3-none-any.whl", hash = "sha256:78f4f37d8198e0627c5f1143240bb0206b8691d8d7ac6d78fee88b78733f8c4a"},
-    {file = "pytz-2022.7.1.tar.gz", hash = "sha256:01a0681c4b9684a28304615eba55d1ab31ae00bf68ec157ec3708a8182dbbcd0"},
+    {file = "pytz-2023.3-py2.py3-none-any.whl", hash = "sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb"},
+    {file = "pytz-2023.3.tar.gz", hash = "sha256:1d8ce29db189191fb55338ee6d0387d82ab59f3d00eac103412d64e0ebd0c588"},
 ]
 pyvisa = [
     {file = "PyVISA-1.13.0-py3-none-any.whl", hash = "sha256:805c55a514b1993dd1e0e2b18377f36fb3db6c2cd4953886144307d0c80795ce"},
@@ -1468,13 +1491,17 @@ pyyaml-env-tag = [
     {file = "pyyaml_env_tag-0.1-py3-none-any.whl", hash = "sha256:af31106dec8a4d68c60207c1886031cbf839b68aa7abccdb19868200532c2069"},
     {file = "pyyaml_env_tag-0.1.tar.gz", hash = "sha256:70092675bda14fdec33b31ba77e7543de9ddc88f2e5b99160396572d11525bdb"},
 ]
+QDarkStyle = [
+    {file = "QDarkStyle-3.1-py2.py3-none-any.whl", hash = "sha256:679a38fcd040de9fac8b8cae483310302fdb12c8d912845249c41dc54974a9b2"},
+    {file = "QDarkStyle-3.1.tar.gz", hash = "sha256:600584d625343e0ddd128de08393d3c35637786a49827f174d29aa7caa8279c1"},
+]
 qtawesome = [
     {file = "QtAwesome-1.2.2-py3-none-any.whl", hash = "sha256:c575789e73b35be8f1a8c1474a650dff1afff37b41c1d8878c0e24215bba6590"},
     {file = "QtAwesome-1.2.2.tar.gz", hash = "sha256:97b6c66456592195494993d60ac82cc6b85fe49bfd1f12973eb2ad1fee20fa3f"},
 ]
-qtpy = [
-    {file = "QtPy-2.3.0-py3-none-any.whl", hash = "sha256:8d6d544fc20facd27360ea189592e6135c614785f0dec0b4f083289de6beb408"},
-    {file = "QtPy-2.3.0.tar.gz", hash = "sha256:0603c9c83ccc035a4717a12908bf6bc6cb22509827ea2ec0e94c2da7c9ed57c5"},
+QtPy = [
+    {file = "QtPy-2.3.1-py3-none-any.whl", hash = "sha256:5193d20e0b16e4d9d3bc2c642d04d9f4e2c892590bd1b9c92bfe38a95d5a2e12"},
+    {file = "QtPy-2.3.1.tar.gz", hash = "sha256:a8c74982d6d172ce124d80cafd39653df78989683f760f2281ba91a6e7b9de8b"},
 ]
 qtwidgets = [
     {file = "qtwidgets-1.1.tar.gz", hash = "sha256:97b8373844788a22c836f5a16a1e60c9ef1469bfc4aedc09ae786fc9aa0b49df"},
@@ -1506,10 +1533,7 @@ ruff = [
     {file = "ruff-0.0.257-py3-none-win_arm64.whl", hash = "sha256:352f1bdb9b433b3b389aee512ffb0b82226ae1e25b3d92e4eaf0e7be6b1b6f6a"},
     {file = "ruff-0.0.257.tar.gz", hash = "sha256:fedfd06a37ddc17449203c3e38fc83fb68de7f20b5daa0ee4e60d3599b38bab0"},
 ]
-scikit-rf = [
-    {file = "scikit-rf-0.25.0.tar.gz", hash = "sha256:69e887b5845e4db68a95202bc327efbf2180714a18fc6758b2752989f8d24a77"},
-    {file = "scikit_rf-0.25.0-py3-none-any.whl", hash = "sha256:29f85b6e656f34942aa60eb071128ab90ea85e694885bb3561c3c6e927281565"},
-]
+scikit-rf = []
 scipy = [
     {file = "scipy-1.10.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e7354fd7527a4b0377ce55f286805b34e8c54b91be865bac273f527e1b839019"},
     {file = "scipy-1.10.1-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:4b3f429188c66603a1a5c549fb414e4d3bdc2a24792e061ffbd607d3d75fd84e"},

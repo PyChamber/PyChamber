@@ -33,7 +33,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0" columnstretch="0,1,1">
       <item row="0" column="2">
-       <widget class="QLabel" name="el_label">
+       <widget class="QLabel" name="theta_label">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -41,7 +41,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Elevation</string>
+         <string>Theta</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -65,7 +65,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QDoubleSpinBox" name="az_stop_dsb">
+       <widget class="QDoubleSpinBox" name="phi_stop_dsb">
         <property name="minimum">
          <double>-180.000000000000000</double>
         </property>
@@ -75,7 +75,7 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QDoubleSpinBox" name="el_start_dsb">
+       <widget class="QDoubleSpinBox" name="theta_start_dsb">
         <property name="minimum">
          <double>-180.000000000000000</double>
         </property>
@@ -85,7 +85,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QDoubleSpinBox" name="az_step_dsb">
+       <widget class="QDoubleSpinBox" name="phi_step_dsb">
         <property name="minimum">
          <double>-180.000000000000000</double>
         </property>
@@ -111,7 +111,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="az_label">
+       <widget class="QLabel" name="phi_label">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -119,7 +119,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Azimuth</string>
+         <string>Phi</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -127,7 +127,7 @@
        </widget>
       </item>
       <item row="2" column="2">
-       <widget class="QDoubleSpinBox" name="el_stop_dsb">
+       <widget class="QDoubleSpinBox" name="theta_stop_dsb">
         <property name="minimum">
          <double>-180.000000000000000</double>
         </property>
@@ -137,7 +137,7 @@
        </widget>
       </item>
       <item row="3" column="2">
-       <widget class="QDoubleSpinBox" name="el_step_dsb">
+       <widget class="QDoubleSpinBox" name="theta_step_dsb">
         <property name="minimum">
          <double>-180.000000000000000</double>
         </property>
@@ -163,7 +163,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QDoubleSpinBox" name="az_start_dsb">
+       <widget class="QDoubleSpinBox" name="phi_start_dsb">
         <property name="minimum">
          <double>-180.000000000000000</double>
         </property>

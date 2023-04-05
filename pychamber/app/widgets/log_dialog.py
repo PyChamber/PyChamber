@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget
+from qtpy.QtWidgets import QWidget
 
 from pychamber.app.logger import LOG
 from pychamber.app.ui.log_dialog import Ui_LogDialog

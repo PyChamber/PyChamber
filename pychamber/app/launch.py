@@ -1,12 +1,16 @@
 import logging
+import os
 import sys
-
-from pychamber.api import PluginManager
-from pychamber.app import app
-from pychamber.app.logger import LOG
 
 
 def main() -> None:
+    os.environ["QT_API"] = "pyside6"
+    os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
+
+    from pychamber.api import PluginManager
+    from pychamber.app import app
+    from pychamber.app.logger import LOG
+
     manager = PluginManager()
     manager.load_plugins()
 

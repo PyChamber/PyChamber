@@ -78,13 +78,13 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
-         <widget class="QGroupBox" name="az_gb">
+         <widget class="QGroupBox" name="phi_gb">
           <property name="title">
-           <string>Azimuth</string>
+           <string>Phi</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout">
            <item>
-            <widget class="QLCDNumber" name="current_az_lcd_num">
+            <widget class="QLCDNumber" name="current_phi_lcd_num">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -114,14 +114,14 @@
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
              <item row="0" column="0">
-              <widget class="QLabel" name="az_step_label">
+              <widget class="QLabel" name="phi_step_label">
                <property name="text">
                 <string>Step</string>
                </property>
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QDoubleSpinBox" name="az_step_dsb">
+              <widget class="QDoubleSpinBox" name="phi_step_dsb">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -146,7 +146,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <item>
-              <widget class="QPushButton" name="az_left_btn">
+              <widget class="QPushButton" name="phi_minus_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -171,7 +171,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="az_zero_btn">
+              <widget class="QPushButton" name="phi_zero_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -196,7 +196,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="az_right_btn">
+              <widget class="QPushButton" name="phi_plus_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -219,7 +219,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
-              <widget class="QLabel" name="az_jog_to_label">
+              <widget class="QLabel" name="phi_jog_to_label">
                <property name="text">
                 <string>Jog To</string>
                </property>
@@ -229,7 +229,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QDoubleSpinBox" name="az_jog_to_dsb">
+              <widget class="QDoubleSpinBox" name="phi_jog_to_dsb">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -239,7 +239,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="az_jog_to_btn">
+              <widget class="QPushButton" name="phi_jog_to_btn">
                <property name="text">
                 <string/>
                </property>
@@ -257,13 +257,13 @@
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="el_gb">
+         <widget class="QGroupBox" name="theta_gb">
           <property name="title">
-           <string>Elevation</string>
+           <string>Theta</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
-            <widget class="QLCDNumber" name="current_el_lcd_num">
+            <widget class="QLCDNumber" name="current_theta_lcd_num">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -293,14 +293,14 @@
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
              <item row="0" column="0">
-              <widget class="QLabel" name="el_step_label">
+              <widget class="QLabel" name="theta_step_label">
                <property name="text">
                 <string>Step</string>
                </property>
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QDoubleSpinBox" name="el_step_dsb">
+              <widget class="QDoubleSpinBox" name="theta_step_dsb">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -325,7 +325,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <item>
-              <widget class="QPushButton" name="el_ccw_btn">
+              <widget class="QPushButton" name="theta_minus_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -344,7 +344,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="el_zero_btn">
+              <widget class="QPushButton" name="theta_zero_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -363,7 +363,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="el_cw_btn">
+              <widget class="QPushButton" name="theta_plus_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                  <horstretch>0</horstretch>
@@ -386,7 +386,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_5">
              <item>
-              <widget class="QLabel" name="el_jog_to_label">
+              <widget class="QLabel" name="theta_jog_to_label">
                <property name="text">
                 <string>Jog To</string>
                </property>
@@ -396,7 +396,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QDoubleSpinBox" name="el_jog_to_dsb">
+              <widget class="QDoubleSpinBox" name="theta_jog_to_dsb">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -406,7 +406,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="el_jog_to_btn">
+              <widget class="QPushButton" name="theta_jog_to_btn">
                <property name="text">
                 <string/>
                </property>

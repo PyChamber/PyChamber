@@ -199,6 +199,12 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>100</number>
+       </property>
       </widget>
      </item>
      <item>
@@ -220,14 +226,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>CategoryComboBox</class>
-   <extends>QComboBox</extends>
-   <header>..widgets.category_combobox</header>
-  </customwidget>
-  <customwidget>
    <class>FrequencyLineEdit</class>
    <extends>QLineEdit</extends>
    <header>..widgets.frequency_lineedit</header>
+  </customwidget>
+  <customwidget>
+   <class>CategoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>..widgets.category_combobox</header>
   </customwidget>
   <customwidget>
    <class>Toggle</class>

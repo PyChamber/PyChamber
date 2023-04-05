@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QLayout
+    from qtpy.QtWidgets import QLayout
 
-from PySide6.QtCore import QAbstractAnimation, QParallelAnimationGroup, QPropertyAnimation, Qt
-from PySide6.QtWidgets import QFrame, QGridLayout, QScrollArea, QSizePolicy, QToolButton, QWidget
+from qtpy.QtCore import QAbstractAnimation, QParallelAnimationGroup, QPropertyAnimation, Qt
+from qtpy.QtWidgets import QFrame, QGridLayout, QScrollArea, QSizePolicy, QToolButton, QWidget
 
 
 class CollapsibleSection(QWidget):

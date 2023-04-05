@@ -6,9 +6,7 @@ authors = ["Bailey Campbell <fbaileycampbell1990@gmail.com>"]
 repository = "https://github.com/pychamber/pychamber"
 documentation = "https://pychamber.github.io/pychamber/"
 readme = "README.md"
-packages = [
-  {include = "pychamber"}
-]
+packages = [{ include = "pychamber" }]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12.0"
@@ -25,6 +23,10 @@ psutil = "^5.9.4"
 zeroconf = "^0.47.3"
 qtwidgets = "^1.1"
 PySide6 = "^6.4.2"
+# scikit-rf = "^0.26.0"
+scikit-rf = { git = "https://github.com/cafeclimber/scikit-rf.git", branch = "vi" }
+QtPy = "^2.3.1"
+QDarkStyle = "^3.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -34,12 +36,12 @@ pre-commit = "^2.20.0"
 tox = "^3.25.1"
 pytest-mock = "^3.10.0"
 dummyserial = "^1.0.0"
-ruff = {version = "^0.0.257", optional = true}
+ruff = { version = "^0.0.257", optional = true }
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"
 mkdocs-material = "^8.5.10"
-mkdocstrings = {extras = ["python"], version = "^0.19.0"}
+mkdocstrings = { extras = ["python"], version = "^0.19.0" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -65,42 +67,43 @@ target-version = "py311"
 line-length = 120
 fix = true
 select = [
-    # flake8-2020
-    "YTT",
-    # flake8-bandit
-    "S",
-    # flake8-bugbear
-    "B",
-    # flake8-builtins
-    "A",
-    # flake8-comprehensions
-    "C4",
-    # flake8-debugger
-    "T10",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
-    # mccabe
-    "C90",
-    # pycodestyle
-    "E", "W",
-    # pyflakes
-    "F",
-    # pygrep-hooks
-    "PGH",
-    # pyupgrade
-    "UP",
-    # ruff
-    "RUF",
-    # tryceratops
-    "TRY",
+  # flake8-2020
+  "YTT",
+  # flake8-bandit
+  "S",
+  # flake8-bugbear
+  "B",
+  # flake8-builtins
+  "A",
+  # flake8-comprehensions
+  "C4",
+  # flake8-debugger
+  "T10",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+  # mccabe
+  "C90",
+  # pycodestyle
+  "E",
+  "W",
+  # pyflakes
+  "F",
+  # pygrep-hooks
+  "PGH",
+  # pyupgrade
+  "UP",
+  # ruff
+  "RUF",
+  # tryceratops
+  "TRY",
 ]
 ignore = [
-    # LineTooLong
-    "E501",
-    # DoNotAssignLambda
-    "E731",
+  # LineTooLong
+  "E501",
+  # DoNotAssignLambda
+  "E731",
 ]
 
 [tool.ruff.per-file-ignores]
@@ -114,5 +117,3 @@ skip_empty = true
 [tool.coverage.run]
 branch = true
 source = ["pychamber"]
-
-

@@ -1,15 +1,17 @@
 import qtawesome as qta
 from pyqtgraph.dockarea import DockLabel
+from qtpy.QtCore import QPointF
 
 
 class CustomDockLabel(DockLabel):
-    def __init__(self, text, closable=True, fontSize="12px", **kwargs):
-        self._bg = kwargs.pop("background_color", "#66c")
-        self._bg_dim = kwargs.pop("background_color_inactive", "#44a")
+    def __init__(self, text, closable=True, fontSize="16px", **kwargs):
+        self._bg = kwargs.pop("background_color", "#057dce")
+        self._bg_dim = kwargs.pop("background_color_inactive", "#9da9b5")
         self._fg = kwargs.pop("font_color", "#fff")
-        self._fg_dim = kwargs.pop("font_color_inactive", "#aaa")
+        self._fg_dim = kwargs.pop("font_color_inactive", "#54687a")
         self._border = kwargs.pop("border_color", "#55b")
         self._border_dim = kwargs.pop("border_color_inactive", "#339")
+        self.pressPos = QPointF(0, 0)  # Avoids some bug about not having a pressPos attr
 
         super().__init__(text, closable, fontSize)
 
@@ -62,6 +64,7 @@ class CustomDockLabel(DockLabel):
                 border-bottom: 2px solid {};
                 padding-left: 3px;
                 padding-right: 3px;
+                padding-bottom: 0px;
                 font-size: {};
             }}""".format(
                 bg,

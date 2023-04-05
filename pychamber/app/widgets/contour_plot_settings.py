@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QThreadPool
-from PySide6.QtWidgets import QWidget
+from qtpy.QtCore import QThreadPool
+from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
 from pychamber.app.task_runner import TaskRunner
@@ -62,15 +62,19 @@ class ContourPlotSettings(QWidget, Ui_ContourPlotSettings):
 
 
 class ContourPlotWidget(PlotWidget):
-    def __init__(self, data: ExperimentResult, parent: QWidget | None = None) -> None:
+    def __init__(self, data: ExperimentResult, title: str, parent: QWidget | None = None) -> None:
         controls = ContourPlotSettings()
         plot = ContourPlot(cmap=controls.cmap_cb.currentText(), draw_isos=controls.isolines_checkbox.isChecked())
-        super().__init__(plot=plot, controls=controls, data=data, parent=parent)
+        super().__init__(plot=plot, controls=controls, data=data, title=title, parent=parent)
+
+        self.plot.setTitle(title)
 
         self.connect_signals()
         self.postvisible_setup()
 
     def connect_signals(self) -> None:
+        self.controls.title_le.textChanged.connect(self.titleChanged.emit)
+        self.controls.title_le.textChanged.connect(self.plot.setTitle)
         self.controls.min_sb.valueChanged.connect(self.plot.setZMin)
         self.controls.max_sb.valueChanged.connect(self.plot.setZMax)
         self.controls.autoscale_checkbox.toggled.connect(lambda state: self.plot.setAutoScale(state))
@@ -110,7 +114,7 @@ class ContourPlotWidget(PlotWidget):
         data.rw_lock.lockForRead()
         x_data = data.phis
         y_data = data.thetas
-        vals = data.get_2d_cut(pol, f)
+        vals = data.get_3d_data(pol, f)
         data.rw_lock.unlock()
 
         z_data = z_func(vals)

@@ -51,6 +51,9 @@ class ContourPlot(pg.PlotWidget):
         self.autoScale = state
         self.redraw()
 
+    def setTitle(self, text: str) -> None:
+        self.getPlotItem().setTitle(text)
+
     def setZMin(self, z):
         self.z_min = z
         self.redraw()
@@ -117,8 +120,8 @@ class ContourPlot(pg.PlotWidget):
             self.draw_isos()
 
         if self.autoScale:
-            self.z_min = np.clip(np.amin(z), -100, None)
-            self.z_max = np.amax(z)
+            self.z_min = np.clip(np.nanmin(z), -100, None)
+            self.z_max = np.nanmax(z)
             self.newZBounds.emit(self.z_min, self.z_max)
 
         self.img_item.setImage(z)

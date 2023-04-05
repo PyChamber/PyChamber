@@ -4,17 +4,9 @@ Taken from https://github.com/pythonguis/python-qtwidgets/blob/a610d6cd20ad946f9
 Adapted for use with PySide6
 """
 
-from PySide6.QtCore import (
-    Property,
-    QPoint,
-    QPointF,
-    QRectF,
-    QSize,
-    Qt,
-    Slot,
-)
-from PySide6.QtGui import QBrush, QColor, QPainter, QPaintEvent, QPen
-from PySide6.QtWidgets import QCheckBox
+from qtpy.QtCore import Property, QPoint, QPointF, QRectF, QSize, Qt, Slot
+from qtpy.QtGui import QBrush, QColor, QPainter, QPaintEvent, QPen
+from qtpy.QtWidgets import QCheckBox
 
 
 class Toggle(QCheckBox):

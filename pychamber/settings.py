@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, QSettings, Signal
+from qtpy.QtCore import QObject, QSettings, Signal
 
 
 class SettingsManager(QObject):

@@ -1,5 +1,5 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from .analyzer_controls import AnalyzerControls
 from .experiment_controls import ExperimentControls

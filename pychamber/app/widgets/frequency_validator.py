@@ -1,7 +1,7 @@
 """Defines a frequency validator for use in LineEdits."""
 
 import quantiphy
-from PySide6.QtGui import QValidator
+from qtpy.QtGui import QValidator
 
 
 class FrequencyValidator(QValidator):

@@ -56,7 +56,7 @@
   <action name="add_rect_action">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/icons/add_cartesian.png</normaloff>:/icons/add_cartesian.png</iconset>
+     <normaloff>:/icons/add_rect.png</normaloff>:/icons/add_rect.png</iconset>
    </property>
    <property name="text">
     <string>Rectangular Plot</string>
@@ -66,6 +66,10 @@
    </property>
   </action>
   <action name="add_contour_action">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/add_contour.png</normaloff>:/icons/add_contour.png</iconset>
+   </property>
    <property name="text">
     <string>Contour Plot</string>
    </property>
@@ -74,6 +78,10 @@
    </property>
   </action>
   <action name="add_three_d_action">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/add_3d.png</normaloff>:/icons/add_3d.png</iconset>
+   </property>
    <property name="text">
     <string>Add 3D Plot</string>
    </property>

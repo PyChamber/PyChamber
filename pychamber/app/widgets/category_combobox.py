@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QModelIndex, QPersistentModelIndex
-    from PySide6.QtGui import QPainter
-    from PySide6.QtWidgets import QStyleOptionViewItem, QWidget
+    from qtpy.QtCore import QModelIndex, QPersistentModelIndex
+    from qtpy.QtGui import QPainter
+    from qtpy.QtWidgets import QStyleOptionViewItem, QWidget
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QStandardItem
-from PySide6.QtWidgets import QComboBox, QItemDelegate, QStyle
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QFont, QStandardItem
+from qtpy.QtWidgets import QComboBox, QItemDelegate, QStyle
 
 
 class CategoryComboBoxDelegate(QItemDelegate):

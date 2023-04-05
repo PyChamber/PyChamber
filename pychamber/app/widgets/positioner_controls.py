@@ -2,12 +2,13 @@ import functools
 from operator import setitem
 
 import qtawesome as qta
-from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QMessageBox, QWidget
+from qtpy.QtCore import QThread, Signal
+from qtpy.QtGui import QCloseEvent
+from qtpy.QtWidgets import QMessageBox, QWidget
 from serial.tools import list_ports
 
 from pychamber import positioner
+from pychamber.app.logger import LOG
 from pychamber.app.ui.positioner_widget import Ui_PositionerWidget
 from pychamber.settings import CONF
 
@@ -29,7 +30,7 @@ class PositionerControls(CollapsibleWidget):
 
         self.jog_thread = QThread(None)
         self.positioner: positioner.Postioner | None = None
-        self.enable_on_jog_completed = False
+        self.enable_on_jog_completed = True
 
         self.setupUi()
         self.postvisible_setup()
@@ -38,17 +39,15 @@ class PositionerControls(CollapsibleWidget):
     def setupUi(self) -> None:
         self.widget = PositionerWidget(self)
 
-        left_icon = qta.icon("fa5s.arrow-left")
-        self.widget.az_left_btn.setIcon(left_icon)
-        right_icon = qta.icon("fa5s.arrow-right")
-        self.widget.az_right_btn.setIcon(right_icon)
-        ccw_icon = qta.icon("ph.arrow-counter-clockwise-bold")
-        self.widget.el_ccw_btn.setIcon(ccw_icon)
-        cw_icon = qta.icon("ph.arrow-clockwise-bold")
-        self.widget.el_cw_btn.setIcon(cw_icon)
+        minus_icon = qta.icon("fa5s.minus")
+        plus_icon = qta.icon("fa5s.plus")
         check_icon = qta.icon("fa5s.check")
-        self.widget.az_jog_to_btn.setIcon(check_icon)
-        self.widget.el_jog_to_btn.setIcon(check_icon)
+        self.widget.phi_minus_btn.setIcon(minus_icon)
+        self.widget.phi_plus_btn.setIcon(plus_icon)
+        self.widget.theta_minus_btn.setIcon(minus_icon)
+        self.widget.theta_plus_btn.setIcon(plus_icon)
+        self.widget.phi_jog_to_btn.setIcon(check_icon)
+        self.widget.theta_jog_to_btn.setIcon(check_icon)
 
         self.addWidget(self.widget)
         self.recalculateSize()
@@ -57,30 +56,30 @@ class PositionerControls(CollapsibleWidget):
         self.widget.connect_btn.clicked.connect(self.on_connect_btn_clicked)
         self.widget.disconnect_btn.clicked.connect(self.on_disconnect_btn_clicked)
 
-        self.widget.az_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_az_step"))
-        self.widget.az_jog_to_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_az_to"))
-        self.widget.el_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_el_step"))
-        self.widget.el_jog_to_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_el_to"))
+        self.widget.phi_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_phi_step"))
+        self.widget.phi_jog_to_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_phi_to"))
+        self.widget.theta_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_theta_step"))
+        self.widget.theta_jog_to_dsb.valueChanged.connect(functools.partial(setitem, CONF, "jog_theta_to"))
 
-        self.widget.az_left_btn.pressed.connect(self.on_az_left_btn_pressed)
-        self.widget.az_zero_btn.pressed.connect(self.on_az_zero_btn_pressed)
-        self.widget.az_right_btn.pressed.connect(self.on_az_right_btn_pressed)
-        self.widget.el_ccw_btn.pressed.connect(self.on_el_ccw_btn_pressed)
-        self.widget.el_zero_btn.pressed.connect(self.on_el_zero_btn_pressed)
-        self.widget.el_cw_btn.pressed.connect(self.on_el_cw_btn_pressed)
+        self.widget.phi_minus_btn.pressed.connect(self.on_phi_minus_btn_pressed)
+        self.widget.phi_zero_btn.pressed.connect(self.on_phi_zero_btn_pressed)
+        self.widget.phi_plus_btn.pressed.connect(self.on_phi_plus_btn_pressed)
+        self.widget.theta_minus_btn.pressed.connect(self.on_theta_minus_btn_pressed)
+        self.widget.theta_zero_btn.pressed.connect(self.on_theta_zero_btn_pressed)
+        self.widget.theta_plus_btn.pressed.connect(self.on_theta_plus_btn_pressed)
 
-        self.widget.az_jog_to_btn.pressed.connect(self.on_az_jog_to_btn_pressed)
-        self.widget.el_jog_to_btn.pressed.connect(self.on_el_jog_to_btn_pressed)
+        self.widget.phi_jog_to_btn.pressed.connect(self.on_phi_jog_to_btn_pressed)
+        self.widget.theta_jog_to_btn.pressed.connect(self.on_theta_jog_to_btn_pressed)
 
         self.widget.set_origin_btn.pressed.connect(self.on_set_zero_btn_pressed)
         self.widget.return_to_origin_btn.pressed.connect(self.on_return_to_origin_pressed)
 
     def postvisible_setup(self) -> None:
         widget_map = {
-            "jog_az_step": (self.widget.az_step_dsb, 0, float),
-            "jog_az_to": (self.widget.az_jog_to_dsb, 0, float),
-            "jog_el_step": (self.widget.el_step_dsb, 0, float),
-            "jog_el_to": (self.widget.el_jog_to_dsb, 0, float),
+            "jog_phi_step": (self.widget.phi_step_dsb, 0, float),
+            "jog_phi_to": (self.widget.phi_jog_to_dsb, 0, float),
+            "jog_theta_step": (self.widget.theta_step_dsb, 0, float),
+            "jog_theta_to": (self.widget.theta_jog_to_dsb, 0, float),
         }
         CONF.register_widgets(widget_map)
 
@@ -97,7 +96,7 @@ class PositionerControls(CollapsibleWidget):
         if self.widget.model_cb.currentText() == "":
             QMessageBox.information(self, "No Model Specified", "Must select a model before attempting to connect")
             return
-        if self.widget.address_cb.currentText() == "":
+        if self.widget.address_cb.currentText() == "" and self.widget.model_cb.currentText() != "Example Positioner":
             QMessageBox.information(self, "No Address Specified", "Must select an address before attempting to connect")
             return
 
@@ -105,7 +104,8 @@ class PositionerControls(CollapsibleWidget):
             model = self.widget.model_cb.currentData()
             address = self.widget.address_cb.currentText()
             self.positioner = model(address)
-        except Exception:
+        except Exception as e:
+            LOG.error(str(e))
             QMessageBox.critical(self, "Connection Error", "Failed to connect to to positioner")
             return
 
@@ -118,8 +118,8 @@ class PositionerControls(CollapsibleWidget):
         self.positioner.jogStarted.connect(self.on_jog_started)
         self.positioner.jogCompleted.connect(self.on_jog_completed)
 
-        self.widget.current_az_lcd_num.display(self.positioner.azimuth)
-        self.widget.current_el_lcd_num.display(self.positioner.elevation)
+        self.widget.current_phi_lcd_num.display(self.positioner.phi)
+        self.widget.current_theta_lcd_num.display(self.positioner.theta)
 
         self.widget.connect_btn.hide()
         self.widget.disconnect_btn.show()
@@ -133,48 +133,48 @@ class PositionerControls(CollapsibleWidget):
         self.set_enabled(False)
         self.positionerDisonnected.emit()
 
-    def on_az_left_btn_pressed(self) -> None:
-        angle = self.widget.az_step_dsb.value()
-        jog_fn = functools.partial(self.positioner.move_az_relative, -angle)
+    def on_phi_minus_btn_pressed(self) -> None:
+        angle = self.widget.phi_step_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_phi_relative, -angle)
         self.run_jog_thread(jog_fn)
 
-    def on_az_zero_btn_pressed(self) -> None:
-        jog_fn = functools.partial(self.positioner.move_az_absolute, 0)
+    def on_phi_zero_btn_pressed(self) -> None:
+        jog_fn = functools.partial(self.positioner.move_phi_absolute, 0)
         self.run_jog_thread(jog_fn)
 
-    def on_az_right_btn_pressed(self) -> None:
-        angle = self.widget.az_step_dsb.value()
-        jog_fn = functools.partial(self.positioner.move_az_relative, angle)
+    def on_phi_plus_btn_pressed(self) -> None:
+        angle = self.widget.phi_step_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_phi_relative, angle)
         self.run_jog_thread(jog_fn)
 
-    def on_el_ccw_btn_pressed(self) -> None:
-        angle = self.widget.el_step_dsb.value()
-        jog_fn = functools.partial(self.positioner.move_el_relative, -angle)
+    def on_theta_minus_btn_pressed(self) -> None:
+        angle = self.widget.theta_step_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_theta_relative, -angle)
         self.run_jog_thread(jog_fn)
 
-    def on_el_zero_btn_pressed(self) -> None:
-        jog_fn = functools.partial(self.positioner.move_el_absolute, 0)
+    def on_theta_zero_btn_pressed(self) -> None:
+        jog_fn = functools.partial(self.positioner.move_theta_absolute, 0)
         self.run_jog_thread(jog_fn)
 
-    def on_el_cw_btn_pressed(self) -> None:
-        angle = self.widget.el_step_dsb.value()
-        jog_fn = functools.partial(self.positioner.move_el_relative, angle)
+    def on_theta_plus_btn_pressed(self) -> None:
+        angle = self.widget.theta_step_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_theta_relative, angle)
         self.run_jog_thread(jog_fn)
 
-    def on_az_jog_to_btn_pressed(self) -> None:
-        target = self.widget.az_jog_to_dsb.value()
-        jog_fn = functools.partial(self.positioner.move_az_absolute, target)
+    def on_phi_jog_to_btn_pressed(self) -> None:
+        target = self.widget.phi_jog_to_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_phi_absolute, target)
         self.run_jog_thread(jog_fn)
 
-    def on_el_jog_to_btn_pressed(self) -> None:
-        target = self.widget.el_jog_to_dsb.value()
-        jog_fn = functools.partial(self.positioner.move_el_absolute, target)
+    def on_theta_jog_to_btn_pressed(self) -> None:
+        target = self.widget.theta_jog_to_dsb.value()
+        jog_fn = functools.partial(self.positioner.move_theta_absolute, target)
         self.run_jog_thread(jog_fn)
 
     def on_set_zero_btn_pressed(self) -> None:
         self.positioner.zero_all()
-        self.widget.current_az_lcd_num.display(0.0)
-        self.widget.current_el_lcd_num.display(0.0)
+        self.widget.current_phi_lcd_num.display(0.0)
+        self.widget.current_theta_lcd_num.display(0.0)
 
     def on_return_to_origin_pressed(self) -> None:
         pass  # FIXME: Thread shenaningans
@@ -183,11 +183,11 @@ class PositionerControls(CollapsibleWidget):
         self.setEnabled(False)
 
     def on_jog_completed(self) -> None:
-        az = self.positioner.azimuth
-        el = self.positioner.elevation
-        self.widget.current_az_lcd_num.display(az)
-        self.widget.current_el_lcd_num.display(el)
-        self.setEnabled(True and self.enable_on_jog_completed)
+        phi = self.positioner.phi
+        theta = self.positioner.theta
+        self.widget.current_phi_lcd_num.display(phi)
+        self.widget.current_theta_lcd_num.display(theta)
+        self.setEnabled(self.enable_on_jog_completed)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.jog_thread.quit()
@@ -195,8 +195,8 @@ class PositionerControls(CollapsibleWidget):
         super().closeEvent(event)
 
     def set_enabled(self, enable: bool) -> None:
-        self.widget.az_gb.setEnabled(enable)
-        self.widget.el_gb.setEnabled(enable)
+        self.widget.phi_gb.setEnabled(enable)
+        self.widget.theta_gb.setEnabled(enable)
         self.widget.set_origin_btn.setEnabled(enable)
         self.widget.return_to_origin_btn.setEnabled(enable)
 

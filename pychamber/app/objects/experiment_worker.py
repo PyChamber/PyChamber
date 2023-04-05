@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Callable
+
     from pychamber import positioner
 
 import functools
@@ -10,7 +12,7 @@ import time
 
 import numpy as np
 import skrf
-from PySide6.QtCore import QEventLoop, QObject, QTimer, Signal
+from qtpy.QtCore import QEventLoop, QObject, QTimer, Signal
 
 
 class ExperimentWorker(QObject):
@@ -59,9 +61,9 @@ class ExperimentWorker(QObject):
                 for pol_name, a, b in self.polarizations:
                     ntwk = self.analyzer.ch1.get_sdata(a, b)
                     ntwk.params = {
-                        'azimuth': az,
-                        'elevation': el,
-                        'polarization': pol_name,
+                        "azimuth": az,
+                        "elevation": el,
+                        "polarization": pol_name,
                     }
                     self.dataAcquired.emit(ntwk)
                 stop = time.time()
@@ -77,9 +79,8 @@ class ExperimentWorker(QObject):
             self.totalIterCountUpdated.emit(total_completed)
 
         self.finished.emit()
-        
 
-    def wait_for(self, fn: callable, signal, timeout: int | None = 5000) -> None:
+    def wait_for(self, fn: Callable, signal, timeout: int | None = 5000) -> None:
         event_loop = QEventLoop()
         signal.connect(event_loop.quit)
         QTimer.singleShot(0, fn)
@@ -88,7 +89,6 @@ class ExperimentWorker(QObject):
             timer = QTimer()
             timer.setSingleShot(True)
             timer.timeout.connect(event_loop.quit)
-
-        if timeout is not None:
             timer.start()
+
         event_loop.exec()

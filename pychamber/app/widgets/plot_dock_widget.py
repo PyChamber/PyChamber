@@ -8,8 +8,8 @@ if TYPE_CHECKING:
 import contextlib
 
 from pyqtgraph import dockarea
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMainWindow
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QMainWindow
 
 from pychamber import ExperimentResult
 
@@ -48,30 +48,40 @@ class PlotDockWidget(QMainWindow, Ui_PlotWidget):
             plot.data = results
 
     def add_polar_plot(self) -> None:
-        widget = PolarPlotWidget(self.results)
+        widget = PolarPlotWidget(self.results, title="Polar Plot")
         self.add_plot(widget)
 
     def add_rect_plot(self) -> None:
-        widget = RectPlotWidget(self.results)
+        widget = RectPlotWidget(self.results, title="Rectangular Plot")
         self.add_plot(widget)
 
     def add_contour_plot(self) -> None:
-        widget = ContourPlotWidget(self.results)
+        widget = ContourPlotWidget(self.results, title="Contour Plot")
         self.add_plot(widget)
 
     def add_three_d_plot(self) -> None:
-        widget = ThreeDPlotWidget(self.results)
+        widget = ThreeDPlotWidget(self.results, title="3D Plot")
         self.add_plot(widget)
 
     def add_plot(self, widget: PlotWidget) -> None:
         if widget is None:
             return
 
-        label = CustomDockLabel("Plot", fontSize="16px", background_color="#00CC00")
+        label = CustomDockLabel(widget.title, fontSize="16px")
+        widget.titleChanged.connect(lambda text: label.setText(" " if len(text) == 0 else text))
         dock = dockarea.Dock(name=None, label=label, size=(1, 1), autoOrientation=False)
         dock.setOrientation("horizontal")
         dock.addWidget(widget)
-        self.dock_area.addDock(dock, "below")
+        last = next(self.dock_area.docks.values(), None)
+        for _last in self.dock_area.docks.values():
+            pass
+        relative = last
+
+        if relative is not None and relative.container() is None:
+            relative = None
+
+        self.dock_area.addDock(dock, "below", relativeTo=relative)
+
         dock.sigClosed.connect(lambda: self.remove_plot(widget))
 
         self.plots.append(widget)

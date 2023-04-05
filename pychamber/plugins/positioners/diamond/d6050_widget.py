@@ -6,9 +6,9 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import QCoreApplication, QMetaObject, QSize
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (
+from qtpy.QtCore import QCoreApplication, QMetaObject, QSize
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import (
     QDoubleSpinBox,
     QFrame,
     QGroupBox,

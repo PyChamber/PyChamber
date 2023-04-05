@@ -1,5 +1,5 @@
-from PySide6.QtCore import QCoreApplication, Qt
-from PySide6.QtWidgets import QApplication
+from qtpy.QtCore import QCoreApplication, Qt
+from qtpy.QtWidgets import QApplication
 
 import pychamber
 from pychamber.app import MainWindow

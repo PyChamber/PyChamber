@@ -5,9 +5,16 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any
 
+import pathlib
+from datetime import datetime
+
 import numpy as np
 import skrf
-from PySide6.QtCore import QObject, QReadWriteLock, Signal
+from qtpy.QtCore import QObject, QReadWriteLock, Signal
+
+
+class InvalidFileError(Exception):
+    pass
 
 
 class ExperimentResult(QObject):
@@ -29,12 +36,16 @@ class ExperimentResult(QObject):
         self._phis = np.sort(phis)
         self._polarizations = polarizations
         self._frequency = frequency
-        self._s_data = {pol: np.zeros((len(frequency), len(phis), len(thetas)), dtype=complex) for pol in polarizations}
+        self._s_data = {
+            pol: np.full((len(frequency), len(phis), len(thetas)), np.nan, dtype=complex) for pol in polarizations
+        }
+
+        self._created = datetime.now()
 
     def __str__(self) -> str:
         return (
             f"ExperimentResult(frequencies={self.frequency}, polarizations={self.polarizations}, azimuths={self.phis},"
-            f" elevations={self.thetas}"
+            f" elevations={self.thetas}) [created {self._created}]"
         )
 
     def __len__(self) -> int:
@@ -46,18 +57,37 @@ class ExperimentResult(QObject):
     def __getitem__(self, index: int):
         return self._ntwk_set[index]
 
-    # @classmethod
-    # def load(cls, path: str | pathlib.Path) -> ExperimentResult:
-    #     ns = skrf.NetworkSet.from_mdif(str(path))
-    #     return cls(ns.ntwk_set)
+    @classmethod
+    def load(cls, path: str | pathlib.Path) -> ExperimentResult:
+        ns = skrf.NetworkSet.from_mdif(str(path))
+        if not ns.has_params():
+            raise InvalidFileError(f"{path} is an invalid pychamber results file")
 
-    # def save(self, path: str | pathlib.Path) -> None:
-    #     # Saving to MDIF fails if networks dont have a name, so just set the names to ""
-    #     for ntwk in self._ntwk_set:
-    #         if ntwk.name is None:
-    #             ntwk.name = ""
+        try:
+            thetas = np.array(list(set(ns.params_values["theta"])))
+            phis = np.array(list(set(ns.params_values["phi"])))
+            pols = list(set(ns.params_values["polarization"]))
+            frequency = ns[0].frequency
+        except (TypeError, KeyError) as e:
+            raise InvalidFileError(f"{path} is an invalid pychamber results file") from e
 
-    #     self._ntwk_set.write_mdif(path)
+        ret = cls(thetas, phis, pols, frequency)
+        for ntwk in ns:
+            pol = ntwk.params["polarization"]
+            phi_idx = np.where(ret._phis == ntwk.params["phi"])[0]
+            theta_idx = np.where(ret._thetas == ntwk.params["theta"])[0]
+            ret._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+        ret._ntwk_set = ns
+
+        return ret
+
+    def save(self, path: str | pathlib.Path) -> None:
+        # Saving to MDIF fails if networks dont have a name, so just set the names to ""
+        for ntwk in self._ntwk_set:
+            if ntwk.name is None:
+                ntwk.name = ""
+
+        self._ntwk_set.write_mdif(path)
 
     def get_unique_param_vals(self, param: str) -> list[Any]:
         if len(self._ntwk_set) == 0:
@@ -112,7 +142,7 @@ class ExperimentResult(QObject):
         theta_idx, _ = self.find_nearest(self._thetas, theta)
         return self._s_data[polarization][:, phi_idx, theta_idx]
 
-    def get_2d_cut(self, polarization: str, frequency: float):
+    def get_3d_data(self, polarization: str, frequency: float):
         f_idx, _ = self.find_nearest(self.f, frequency)
         return self._s_data[polarization][f_idx]
 

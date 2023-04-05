@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+    from qtpy.QtWidgets import QWidget
 
 import functools
 from pathlib import Path
@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
 import skrf
-from PySide6.QtWidgets import QFileDialog, QWizard
+from qtpy.QtWidgets import QFileDialog, QWizard
 
 from pychamber.app.ui.cal_wizard import Ui_CalWizard
 from pychamber.calibration import Calibration

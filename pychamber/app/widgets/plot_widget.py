@@ -6,17 +6,19 @@ if TYPE_CHECKING:
     pass
 
 import qtawesome as qta
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import QFrame, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from pychamber import ExperimentResult
 
 
 class PlotWidget(QWidget):
-    # Contains pg plot widget, mechanisms to update that plot
-    # And controls relevant to that plot
-    def __init__(self, plot, controls, data: ExperimentResult, parent: QWidget | None = None) -> None:
+    titleChanged = Signal(str)
+
+    def __init__(self, plot, controls, data: ExperimentResult, title: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
+        self.title = title
         self.plot = plot
         self.callbacks = []
         self._data = data
@@ -25,6 +27,8 @@ class PlotWidget(QWidget):
         self.setupUi()
 
     def setupUi(self) -> None:
+        self.controls.title_le.setText(self.title)
+
         self.ctrls_drawer = QFrame()
         ctrls_layout = QVBoxLayout(self.ctrls_drawer)
         ctrls_layout.addWidget(self.controls)
