@@ -2,7 +2,7 @@
 name = "pychamber"
 version = "0.0.1"
 description = "Run anechoic chamber experiments from Python!"
-authors = ["Bailey Campbell <fbaileycampbell1990@gmail.com>"]
+authors = ["Bailey Campbell <baileycampbell1990@gmail.com>"]
 repository = "https://github.com/pychamber/pychamber"
 documentation = "https://pychamber.github.io/pychamber/"
 readme = "README.md"
@@ -36,7 +36,7 @@ pre-commit = "^2.20.0"
 tox = "^3.25.1"
 pytest-mock = "^3.10.0"
 dummyserial = "^1.0.0"
-ruff = { version = "^0.0.257", optional = true }
+ruff = "^0.0.257"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"
