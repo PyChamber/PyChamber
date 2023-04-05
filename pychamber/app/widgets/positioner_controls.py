@@ -1,8 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 import functools
 from operator import setitem
 
 import qtawesome as qta
-from qtpy.QtCore import QThread, Signal
+from qtpy.QtCore import QEventLoop, QThread, QTimer, Signal
 from qtpy.QtGui import QCloseEvent
 from qtpy.QtWidgets import QMessageBox, QWidget
 from serial.tools import list_ports
@@ -181,7 +188,24 @@ class PositionerControls(CollapsibleWidget):
         self.widget.current_theta_lcd_num.display(0.0)
 
     def on_return_to_origin_pressed(self) -> None:
-        pass  # FIXME: Thread shenaningans
+        jog_phi_zero_fn = functools.partial(self.positioner.move_phi_absolute, 0)
+        jog_theta_zero_fn = functools.partial(self.positioner.move_theta_absolute, 0)
+        # Need to enable and disable on our own because
+        # _wait_for runs its own event loop
+        self.enable_on_jog_completed = False
+        self.set_enabled(False)
+        self._wait_for(
+            jog_phi_zero_fn,
+            self.positioner.jogCompleted,
+            timeout=None,
+        )
+        self._wait_for(
+            jog_theta_zero_fn,
+            self.positioner.jogCompleted,
+            timeout=None,
+        )
+        self.enable_on_jog_completed = True
+        self.set_enabled(True)
 
     def on_jog_started(self) -> None:
         self.set_enabled(False)
@@ -212,6 +236,19 @@ class PositionerControls(CollapsibleWidget):
 
         self.widget.model_cb.setCurrentIndex(1)  # index 0 will be a category which we don't want to be selectable
 
-    def run_jog_thread(self, jog_fn: callable) -> None:
+    def run_jog_thread(self, jog_fn: Callable) -> None:
         self.jog_thread.run = jog_fn
         self.jog_thread.start()
+
+    def _wait_for(self, fn: Callable, signal, timeout: int | None = 5000) -> None:
+        event_loop = QEventLoop()
+        signal.connect(event_loop.quit)
+        QTimer.singleShot(0, fn)
+
+        if timeout is not None:
+            timer = QTimer()
+            timer.setSingleShot(True)
+            timer.timeout.connect(event_loop.quit)
+            timer.start()
+
+        event_loop.exec()
