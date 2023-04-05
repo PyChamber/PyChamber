@@ -80,6 +80,13 @@ class Diamond_D6050(Postioner):
             port=serial_port, baudrate=self._serial_baudrate, timeout=self._serial_timeout
         )
 
+        stored_phi = CONF["diamond_d6050_phi"]
+        if stored_phi is None:
+            CONF["diamond_d6050_phi"] = 0
+        stored_theta = CONF["diamond_d6050_theta"]
+        if stored_theta is None:
+            CONF["diamond_d6050_theta"] = 0
+
         self._phi = float(CONF["diamond_d6050_phi"])
         self._theta = float(CONF["diamond_d6050_theta"])
 
