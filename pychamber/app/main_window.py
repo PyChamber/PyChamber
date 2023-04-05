@@ -277,7 +277,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.finished.connect(self.worker.deleteLater)
 
         self.worker.started.connect(self.on_experiment_started)
-        self.worker.dataAcquired.connect(self.results.append)
+        self.worker.dataAcquired.connect(self.active_result.append)
         self.worker.totalIterCountUpdated.connect(self.on_total_progress_updated)
         self.worker.cutIterCountUpdated.connect(self.on_cut_progress_updated)
         self.worker.timeEstUpdated.connect(self.on_time_est_updated)
