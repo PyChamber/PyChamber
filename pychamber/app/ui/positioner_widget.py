@@ -17,8 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFormLayout,
     QFrame, QGroupBox, QHBoxLayout, QLCDNumber,
-    QLabel, QPushButton, QSizePolicy, QVBoxLayout,
-    QWidget)
+    QLabel, QPushButton, QSizePolicy, QSpacerItem,
+    QVBoxLayout, QWidget)
 
 from ..widgets.category_combobox import CategoryComboBox
 
@@ -302,6 +302,10 @@ class Ui_PositionerWidget(object):
 
 
         self.controls_layout.addLayout(self.horizontalLayout_7)
+
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.controls_layout.addItem(self.verticalSpacer)
 
 
         self.verticalLayout_4.addWidget(self.controls_widget)

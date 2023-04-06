@@ -93,8 +93,8 @@ class Diamond_D6050(Postioner):
         self.test_connection()
         self.reset()
 
-    def create_widget(self, parent: QWidget | None = None) -> QWidget | None:
-        return Diamond_D6050Widget(self, parent)
+    def create_widget(self) -> QWidget | None:
+        return Diamond_D6050Widget(self)
 
     @property
     def phi(self) -> float:

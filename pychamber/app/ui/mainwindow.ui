@@ -131,6 +131,11 @@ border-radius: 4px;
              <property name="enabled">
               <bool>false</bool>
              </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
              <property name="text">
               <string>Full Scan</string>
              </property>
@@ -140,6 +145,11 @@ border-radius: 4px;
             <widget class="QPushButton" name="phi_scan_btn">
              <property name="enabled">
               <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
              </property>
              <property name="text">
               <string>Scan Phi</string>
@@ -151,6 +161,11 @@ border-radius: 4px;
              <property name="enabled">
               <bool>false</bool>
              </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
              <property name="text">
               <string>Scan Theta</string>
              </property>
@@ -160,6 +175,11 @@ border-radius: 4px;
             <widget class="QPushButton" name="abort_btn">
              <property name="enabled">
               <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
              </property>
              <property name="autoFillBackground">
               <bool>false</bool>
@@ -176,6 +196,11 @@ border-radius: 4px;
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <item>
               <widget class="QGroupBox" name="total_progress_gb">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
                <property name="title">
                 <string>Total Progress</string>
                </property>
@@ -219,6 +244,11 @@ border-radius: 4px;
                <property name="enabled">
                 <bool>true</bool>
                </property>
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
                <property name="title">
                 <string>Cut Progress</string>
                </property>
@@ -256,6 +286,11 @@ border-radius: 4px;
              </item>
              <item>
               <widget class="QGroupBox" name="time_remaining_gb">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
                <property name="title">
                 <string>Time Remaining</string>
                </property>

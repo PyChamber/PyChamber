@@ -102,24 +102,30 @@ class Ui_MainWindow(object):
         self.full_scan_btn = QPushButton(self.experiment_buttons)
         self.full_scan_btn.setObjectName(u"full_scan_btn")
         self.full_scan_btn.setEnabled(False)
+        font = QFont()
+        font.setPointSize(12)
+        self.full_scan_btn.setFont(font)
 
         self.verticalLayout_4.addWidget(self.full_scan_btn)
 
         self.phi_scan_btn = QPushButton(self.experiment_buttons)
         self.phi_scan_btn.setObjectName(u"phi_scan_btn")
         self.phi_scan_btn.setEnabled(False)
+        self.phi_scan_btn.setFont(font)
 
         self.verticalLayout_4.addWidget(self.phi_scan_btn)
 
         self.theta_scan_btn = QPushButton(self.experiment_buttons)
         self.theta_scan_btn.setObjectName(u"theta_scan_btn")
         self.theta_scan_btn.setEnabled(False)
+        self.theta_scan_btn.setFont(font)
 
         self.verticalLayout_4.addWidget(self.theta_scan_btn)
 
         self.abort_btn = QPushButton(self.experiment_buttons)
         self.abort_btn.setObjectName(u"abort_btn")
         self.abort_btn.setEnabled(False)
+        self.abort_btn.setFont(font)
         self.abort_btn.setAutoFillBackground(False)
         self.abort_btn.setStyleSheet(u"background-color: rgb(237, 51, 59)")
 
@@ -129,6 +135,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.total_progress_gb = QGroupBox(self.experiment_buttons)
         self.total_progress_gb.setObjectName(u"total_progress_gb")
+        self.total_progress_gb.setFont(font)
         self.total_progress_gb.setAlignment(Qt.AlignCenter)
         self.total_progress_gb.setFlat(True)
         self.verticalLayout = QVBoxLayout(self.total_progress_gb)
@@ -154,6 +161,7 @@ class Ui_MainWindow(object):
         self.cut_progress_gb = QGroupBox(self.experiment_buttons)
         self.cut_progress_gb.setObjectName(u"cut_progress_gb")
         self.cut_progress_gb.setEnabled(True)
+        self.cut_progress_gb.setFont(font)
         self.cut_progress_gb.setAlignment(Qt.AlignCenter)
         self.cut_progress_gb.setFlat(True)
         self.cut_progress_gb.setCheckable(False)
@@ -174,6 +182,7 @@ class Ui_MainWindow(object):
 
         self.time_remaining_gb = QGroupBox(self.experiment_buttons)
         self.time_remaining_gb.setObjectName(u"time_remaining_gb")
+        self.time_remaining_gb.setFont(font)
         self.time_remaining_gb.setAlignment(Qt.AlignCenter)
         self.time_remaining_gb.setFlat(True)
         self.verticalLayout_3 = QVBoxLayout(self.time_remaining_gb)
