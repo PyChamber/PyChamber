@@ -1,6 +1,8 @@
 from qtpy.QtCore import QEvent, QObject, Qt
 from qtpy.QtWidgets import QAbstractSpinBox, QComboBox, QTreeView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
+from pychamber.app.logger import LOG
+
 from .analyzer_controls import AnalyzerControls
 from .experiment_controls import ExperimentControls
 from .positioner_controls import PositionerControls
@@ -10,6 +12,7 @@ from .section_button import SectionButton
 class ControlsArea(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent=parent)
+        LOG.debug("Creating controls area")
 
         self.tree = QTreeWidget(self)
         self.tree.setHeaderHidden(True)
@@ -32,6 +35,7 @@ class ControlsArea(QWidget):
         self.install_wheel_filters()
 
     def add_section(self, title: str, widget: QWidget) -> None:
+        LOG.debug(f"Adding section {title}")
         button_item = QTreeWidgetItem()
         content_item = QTreeWidgetItem(button_item)
         content_item.setDisabled(True)
@@ -48,6 +52,8 @@ class ControlsArea(QWidget):
             section_btn.setStyleSheet(new_style)
 
     def install_wheel_filters(self):
+        LOG.debug("Setting controls widgets to ignore wheel scrolling")
+
         class ScrollIgnorer(QObject):
             def eventFilter(self, watched: QObject, event: QEvent) -> bool:
                 if event.type() == QEvent.Wheel:

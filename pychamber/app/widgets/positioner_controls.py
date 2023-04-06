@@ -31,6 +31,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.positioner: positioner.Postioner | None = None
         self.enable_on_jog_completed = True
 
+        LOG.debug("Setting up UI")
         self.setupUi(self)
         self.postvisible_setup()
         self.connect_signals()
@@ -43,6 +44,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         return size
 
     def connect_signals(self) -> None:
+        LOG.debug("Connecting signals")
         self.connect_btn.clicked.connect(self.on_connect_btn_clicked)
         self.disconnect_btn.clicked.connect(self.on_disconnect_btn_clicked)
 
@@ -65,6 +67,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.return_to_origin_btn.pressed.connect(self.on_return_to_origin_pressed)
 
     def postvisible_setup(self) -> None:
+        LOG.debug("Registering widgets with settings")
         widget_map = {
             "jog_phi_step": (self.phi_step_dsb, 0, float),
             "jog_phi_to": (self.phi_jog_to_dsb, 0, float),
@@ -86,6 +89,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.set_enabled(False)
         self.disconnect_btn.hide()
 
+        LOG.debug("Populating model combobox")
         self.add_models()
 
         self.address_cb.clear()
@@ -93,6 +97,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.address_cb.addItems(ports)
 
     def on_connect_btn_clicked(self) -> None:
+        LOG.debug("Attempting to connect to positioner")
         if self.model_cb.currentText() == "":
             QMessageBox.information(self, "No Model Specified", "Must select a model before attempting to connect")
             return
@@ -127,6 +132,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.positionerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
+        LOG.info("Disconnecting from positioner")
         self.positioner = None
         self.connect_btn.show()
         self.disconnect_btn.hide()
@@ -140,48 +146,58 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
 
     def on_phi_minus_btn_pressed(self) -> None:
         angle = self.phi_step_dsb.value()
+        LOG.debug(f"Jogging phi -{angle}")
         jog_fn = functools.partial(self.positioner.move_phi_relative, -angle)
         self.run_jog_thread(jog_fn)
 
     def on_phi_zero_btn_pressed(self) -> None:
+        LOG.debug("Jogging phi to zero")
         jog_fn = functools.partial(self.positioner.move_phi_absolute, 0)
         self.run_jog_thread(jog_fn)
 
     def on_phi_plus_btn_pressed(self) -> None:
         angle = self.phi_step_dsb.value()
+        LOG.debug(f"Jogging phi +{angle}")
         jog_fn = functools.partial(self.positioner.move_phi_relative, angle)
         self.run_jog_thread(jog_fn)
 
     def on_theta_minus_btn_pressed(self) -> None:
         angle = self.theta_step_dsb.value()
+        LOG.debug(f"Jogging theta -{angle}")
         jog_fn = functools.partial(self.positioner.move_theta_relative, -angle)
         self.run_jog_thread(jog_fn)
 
     def on_theta_zero_btn_pressed(self) -> None:
+        LOG.debug("Jogging theta to zero")
         jog_fn = functools.partial(self.positioner.move_theta_absolute, 0)
         self.run_jog_thread(jog_fn)
 
     def on_theta_plus_btn_pressed(self) -> None:
         angle = self.theta_step_dsb.value()
+        LOG.debug(f"Jogging theta +{angle}")
         jog_fn = functools.partial(self.positioner.move_theta_relative, angle)
         self.run_jog_thread(jog_fn)
 
     def on_phi_jog_to_btn_pressed(self) -> None:
         target = self.phi_jog_to_dsb.value()
+        LOG.debug(f"Jogging phi to {target}")
         jog_fn = functools.partial(self.positioner.move_phi_absolute, target)
         self.run_jog_thread(jog_fn)
 
     def on_theta_jog_to_btn_pressed(self) -> None:
         target = self.theta_jog_to_dsb.value()
+        LOG.debug(f"Jogging theta to {target}")
         jog_fn = functools.partial(self.positioner.move_theta_absolute, target)
         self.run_jog_thread(jog_fn)
 
     def on_set_zero_btn_pressed(self) -> None:
+        LOG.debug("Setting origin")
         self.positioner.zero_all()
         self.current_phi_lcd_num.display(0.0)
         self.current_theta_lcd_num.display(0.0)
 
     def on_return_to_origin_pressed(self) -> None:
+        LOG.debug("Returning to origin")
         jog_phi_zero_fn = functools.partial(self.positioner.move_phi_absolute, 0)
         jog_theta_zero_fn = functools.partial(self.positioner.move_theta_absolute, 0)
         # Need to enable and disable on our own because
@@ -202,6 +218,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.set_enabled(True)
 
     def on_jog_started(self) -> None:
+        LOG.debug("Returning to origin")
         self.set_enabled(False)
 
     def on_jog_completed(self) -> None:

@@ -12,6 +12,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QMainWindow
 
 from pychamber import ExperimentResult
+from pychamber.app.logger import LOG
 
 from ..ui.plot_widget import Ui_PlotWidget
 from .contour_plot_settings import ContourPlotWidget
@@ -27,6 +28,7 @@ class PlotDockWidget(QMainWindow, Ui_PlotWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.Widget)
+        LOG.debug("Creating PlotDockWidget")
         self.setupUi(self)
 
         self._results = None
@@ -43,23 +45,28 @@ class PlotDockWidget(QMainWindow, Ui_PlotWidget):
 
     @results.setter
     def results(self, results: ExperimentResult):
+        LOG.debug("Setting results")
         self._results = results
         for plot in self.plots:
             plot.data = results
 
     def add_polar_plot(self) -> None:
+        LOG.debug("Adding polar plot")
         widget = PolarPlotWidget(self.results, title="Polar Plot")
         self.add_plot(widget)
 
     def add_rect_plot(self) -> None:
+        LOG.debug("Adding rectangular plot")
         widget = RectPlotWidget(self.results, title="Rectangular Plot")
         self.add_plot(widget)
 
     def add_contour_plot(self) -> None:
+        LOG.debug("Adding contour plot")
         widget = ContourPlotWidget(self.results, title="Contour Plot")
         self.add_plot(widget)
 
     def add_three_d_plot(self) -> None:
+        LOG.debug("Adding 3D plot")
         widget = ThreeDPlotWidget(self.results, title="3D Plot")
         self.add_plot(widget)
 
@@ -87,5 +94,6 @@ class PlotDockWidget(QMainWindow, Ui_PlotWidget):
         self.plots.append(widget)
 
     def remove_plot(self, plot):
+        LOG.debug("Removing plot")
         with contextlib.suppress(ValueError):
             self.plots.remove(plot)

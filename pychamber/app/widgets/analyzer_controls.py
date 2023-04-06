@@ -14,6 +14,7 @@ from qtpy.QtCore import Signal
 from qtpy.QtWidgets import QMessageBox, QWidget
 from skrf.vi import vna
 
+from pychamber.app.logger import LOG
 from pychamber.app.ui.analyzer_widget import Ui_AnalyzerWidget
 from pychamber.settings import CONF
 
@@ -41,11 +42,13 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
 
         self.analyzer: vna.VNA | None = None
 
+        LOG.debug("Setting up UI")
         self.setupUi(self)
         self.postvisible_setup()
         self.connect_signals()
 
     def connect_signals(self) -> None:
+        LOG.debug("Connecting signals")
         self.connect_btn.clicked.connect(self.on_connect_btn_clicked)
         self.disconnect_btn.clicked.connect(self.on_disconnect_btn_clicked)
 
@@ -61,6 +64,7 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         self.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
 
     def postvisible_setup(self) -> None:
+        LOG.debug("Registering widgets with settings")
         widget_map = {
             # TODO: Make settings handle CategoryComboBox maybe?
             "analyzer_address": (self.address_cb, "", str),
@@ -71,10 +75,12 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         self.disconnect_btn.hide()
         self.freq_gb.setEnabled(False)
 
+        LOG.debug("Populating model combobox")
         self.add_models()
         self.address_cb.addItems(self.available_addresses)
 
     def on_connect_btn_clicked(self) -> None:
+        LOG.info("Attempting to connect to analyzer")
         if self.model_cb.currentText() == "":
             QMessageBox.information(self, "No Model Specified", "Must select a model before attempting to connect")
             return
@@ -87,8 +93,8 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
             address = self.address_cb.currentText()
             self.analyzer = model(address, backend=CONF["visalib"])
         except Exception as e:
+            LOG.error(f"Failed to connect to analyzer: {e}")
             QMessageBox.critical(self, "Connection Error", "Failed to connect to analyzer")
-            print(e)
             return
 
         self.connect_btn.hide()
@@ -104,6 +110,7 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         self.analyzerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
+        LOG.info("Disconnecting analyzer")
         self.analyzer = None
         self.connect_btn.hide()
         self.disconnect_btn.show()
@@ -114,28 +121,35 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
 
     def on_freq_start_changed(self) -> None:
         freq = self.freq_start_le.text()
+        LOG.debug(f"Changing frequency start: {freq}")
         self.analyzer.ch1.freq_start = freq
 
     def on_freq_stop_changed(self) -> None:
         freq = self.freq_stop_le.text()
+        LOG.debug(f"Changing frequency stop: {freq}")
         self.analyzer.ch1.freq_stop = freq
 
     def on_freq_step_changed(self) -> None:
         freq = self.freq_step_le.text()
+        LOG.debug(f"Changing frequency step: {freq}")
         self.analyzer.ch1.freq_step = freq
 
     def on_freq_n_points_changed(self) -> None:
         npoints = int(self.freq_n_points_le.text())
+        LOG.debug(f"Changing frequency points: {npoints}")
         self.analyzer.ch1.npoints = npoints
 
     def on_if_bw_changed(self) -> None:
         freq = self.if_bw_le.text()
+        LOG.debug(f"Changing IF bandwidth: {freq}")
         self.analyzer.ch1.if_bandwidth = freq
 
     def on_avg_toggle_changed(self, state: bool) -> None:
+        LOG.debug(f"Toggling averaging: {state}")
         self.analyzer.ch1.averaging_on = state
 
     def on_n_avgs_changed(self, n: int) -> None:
+        LOG.debug(f"Changing number of averages: {n}")
         self.analyzer.ch1.averaging_count = n
 
     @property
@@ -145,6 +159,7 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
     @property
     def available_addresses(self) -> list[str]:
         backend = CONF["visalib"]
+        LOG.debug(f"VISA backend: {backend}")
         rm = pyvisa.ResourceManager(backend)
         available = rm.list_resources()
         rm.close()

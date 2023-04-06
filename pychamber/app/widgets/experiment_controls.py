@@ -4,6 +4,7 @@ from pathlib import Path
 
 from qtpy.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget
 
+from pychamber.app.logger import LOG
 from pychamber.app.ui.experiment_widget import Ui_ExperimentWidget
 from pychamber.calibration import Calibration
 from pychamber.settings import CONF
@@ -15,13 +16,14 @@ from .cal_wizard import CalWizard
 class ExperimentControls(QWidget, Ui_ExperimentWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-
+        LOG.debug("Creating ExperimentControls")
         self.setupUi(self)
 
         self.postvisible_setup()
         self.connect_signals()
 
     def connect_signals(self) -> None:
+        LOG.debug("Connecting signals")
         self.phi_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_start"))
         self.phi_stop_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_stop"))
         self.phi_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_step"))
@@ -66,6 +68,7 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         ]
 
     def update_params(self, params: list[tuple[int, int]]) -> None:
+        LOG.debug("Updating parameter comboboxes")
         param_strs = [f"S{a}{b}" for a, b in params]
         self.pol1_cb.clear()
         self.pol2_cb.clear()
@@ -75,6 +78,7 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
             self.pol2_cb.addItem(param_str, userData=param)
 
     def run_cal_wizard(self) -> None:
+        LOG.debug("Launching calibration wizard")
         analyzer = QApplication.activeWindow().analyzer
         if analyzer is None:
             QMessageBox.warning(
@@ -90,6 +94,7 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.load_cal(self.cal_wizard.cal_path)
 
     def load_cal(self, path: str | Path) -> None:
+        LOG.debug("Loading calibration")
         try:
             self.cal = Calibration.load(path)
         except Exception:
@@ -102,5 +107,6 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.view_cal_btn.setEnabled(True)
 
     def view_cal(self) -> None:
+        LOG.debug("Launching calibration view dialog")
         self.view_dlg = CalViewDialog(self.cal, self)
         self.view_dlg.exec()

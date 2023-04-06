@@ -13,6 +13,7 @@ from qtpy.QtCore import QThreadPool
 from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
+from pychamber.app.logger import LOG
 from pychamber.app.task_runner import TaskRunner
 
 from ..ui.contour_plot_settings import Ui_ContourPlotSettings
@@ -28,6 +29,7 @@ class ContourPlotSettings(QWidget, Ui_ContourPlotSettings):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        LOG.debug("Creating contour plot settings")
         self.setupUi(self)
 
         self.connect_signals()
@@ -66,7 +68,7 @@ class ContourPlotWidget(PlotWidget):
         controls = ContourPlotSettings()
         plot = ContourPlot(cmap=controls.cmap_cb.currentText(), draw_isos=controls.isolines_checkbox.isChecked())
         super().__init__(plot=plot, controls=controls, data=data, title=title, parent=parent)
-
+        LOG.debug("Creating contour plot widget")
         self.plot.setTitle(title)
 
         self.connect_signals()
@@ -98,6 +100,7 @@ class ContourPlotWidget(PlotWidget):
 
     @data.setter
     def data(self, result: ExperimentResult):
+        LOG.debug("Setting data")
         self._data = result
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
@@ -122,6 +125,7 @@ class ContourPlotWidget(PlotWidget):
         return (x_data, y_data, z_data)
 
     def on_new_data(self):
+        LOG.debug("Got new data")
         if self.data is None:
             return
         if len(self.data) == 0:
@@ -150,6 +154,7 @@ class ContourPlotWidget(PlotWidget):
         QThreadPool.globalInstance().start(data_grabber)
 
     def on_get_data_result(self, result: tuple[np.ndarray, np.ndarray, np.ndarray] | None):
+        LOG.debug("Extracted result. Setting plot data")
         if result is None:
             return
 

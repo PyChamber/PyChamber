@@ -27,7 +27,7 @@ class QLogFormatter(logging.Formatter):
     def format(self, record):  # noqa: A003
         fmt = (
             f"<span style='color:{self.color(record.levelno)}'>[%(levelname)s]</span> <span style='color:"
-            " lightgray'>(%(filename)s:%(lineno)s)</span> %(message)s"
+            " gray'>(%(filename)s:%(lineno)s)</span> %(message)s"
         )
         formatter = logging.Formatter(fmt, datefmt="%m/%d/%y %I:%M:%S %p")
         return formatter.format(record)

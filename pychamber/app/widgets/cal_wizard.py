@@ -14,6 +14,7 @@ import pyqtgraph as pg
 import skrf
 from qtpy.QtWidgets import QFileDialog, QWizard
 
+from pychamber.app.logger import LOG
 from pychamber.app.ui.cal_wizard import Ui_CalWizard
 from pychamber.calibration import Calibration
 
@@ -21,6 +22,7 @@ from pychamber.calibration import Calibration
 class CalWizard(QWizard, Ui_CalWizard):
     def __init__(self, analyzer: skrf.vi.VNA, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        LOG.debug("Launching calibration wizard")
         self.setupUi(self)
 
         self.analyzer = analyzer
@@ -57,6 +59,7 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.update_params(params)
 
     def connect_signals(self) -> None:
+        LOG.debug("Connecting signals")
         self.ref_ant_browse_btn.pressed.connect(self.load_ref_antenna)
         self.meas_pol1_btn.pressed.connect(functools.partial(self.measure_polarization, 0))
         self.meas_pol2_btn.pressed.connect(functools.partial(self.measure_polarization, 1))
@@ -65,6 +68,7 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.pol2_cb.currentTextChanged.connect(lambda text: self.meas_pol2_btn.setEnabled(text != ""))
 
     def update_params(self, params: list[tuple[int, int]]) -> None:
+        LOG.debug("Updating parameter comboboxes")
         param_strs = [f"S{a}{b}" for a, b in params]
         self.pol1_cb.clear()
         self.pol2_cb.clear()
@@ -79,6 +83,7 @@ class CalWizard(QWizard, Ui_CalWizard):
             return
 
         fpath = Path(fname)
+        LOG.debug(f"Loading reference antenna '{fpath}'")
         self.ref_ant_label.setText(fpath.name)
 
         csv = np.genfromtxt(fpath, delimiter=",")
@@ -94,6 +99,7 @@ class CalWizard(QWizard, Ui_CalWizard):
 
     def measure_polarization(self, polarization: int) -> None:
         msmnt_param = self.pol1_cb.currentData() if polarization == 1 else self.pol2_cb.currentData()
+        LOG.debug(f"Measuring polarization {msmnt_param}")
         ntwk = self.analyzer.ch1.get_sdata(*msmnt_param)
 
         loss = self.calc_loss(ntwk)
@@ -111,6 +117,7 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.save_cal_btn.setEnabled(True)
 
     def calc_loss(self, ntwk: skrf.Network) -> skrf.Network:
+        LOG.debug("Calculating loss")
         ref = self.ref_ntwk
         if len(self.ref_ntwk) != len(ntwk):
             ref = ref.interpolate(ntwk.frequency)
@@ -124,6 +131,7 @@ class CalWizard(QWizard, Ui_CalWizard):
             return
 
         self.cal_path = Path(fname).with_suffix(".pycal")
+        LOG.debug(f"Saving calibration to {self.cal_path}")
         notes = [
             "Calibration Notes:@",
             # read_mdif includes all lines starting with !, but we only

@@ -15,6 +15,7 @@ from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
 from pychamber import math_fns
+from pychamber.app.logger import LOG
 from pychamber.app.task_runner import TaskRunner
 
 from ..ui.three_d_plot_settings import Ui_ThreeDPlotSettings
@@ -76,6 +77,7 @@ class ThreeDPlotWidget(PlotWidget):
 
         controls = ThreeDPlotSettings()
 
+        LOG.debug("Creating contour plot widget")
         super().__init__(plot=plot, controls=controls, data=data, title=title, parent=parent)
 
         self.legend_item = gl.GLGradientLegendItem(pos=(10, 10), size=(50, 300), gradient=controls.cmap)
@@ -100,6 +102,7 @@ class ThreeDPlotWidget(PlotWidget):
         self.on_new_data()
 
     def connect_signals(self):
+        LOG.debug("Connecting signals")
         self.controls.title_le.textChanged.connect(self.titleChanged.emit)
         self.controls.spherical_checkbox.toggled.connect(self.on_spherical_checkbox_toggled)
         self.controls.bg_color_btn.sigColorChanged.connect(lambda btn: self.on_bg_color_changed(btn.color()))
@@ -122,6 +125,7 @@ class ThreeDPlotWidget(PlotWidget):
 
     @data.setter
     def data(self, result: ExperimentResult):
+        LOG.debug("Setting data")
         self._data = result
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
@@ -130,10 +134,12 @@ class ThreeDPlotWidget(PlotWidget):
 
     def on_spherical_checkbox_toggled(self, state: bool):
         if state:
+            LOG.debug("Switching to spherical mode")
             self.sph_grid.show()
             self.cartesian_plot.hide()
             self.spherical_plot.show()
         else:
+            LOG.debug("Switching to rectangular mode")
             self.sph_grid.hide()
             self.cartesian_plot.show()
             self.spherical_plot.hide()
@@ -147,6 +153,7 @@ class ThreeDPlotWidget(PlotWidget):
         self.on_new_data()
 
     def init_spherical_plot(self):
+        LOG.debug("Initializing spherical plot")
         if self.data is None:
             return
 
@@ -180,6 +187,7 @@ class ThreeDPlotWidget(PlotWidget):
         return r_data
 
     def on_new_data(self):
+        LOG.debug("Got new data")
         if self.data is None:
             return
         if len(self.data) == 0:
@@ -212,6 +220,7 @@ class ThreeDPlotWidget(PlotWidget):
         QThreadPool.globalInstance().start(data_grabber)
 
     def on_get_data_result(self, result: np.ndarray | None):
+        LOG.debug("Retrived data. Updating plot")
         if result is None:
             return
 
@@ -235,6 +244,7 @@ class ThreeDPlotWidget(PlotWidget):
         self.update_spherical_plot(r_mapped, self.theta_grid, self.phi_grid, colors)
 
     def update_cartesian_plot(self, x: np.ndarray, y: np.ndarray, z: np.ndarray, colors: np.ndarray):
+        LOG.debug("Updating cartesian plot")
         r_range = np.abs(self.r_max - self.r_min)
         r_scale = 100 / r_range
 
@@ -245,6 +255,7 @@ class ThreeDPlotWidget(PlotWidget):
         self.cartesian_plot.setData(x, y, z, colors=colors)
 
     def update_spherical_plot(self, r: np.ndarray, theta: np.ndarray, phi: np.ndarray, colors: np.ndarray):
+        LOG.debug("Updating spherical plot")
         x, y, z = math_fns.spherical_to_cartesian(r, theta, phi)
         xyz = np.dstack((x.ravel(), y.ravel(), z.ravel())).squeeze()
 
