@@ -17,6 +17,7 @@ def run(args: dict) -> None:
 
     main = MainWindow()
     main.show()
+    main.post_visible_setup()
 
     try:
         app.exec_()

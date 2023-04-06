@@ -11,10 +11,17 @@ import pathlib
 
 import numpy as np
 import qdarkstyle
+import qtawesome as qta
 import skrf
-from qtpy.QtCore import QThread
+from qtpy.QtCore import Qt, QThread
 from qtpy.QtGui import QCloseEvent
-from qtpy.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
+from qtpy.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+)
 
 from pychamber import ExperimentResult
 from pychamber.app.objects import ExperimentWorker
@@ -29,16 +36,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.app = QApplication.instance()
         self.log_dialog = LogDialog()
-        self.results: list[ExperimentResult] = []
         self.active_result: ExperimentResult | None = None
         self.saved = []
-        self.thread = QThread()
+        self._results = []
+        self._thread = QThread()
 
         self.apply_theme(CONF["theme"])
 
         self.setupUi(self)
+        self.results_widget.hide()
         self.connect_signals()
-        self.post_visible_setup()
 
     def post_visible_setup(self):
         self.total_progress_gb.hide()
@@ -64,8 +71,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.full_scan_btn.pressed.connect(self.on_full_scan_btn_pressed)
         self.abort_btn.pressed.connect(self.on_abort_btn_pressed)
 
+        self.results.model().rowsInserted.connect(self.on_results_rows_changed)
+        self.results.currentItemChanged.connect(self.on_current_result_changed)
+
     def closeEvent(self, event: QCloseEvent) -> None:
-        if len(self.saved) < len(self.results):
+        if len(self.saved) < self.results.count():
             quit_dlg = QMessageBox.warning(
                 self,
                 "Are you sure?",
@@ -74,9 +84,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QMessageBox.StandardButton.Ok,
             )
             if quit_dlg == QMessageBox.Ok:
-                if self.thread.isRunning():
-                    self.thread.quit()
-                    self.thread.wait()
+                if self._thread.isRunning():
+                    self._thread.quit()
+                    self._thread.wait()
                 return super().closeEvent(event)
             else:
                 event.ignore()
@@ -99,7 +109,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         path = pathlib.Path(fname).with_suffix(".mdif")
         self.active_result.save(path)
-        self.saved.append(self.active_result)
+        self.saved.append(self.active_result.uuid)
+        self.update_results_rows()
 
     def on_load_action_triggered(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Load Result", filter="Result File (*.mdif)")
@@ -107,13 +118,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         path = pathlib.Path(fname)
-        self.active_result = ExperimentResult.load(path)
-        self.results.append(self.active_result)
-        self.saved.append(self.active_result)
-        self.plot_dock_widget.results = self.active_result
+        result = ExperimentResult.load(path)
+        if result.uuid in self.saved:
+            return
+        self.active_result = result
+        self._results.append(result)
+        self.saved.append(result.uuid)
+        self.plot_dock_widget.results = result
+
+        item = QListWidgetItem(self.results)
+        item.setData(Qt.UserRole, result.uuid)
+        item.setText(result.created)
+        self.results.setCurrentItem(item)
+        self.update_results_rows()
 
     def on_view_logs_action_triggered(self):
         self.log_dialog.show()
+
+    def on_results_rows_changed(self):
+        if self.results.count() == 0:
+            self.results_widget.hide()
+            return
+
+        self.results_widget.show()
+
+    def on_current_result_changed(self, item: QListWidgetItem):
+        result = None
+        for res in self._results:
+            if res.uuid == item.data(Qt.UserRole):
+                result = res
+                break
+        self.plot_dock_widget.results = result
 
     def on_analyzer_connected(self):
         if self.positioner is not None:
@@ -134,8 +169,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_scan_btns_enabled(False)
 
     def on_abort_btn_pressed(self) -> None:
-        if self.thread.isRunning():
-            self.thread.requestInterruption()
+        if self._thread.isRunning():
+            self._thread.requestInterruption()
 
     def on_phi_scan_btn_pressed(self) -> None:
         start = CONF["phi_start"]
@@ -185,7 +220,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.cut_progress_gb.show()
         self.time_remaining_gb.show()
 
-        self.total_progress_bar.setMaximum(len(phis) + len(thetas))
+        self.total_progress_bar.setMaximum(len(phis) * len(thetas))
         self.cut_progress_bar.setMaximum(len(phis))
         self.time_remaining_le.setText("00:00:00")
 
@@ -217,14 +252,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_scan_btns_enabled(True)
         self.abort_btn.setEnabled(False)
 
+    def update_results_rows(self):
+        for i in range(self.results.count()):
+            item = self.results.item(i)
+            uuid = item.data(Qt.UserRole)
+            item.setIcon(qta.icon("fa5s.exclamation", color="#ff6961") if uuid not in self.saved else qta.icon())
+
     def set_scan_btns_enabled(self, state: bool) -> None:
         self.full_scan_btn.setEnabled(state)
         self.phi_scan_btn.setEnabled(state)
         self.theta_scan_btn.setEnabled(state)
 
     def set_controls_enabled(self, state: bool) -> None:
-        self.experiment_controls.widget.setEnabled(state)
-        self.analyzer_controls.widget.setEnabled(state)
+        self.experiment_controls.setEnabled(state)
+        self.analyzer_controls.setEnabled(state)
         self.positioner_controls.enable_on_jog_completed = state
         self.positioner_controls.set_enabled(state)
 
@@ -268,14 +309,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def run_scan(self, phis: np.ndarray, thetas: np.ndarray, polarizations: list[tuple[str, int, int]]) -> None:
         freq = self.analyzer_controls.frequency
-        self.active_result = ExperimentResult(thetas, phis, [p[0] for p in polarizations], freq)
-        self.results.append(self.active_result)
-        self.plot_dock_widget.results = self.active_result
+        result = ExperimentResult(thetas, phis, [p[0] for p in polarizations], freq)
+        item = QListWidgetItem(self.results)
+        item.setData(Qt.UserRole, result.uuid)
+        item.setText(result.created)
+        self.results.setCurrentItem(item)
+        self.active_result = result
+        self.update_results_rows()
+        self._results.append(result)
 
         self.worker = ExperimentWorker(self.analyzer, self.positioner, phis, thetas, polarizations)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
+        self.worker.moveToThread(self._thread)
+        self._thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self._thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
 
         self.worker.started.connect(self.on_experiment_started)
@@ -288,4 +334,4 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.finished.connect(self.time_remaining_gb.hide)
         self.worker.finished.connect(self.cut_progress_gb.hide)
 
-        self.thread.start()
+        self._thread.start()
