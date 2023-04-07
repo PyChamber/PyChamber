@@ -6,11 +6,15 @@ if TYPE_CHECKING:
     from typing import Any
 
 import pathlib
+import re
+import uuid
 from datetime import datetime
 
 import numpy as np
 import skrf
 from qtpy.QtCore import QObject, QReadWriteLock, Signal
+
+from pychamber import Calibration
 
 
 class InvalidFileError(Exception):
@@ -41,6 +45,8 @@ class ExperimentResult(QObject):
         }
 
         self._created = datetime.now()
+        self._uuid = uuid.uuid4()
+        self._calibrated = None
 
     def __str__(self) -> str:
         return (
@@ -78,6 +84,12 @@ class ExperimentResult(QObject):
             theta_idx = np.where(ret._thetas == ntwk.params["theta"])[0]
             ret._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
         ret._ntwk_set = ns
+        var_re = re.compile(r"\$(\w+): ([\w\s\-:]+)\$")
+        for var in var_re.finditer(ns.comments):
+            if var[1] == "created":
+                ret._created = datetime.strptime(var[2], "%d %b %Y - %H:%M")
+            elif var[1] == "uuid":
+                ret._uuid = uuid.UUID(var[2])
 
         return ret
 
@@ -87,7 +99,7 @@ class ExperimentResult(QObject):
             if ntwk.name is None:
                 ntwk.name = ""
 
-        self._ntwk_set.write_mdif(path)
+        self._ntwk_set.write_mdif(path, comments=[f"$created: {self.created}$", f"$uuid: {self.uuid}$"])
 
     def get_unique_param_vals(self, param: str) -> list[Any]:
         if len(self._ntwk_set) == 0:
@@ -127,6 +139,22 @@ class ExperimentResult(QObject):
     def params(self) -> dict | None:
         return self._ntwk_set.params
 
+    @property
+    def calibrated(self) -> skrf.NetworkSet | None:
+        return self._calibrated
+
+    @property
+    def raw_data(self) -> skrf.NetworkSet:
+        return self._ntwk_set
+
+    @property
+    def uuid(self) -> str:
+        return str(self._uuid)
+
+    @property
+    def created(self) -> str:
+        return self._created.strftime("%d %b %Y - %H:%M")
+
     def get_theta_cut(self, polarization: str, frequency: float, phi: float):
         f_idx, _ = self.find_nearest(self.f, frequency)
         phi_idx, _ = self.find_nearest(self._phis, phi)
@@ -160,3 +188,21 @@ class ExperimentResult(QObject):
         self.rw_lock.unlock()
 
         self.dataAppended.emit()
+
+    # FIXME: Should be able to iteratively add calibrated values
+    def apply_calibration(self, cal: Calibration) -> None:
+        for pol in self.polarizations:
+            if pol not in self.polarizations:
+                raise ValueError(f"Cannot apply this calibration. It does not contain data for polarization: {pol}.")
+
+        calibrated_result_ntwks = []
+        for cal_ntwk in list(cal._data):
+            try:
+                uncalibrated = self._ntwk_set.sel({"polarization": cal_ntwk.name})
+            except KeyError:
+                continue
+
+            calibrated = uncalibrated / cal_ntwk
+            calibrated_result_ntwks += calibrated.ntwk_set
+
+        self._calibrated = skrf.NetworkSet(calibrated_result_ntwks)

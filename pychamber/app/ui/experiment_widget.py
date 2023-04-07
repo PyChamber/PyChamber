@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QGridLay
     QGroupBox, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QSizePolicy, QVBoxLayout, QWidget)
 
-from ..widgets.filebrowse_lineedit import FileBrowseLineEdit
 from ..widgets.toggle import Toggle
 
 class Ui_ExperimentWidget(object):
@@ -40,13 +39,13 @@ class Ui_ExperimentWidget(object):
         self.extents_gb.setFlat(False)
         self.gridLayout = QGridLayout(self.extents_gb)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.el_label = QLabel(self.extents_gb)
-        self.el_label.setObjectName(u"el_label")
-        sizePolicy.setHeightForWidth(self.el_label.sizePolicy().hasHeightForWidth())
-        self.el_label.setSizePolicy(sizePolicy)
-        self.el_label.setAlignment(Qt.AlignCenter)
+        self.theta_label = QLabel(self.extents_gb)
+        self.theta_label.setObjectName(u"theta_label")
+        sizePolicy.setHeightForWidth(self.theta_label.sizePolicy().hasHeightForWidth())
+        self.theta_label.setSizePolicy(sizePolicy)
+        self.theta_label.setAlignment(Qt.AlignCenter)
 
-        self.gridLayout.addWidget(self.el_label, 0, 2, 1, 1)
+        self.gridLayout.addWidget(self.theta_label, 0, 2, 1, 1)
 
         self.step_label = QLabel(self.extents_gb)
         self.step_label.setObjectName(u"step_label")
@@ -59,26 +58,26 @@ class Ui_ExperimentWidget(object):
 
         self.gridLayout.addWidget(self.step_label, 3, 0, 1, 1)
 
-        self.az_stop_dsb = QDoubleSpinBox(self.extents_gb)
-        self.az_stop_dsb.setObjectName(u"az_stop_dsb")
-        self.az_stop_dsb.setMinimum(-180.000000000000000)
-        self.az_stop_dsb.setMaximum(180.000000000000000)
+        self.phi_stop_dsb = QDoubleSpinBox(self.extents_gb)
+        self.phi_stop_dsb.setObjectName(u"phi_stop_dsb")
+        self.phi_stop_dsb.setMinimum(-180.000000000000000)
+        self.phi_stop_dsb.setMaximum(180.000000000000000)
 
-        self.gridLayout.addWidget(self.az_stop_dsb, 2, 1, 1, 1)
+        self.gridLayout.addWidget(self.phi_stop_dsb, 2, 1, 1, 1)
 
-        self.el_start_dsb = QDoubleSpinBox(self.extents_gb)
-        self.el_start_dsb.setObjectName(u"el_start_dsb")
-        self.el_start_dsb.setMinimum(-180.000000000000000)
-        self.el_start_dsb.setMaximum(180.000000000000000)
+        self.theta_start_dsb = QDoubleSpinBox(self.extents_gb)
+        self.theta_start_dsb.setObjectName(u"theta_start_dsb")
+        self.theta_start_dsb.setMinimum(-180.000000000000000)
+        self.theta_start_dsb.setMaximum(180.000000000000000)
 
-        self.gridLayout.addWidget(self.el_start_dsb, 1, 2, 1, 1)
+        self.gridLayout.addWidget(self.theta_start_dsb, 1, 2, 1, 1)
 
-        self.az_step_dsb = QDoubleSpinBox(self.extents_gb)
-        self.az_step_dsb.setObjectName(u"az_step_dsb")
-        self.az_step_dsb.setMinimum(-180.000000000000000)
-        self.az_step_dsb.setMaximum(180.000000000000000)
+        self.phi_step_dsb = QDoubleSpinBox(self.extents_gb)
+        self.phi_step_dsb.setObjectName(u"phi_step_dsb")
+        self.phi_step_dsb.setMinimum(-180.000000000000000)
+        self.phi_step_dsb.setMaximum(180.000000000000000)
 
-        self.gridLayout.addWidget(self.az_step_dsb, 3, 1, 1, 1)
+        self.gridLayout.addWidget(self.phi_step_dsb, 3, 1, 1, 1)
 
         self.stop_label = QLabel(self.extents_gb)
         self.stop_label.setObjectName(u"stop_label")
@@ -88,27 +87,27 @@ class Ui_ExperimentWidget(object):
 
         self.gridLayout.addWidget(self.stop_label, 2, 0, 1, 1)
 
-        self.az_label = QLabel(self.extents_gb)
-        self.az_label.setObjectName(u"az_label")
-        sizePolicy.setHeightForWidth(self.az_label.sizePolicy().hasHeightForWidth())
-        self.az_label.setSizePolicy(sizePolicy)
-        self.az_label.setAlignment(Qt.AlignCenter)
+        self.phi_label = QLabel(self.extents_gb)
+        self.phi_label.setObjectName(u"phi_label")
+        sizePolicy.setHeightForWidth(self.phi_label.sizePolicy().hasHeightForWidth())
+        self.phi_label.setSizePolicy(sizePolicy)
+        self.phi_label.setAlignment(Qt.AlignCenter)
 
-        self.gridLayout.addWidget(self.az_label, 0, 1, 1, 1)
+        self.gridLayout.addWidget(self.phi_label, 0, 1, 1, 1)
 
-        self.el_stop_dsb = QDoubleSpinBox(self.extents_gb)
-        self.el_stop_dsb.setObjectName(u"el_stop_dsb")
-        self.el_stop_dsb.setMinimum(-180.000000000000000)
-        self.el_stop_dsb.setMaximum(180.000000000000000)
+        self.theta_stop_dsb = QDoubleSpinBox(self.extents_gb)
+        self.theta_stop_dsb.setObjectName(u"theta_stop_dsb")
+        self.theta_stop_dsb.setMinimum(-180.000000000000000)
+        self.theta_stop_dsb.setMaximum(180.000000000000000)
 
-        self.gridLayout.addWidget(self.el_stop_dsb, 2, 2, 1, 1)
+        self.gridLayout.addWidget(self.theta_stop_dsb, 2, 2, 1, 1)
 
-        self.el_step_dsb = QDoubleSpinBox(self.extents_gb)
-        self.el_step_dsb.setObjectName(u"el_step_dsb")
-        self.el_step_dsb.setMinimum(-180.000000000000000)
-        self.el_step_dsb.setMaximum(180.000000000000000)
+        self.theta_step_dsb = QDoubleSpinBox(self.extents_gb)
+        self.theta_step_dsb.setObjectName(u"theta_step_dsb")
+        self.theta_step_dsb.setMinimum(-180.000000000000000)
+        self.theta_step_dsb.setMaximum(180.000000000000000)
 
-        self.gridLayout.addWidget(self.el_step_dsb, 3, 2, 1, 1)
+        self.gridLayout.addWidget(self.theta_step_dsb, 3, 2, 1, 1)
 
         self.start_label = QLabel(self.extents_gb)
         self.start_label.setObjectName(u"start_label")
@@ -118,12 +117,12 @@ class Ui_ExperimentWidget(object):
 
         self.gridLayout.addWidget(self.start_label, 1, 0, 1, 1)
 
-        self.az_start_dsb = QDoubleSpinBox(self.extents_gb)
-        self.az_start_dsb.setObjectName(u"az_start_dsb")
-        self.az_start_dsb.setMinimum(-180.000000000000000)
-        self.az_start_dsb.setMaximum(180.000000000000000)
+        self.phi_start_dsb = QDoubleSpinBox(self.extents_gb)
+        self.phi_start_dsb.setObjectName(u"phi_start_dsb")
+        self.phi_start_dsb.setMinimum(-180.000000000000000)
+        self.phi_start_dsb.setMaximum(180.000000000000000)
 
-        self.gridLayout.addWidget(self.az_start_dsb, 1, 1, 1, 1)
+        self.gridLayout.addWidget(self.phi_start_dsb, 1, 1, 1, 1)
 
         self.gridLayout.setColumnStretch(1, 1)
         self.gridLayout.setColumnStretch(2, 1)
@@ -188,8 +187,9 @@ class Ui_ExperimentWidget(object):
 
         self.horizontalLayout_3.addWidget(self.cal_file_label)
 
-        self.cal_file_le = FileBrowseLineEdit(self.cal_gb)
+        self.cal_file_le = QLineEdit(self.cal_gb)
         self.cal_file_le.setObjectName(u"cal_file_le")
+        self.cal_file_le.setReadOnly(True)
 
         self.horizontalLayout_3.addWidget(self.cal_file_le)
 
@@ -243,10 +243,10 @@ class Ui_ExperimentWidget(object):
     def retranslateUi(self, ExperimentWidget):
         ExperimentWidget.setWindowTitle(QCoreApplication.translate("ExperimentWidget", u"Form", None))
         self.extents_gb.setTitle(QCoreApplication.translate("ExperimentWidget", u"Extents", None))
-        self.el_label.setText(QCoreApplication.translate("ExperimentWidget", u"Elevation", None))
+        self.theta_label.setText(QCoreApplication.translate("ExperimentWidget", u"Theta", None))
         self.step_label.setText(QCoreApplication.translate("ExperimentWidget", u"Step", None))
         self.stop_label.setText(QCoreApplication.translate("ExperimentWidget", u"Stop", None))
-        self.az_label.setText(QCoreApplication.translate("ExperimentWidget", u"Azimuth", None))
+        self.phi_label.setText(QCoreApplication.translate("ExperimentWidget", u"Phi", None))
         self.start_label.setText(QCoreApplication.translate("ExperimentWidget", u"Start", None))
         self.polarizations_gb.setTitle(QCoreApplication.translate("ExperimentWidget", u"Polarizations", None))
         self.pol1_label.setText(QCoreApplication.translate("ExperimentWidget", u"Polarization 1", None))

@@ -27,8 +27,8 @@ class ExperimentWorker(QObject):
         self,
         analyzer: skrf.vi.vna.VNA,
         positioner: positioner.Positioner,
-        azimuths: np.ndarray,
-        elevations: np.ndarray,
+        phis: np.ndarray,
+        thetas: np.ndarray,
         polarizations: list[tuple[str, int, int]],
         parent: QObject | None = None,
     ) -> None:
@@ -36,33 +36,35 @@ class ExperimentWorker(QObject):
 
         self.analyzer = analyzer
         self.positioner = positioner
-        self.azimuths = azimuths
-        self.elevations = elevations
+        self.phis = phis
+        self.thetas = thetas
         self.polarizations = polarizations
 
     def run(self) -> None:
         self.started.emit()
         iter_times = np.array([])
-        total_iters = len(self.azimuths) * len(self.elevations)
+        total_iters = len(self.phis) * len(self.thetas)
         total_completed = 0
-        for az in self.azimuths:
+        for phi in self.phis:
             self.wait_for(
-                functools.partial(self.positioner.move_az_absolute, az), self.positioner.jogCompleted, timeout=None
+                functools.partial(self.positioner.move_phi_absolute, phi), self.positioner.jogCompleted, timeout=None
             )
 
             cut_completed = 0
-            for el in self.elevations:
+            for theta in self.thetas:
                 start = time.time()
 
                 self.wait_for(
-                    functools.partial(self.positioner.move_el_absolute, el), self.positioner.jogCompleted, timeout=None
+                    functools.partial(self.positioner.move_theta_absolute, theta),
+                    self.positioner.jogCompleted,
+                    timeout=None,
                 )
 
                 for pol_name, a, b in self.polarizations:
                     ntwk = self.analyzer.ch1.get_sdata(a, b)
                     ntwk.params = {
-                        "azimuth": az,
-                        "elevation": el,
+                        "phi": phi,
+                        "theta": theta,
                         "polarization": pol_name,
                     }
                     self.dataAcquired.emit(ntwk)

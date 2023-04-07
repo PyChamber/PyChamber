@@ -10,7 +10,8 @@ import pkgutil
 import sys
 from typing import cast
 
-import pychamber.plugins
+import pychamber
+from pychamber.app.logger import LOG
 
 
 class PluginNameCollisionError(RuntimeError):
@@ -24,6 +25,7 @@ class PluginInterface:
     @staticmethod
     def initialize() -> None:
         """Initialize the plugin"""
+        pass
 
 
 class PluginManager:
@@ -35,6 +37,7 @@ class PluginManager:
 
         self.plugins |= self.get_local_plugins()
         self.plugins |= self.get_user_plugins()
+        LOG.debug(f"Found plugins: {self.plugins}")
 
     def iter_namespace(self, ns_pkg) -> Iterator[pkgutil.ModuleInfo]:
         return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
@@ -52,7 +55,9 @@ class PluginManager:
     def load_plugins(self) -> None:
         """Initialize the registered plugins"""
 
+        LOG.debug("Initializing plugins")
         for plugin_name in self.plugins:
+            LOG.debug(f"Initializing {plugin_name}")
             plugin = self.import_plugin(plugin_name)
             plugin.initialize()
 

@@ -1,6 +1,4 @@
 from .analyzer_controls import AnalyzerControls
-from .collapsible_section import CollapsibleSection
-from .collapsible_widget import CollapsibleWidget
 from .controls_area import ControlsArea
 from .custom_dock_label import CustomDockLabel
 from .experiment_controls import ExperimentControls

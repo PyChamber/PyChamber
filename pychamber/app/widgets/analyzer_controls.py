@@ -10,23 +10,17 @@ import itertools
 from operator import setitem
 
 import pyvisa
-from qtpy.QtCore import Signal
+from qtpy.QtCore import QThreadPool, Signal
 from qtpy.QtWidgets import QMessageBox, QWidget
 from skrf.vi import vna
 
+from pychamber.app.logger import LOG
+from pychamber.app.task_runner import TaskRunner
 from pychamber.app.ui.analyzer_widget import Ui_AnalyzerWidget
 from pychamber.settings import CONF
 
-from .collapsible_widget import CollapsibleWidget
 
-
-class AnalyzerWidget(QWidget, Ui_AnalyzerWidget):
-    def __init__(self, parent: QWidget = None) -> None:
-        super().__init__(parent)
-        self.setupUi(self)
-
-
-class AnalyzerControls(CollapsibleWidget):
+class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
     # _analyzer_constructur_fns is defined as
     # {
     #     '<manufacturer>': {
@@ -45,106 +39,130 @@ class AnalyzerControls(CollapsibleWidget):
     analyzerDisonnected = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent, name="Analyzer")
+        super().__init__(parent)
 
         self.analyzer: vna.VNA | None = None
 
-        self.setupUi()
-        self.postvisible_setup()
-        self.connect_signals()
-
-    def setupUi(self) -> None:
-        self.widget: AnalyzerWidget = AnalyzerWidget(self)
-        self.addWidget(self.widget)
-        self.recalculateSize()
+        LOG.debug("Setting up UI")
+        self.setupUi(self)
 
     def connect_signals(self) -> None:
-        self.widget.connect_btn.clicked.connect(self.on_connect_btn_clicked)
-        self.widget.disconnect_btn.clicked.connect(self.on_disconnect_btn_clicked)
+        LOG.debug("Connecting signals")
+        self.connect_btn.clicked.connect(self.on_connect_btn_clicked)
+        self.disconnect_btn.clicked.connect(self.on_disconnect_btn_clicked)
 
-        self.widget.model_cb.currentTextChanged.connect(functools.partial(setitem, CONF, "analyzer_model"))
-        self.widget.address_cb.currentTextChanged.connect(functools.partial(setitem, CONF, "analyzer_address"))
+        self.model_cb.currentTextChanged.connect(functools.partial(setitem, CONF, "analyzer_model"))
+        self.address_cb.currentTextChanged.connect(functools.partial(setitem, CONF, "analyzer_address"))
 
-        self.widget.freq_start_le.editingFinished.connect(self.on_freq_start_changed)
-        self.widget.freq_stop_le.editingFinished.connect(self.on_freq_stop_changed)
-        self.widget.freq_step_le.editingFinished.connect(self.on_freq_step_changed)
-        self.widget.freq_n_points_le.editingFinished.connect(self.on_freq_n_points_changed)
-        self.widget.if_bw_le.editingFinished.connect(self.on_if_bw_changed)
-        self.widget.avg_toggle.toggled.connect(lambda state: self.on_avg_toggle_changed(state))
-        self.widget.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
+        self.freq_start_le.editingFinished.connect(self.on_freq_start_changed)
+        self.freq_stop_le.editingFinished.connect(self.on_freq_stop_changed)
+        self.freq_step_le.editingFinished.connect(self.on_freq_step_changed)
+        self.freq_n_points_le.editingFinished.connect(self.on_freq_n_points_changed)
+        self.if_bw_le.editingFinished.connect(self.on_if_bw_changed)
+        self.avg_toggle.toggled.connect(lambda state: self.on_avg_toggle_changed(state))
+        self.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
 
     def postvisible_setup(self) -> None:
+        LOG.debug("Registering widgets with settings")
         widget_map = {
             # TODO: Make settings handle CategoryComboBox maybe?
-            "analyzer_address": (self.widget.address_cb, "", str),
+            "analyzer_address": (self.address_cb, "", str),
             "visalib": (None, "@py", str),
         }
         CONF.register_widgets(widget_map)
 
-        self.widget.disconnect_btn.hide()
-        self.widget.freq_gb.setEnabled(False)
+        self.disconnect_btn.hide()
+        self.freq_gb.setEnabled(False)
 
+        LOG.debug("Populating model combobox")
         self.add_models()
-        self.widget.address_cb.addItems(self.available_addresses)
+
+        # This function calls sleep making start-up SLOW
+        # So we move it into a thread to allow the GUI to be shown
+        # as early as possible
+        def get_addrs():
+            backend = CONF["visalib"]
+            LOG.debug(f"VISA backend: {backend}")
+            rm = pyvisa.ResourceManager(backend)
+            available = rm.list_resources()
+            rm.close()
+            return list(available)
+
+        addr_updater = TaskRunner(get_addrs)
+        addr_updater.signals.gotResult.connect(self.address_cb.addItems)
+        QThreadPool.globalInstance().start(addr_updater)
 
     def on_connect_btn_clicked(self) -> None:
-        if self.widget.model_cb.currentText() == "":
+        LOG.info("Attempting to connect to analyzer")
+        if self.model_cb.currentText() == "":
             QMessageBox.information(self, "No Model Specified", "Must select a model before attempting to connect")
             return
-        if self.widget.address_cb.currentText() == "":
+        if self.address_cb.currentText() == "":
             QMessageBox.information(self, "No Address Specified", "Must select an address before attempting to connect")
             return
 
         try:
-            model = self.widget.model_cb.currentData()
-            address = self.widget.address_cb.currentText()
+            model = self.model_cb.currentData()
+            address = self.address_cb.currentText()
             self.analyzer = model(address, backend=CONF["visalib"])
         except Exception as e:
+            LOG.error(f"Failed to connect to analyzer: {e}")
             QMessageBox.critical(self, "Connection Error", "Failed to connect to analyzer")
-            print(e)
             return
 
-        self.widget.connect_btn.hide()
-        self.widget.disconnect_btn.show()
-        self.widget.freq_gb.setEnabled(True)
-        for widget in self.widget.freq_gb.children():
+        self.connect_btn.hide()
+        self.disconnect_btn.show()
+        self.model_cb.setEnabled(False)
+        self.address_cb.setEnabled(False)
+        self.freq_gb.setEnabled(True)
+        for widget in self.freq_gb.children():
             widget.blockSignals(True)
         self.init_widgets()
-        for widget in self.widget.freq_gb.children():
+        for widget in self.freq_gb.children():
             widget.blockSignals(False)
         self.analyzerConnected.emit()
 
     def on_disconnect_btn_clicked(self) -> None:
+        LOG.info("Disconnecting analyzer")
         self.analyzer = None
-        self.widget.connect_btn.hide()
-        self.widget.disconnect_btn.show()
-        self.widget.freq_gb.setEnabled(False)
+        self.connect_btn.hide()
+        self.disconnect_btn.show()
+        self.freq_gb.setEnabled(False)
+        self.model_cb.setEnabled(True)
+        self.address_cb.setEnabled(True)
         self.analyzerDisonnected.emit()
 
     def on_freq_start_changed(self) -> None:
-        freq = self.widget.freq_start_le.text()
+        freq = self.freq_start_le.text()
+        LOG.debug(f"Changing frequency start: {freq}")
         self.analyzer.ch1.freq_start = freq
 
     def on_freq_stop_changed(self) -> None:
-        freq = self.widget.freq_stop_le.text()
+        freq = self.freq_stop_le.text()
+        LOG.debug(f"Changing frequency stop: {freq}")
         self.analyzer.ch1.freq_stop = freq
 
     def on_freq_step_changed(self) -> None:
-        freq = self.widget.freq_step_le.text()
+        freq = self.freq_step_le.text()
+        LOG.debug(f"Changing frequency step: {freq}")
         self.analyzer.ch1.freq_step = freq
 
     def on_freq_n_points_changed(self) -> None:
-        npoints = int(self.widget.freq_n_points_le.text())
+        npoints = int(self.freq_n_points_le.text())
+        LOG.debug(f"Changing frequency points: {npoints}")
         self.analyzer.ch1.npoints = npoints
 
     def on_if_bw_changed(self) -> None:
-        freq = self.widget.if_bw_le.text()
+        freq = self.if_bw_le.text()
+        LOG.debug(f"Changing IF bandwidth: {freq}")
         self.analyzer.ch1.if_bandwidth = freq
 
     def on_avg_toggle_changed(self, state: bool) -> None:
+        LOG.debug(f"Toggling averaging: {state}")
         self.analyzer.ch1.averaging_on = state
 
     def on_n_avgs_changed(self, n: int) -> None:
+        LOG.debug(f"Changing number of averages: {n}")
         self.analyzer.ch1.averaging_count = n
 
     @property
@@ -154,6 +172,7 @@ class AnalyzerControls(CollapsibleWidget):
     @property
     def available_addresses(self) -> list[str]:
         backend = CONF["visalib"]
+        LOG.debug(f"VISA backend: {backend}")
         rm = pyvisa.ResourceManager(backend)
         available = rm.list_resources()
         rm.close()
@@ -170,11 +189,11 @@ class AnalyzerControls(CollapsibleWidget):
 
     def add_models(self) -> None:
         for manufacturer, models in self.available_analyzer_models.items():
-            self.widget.model_cb.add_parent(manufacturer)
+            self.model_cb.add_parent(manufacturer)
             for model, fn in models.items():
-                self.widget.model_cb.add_child(model, fn)
+                self.model_cb.add_child(model, fn)
 
-        self.widget.model_cb.setCurrentIndex(1)  # index 0 will be a category which we don't want to be selectable
+        self.model_cb.setCurrentIndex(1)  # index 0 will be a category which we don't want to be selectable
 
     def init_widgets(self) -> None:
         # TODO: For scikit-rf. Figure out how to make ch1 default
@@ -186,29 +205,29 @@ class AnalyzerControls(CollapsibleWidget):
         avg_on = self.analyzer.ch1.averaging_on
 
         to_block = [
-            self.widget.freq_start_le,
-            self.widget.freq_stop_le,
-            self.widget.freq_step_le,
-            self.widget.freq_n_points_le,
-            self.widget.if_bw_le,
-            self.widget.avg_toggle,
-            self.widget.n_avgs_sb,
+            self.freq_start_le,
+            self.freq_stop_le,
+            self.freq_step_le,
+            self.freq_n_points_le,
+            self.if_bw_le,
+            self.avg_toggle,
+            self.n_avgs_sb,
         ]
 
         for widget in to_block:
             widget.blockSignals(True)
 
-        self.widget.freq_start_le.setText(str(freq_start))
-        self.widget.freq_stop_le.setText(str(freq_stop))
-        self.widget.freq_step_le.setText(str(freq_step))
-        self.widget.freq_n_points_le.setText(str(npoints))
-        self.widget.if_bw_le.setText(str(if_bw))
-        self.widget.avg_toggle.setChecked(avg_on)
+        self.freq_start_le.setText(str(freq_start))
+        self.freq_stop_le.setText(str(freq_stop))
+        self.freq_step_le.setText(str(freq_step))
+        self.freq_n_points_le.setText(str(npoints))
+        self.if_bw_le.setText(str(if_bw))
+        self.avg_toggle.setChecked(avg_on)
 
         if avg_on:
-            self.widget.avg_toggle.handle_position = 1
+            self.avg_toggle.handle_position = 1
             n_avgs = self.analyzer.ch1.averaging_count
-            self.widget.n_avgs_sb.setValue(n_avgs)
+            self.n_avgs_sb.setValue(n_avgs)
 
         for widget in to_block:
             widget.blockSignals(False)

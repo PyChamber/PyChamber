@@ -16,6 +16,8 @@ class SettingsManager(QObject):
         "QSpinBox": ("value", "setValue"),
         "QDoubleSpinBox": ("value", "setValue"),
         "QLineEdit": ("text", "setText"),
+        "QCheckBox": ("isChecked", "setChecked"),
+        "Toggle": ("isChecked", "setChecked"),
     }
 
     def __init__(self, parent: QObject | None = None) -> None:

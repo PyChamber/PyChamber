@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'analyzer_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.2
+## Created by: Qt User Interface Compiler version 6.4.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -177,6 +177,8 @@ class Ui_AnalyzerWidget(object):
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.n_avgs_sb.sizePolicy().hasHeightForWidth())
         self.n_avgs_sb.setSizePolicy(sizePolicy3)
+        self.n_avgs_sb.setMinimum(1)
+        self.n_avgs_sb.setMaximum(100)
 
         self.horizontalLayout_3.addWidget(self.n_avgs_sb)
 

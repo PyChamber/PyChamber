@@ -210,7 +210,17 @@ Connectors used&lt;/li&gt;
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="pol1_cb"/>
+       <widget class="QComboBox" name="pol1_cb">
+        <property name="minimumSize">
+         <size>
+          <width>75</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::AdjustToContents</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -234,7 +244,17 @@ Connectors used&lt;/li&gt;
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="pol2_cb"/>
+       <widget class="QComboBox" name="pol2_cb">
+        <property name="minimumSize">
+         <size>
+          <width>75</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::AdjustToContents</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>

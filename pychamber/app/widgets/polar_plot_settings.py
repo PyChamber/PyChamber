@@ -16,6 +16,7 @@ from qtpy.QtCore import QThreadPool, Signal
 from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
+from pychamber.app.logger import LOG
 from pychamber.app.task_runner import TaskRunner
 
 from ..ui.polar_plot_settings import Ui_PolarPlotSettings
@@ -36,6 +37,7 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        LOG.debug("Creating polar trace settings")
         self.setupUi(self)
 
         self.plot_item = plot_item
@@ -50,6 +52,7 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
         self.on_new_data()
 
     def connect_signals(self):
+        LOG.debug("Connecting signals")
         self.trace_color_btn.sigColorChanged.connect(self.on_pen_settings_changed)
         self.trace_width_dsb.valueChanged.connect(self.on_pen_settings_changed)
         self.freq_le.editingFinished.connect(self.on_new_data)
@@ -88,6 +91,7 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
         return (ang_data, r_data)
 
     def on_get_data_result(self, result: tuple[np.ndarray, np.ndarray] | None):
+        LOG.debug("Data retrived. Updating plot")
         if result is None:
             return
 
@@ -96,6 +100,7 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
         self.requestRedraw.emit(self.plot_item)
 
     def on_new_data(self):
+        LOG.debug("Got new data")
         if self.data is None:
             return
         if len(self.data) == 0:
@@ -161,6 +166,7 @@ class PolarPlotSettings(QWidget, Ui_PolarPlotSettings):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        LOG.debug("Creating polar plot settings")
         self.setupUi(self)
 
         self.postvisible_setup()
@@ -188,6 +194,7 @@ class PolarPlotWidget(PlotWidget):
     def __init__(self, data: ExperimentResult, title: str, parent: QWidget | None = None) -> None:
         plot = PolarPlot()
         controls = PolarPlotSettings()
+        LOG.debug("Creating polar plot widget")
         super().__init__(plot=plot, controls=controls, data=data, title=title, parent=parent)
 
         self.plot.setTitle(title)
@@ -197,6 +204,7 @@ class PolarPlotWidget(PlotWidget):
         self.postvisible_setup()
 
     def connect_signals(self) -> None:
+        LOG.debug("Connecting signals")
         self.controls.title_le.textChanged.connect(self.titleChanged.emit)
         self.controls.title_le.textChanged.connect(self.plot.setTitle)
         self.controls.add_trace_btn.pressed.connect(self.on_add_trace_btn_pressed)
@@ -220,6 +228,7 @@ class PolarPlotWidget(PlotWidget):
 
     @data.setter
     def data(self, result: ExperimentResult):
+        LOG.debug("Setting data")
         self._data = result
         for trace in self._traces:
             trace.data = self._data
@@ -255,6 +264,7 @@ class PolarPlotWidget(PlotWidget):
             self.plot.set_r_range(r_min, r_max, r_step)
 
     def on_remove_trace_btn_pressed(self, tr: PolarTraceSettings) -> None:
+        LOG.debug("Removing trace")
         self.plot.removeTrace(tr.plot_item)
         self.controls.layout().removeWidget(tr)
         self._traces.remove(tr)
@@ -264,6 +274,7 @@ class PolarPlotWidget(PlotWidget):
             self.controls.add_trace_btn.show()
 
     def on_add_trace_btn_pressed(self) -> None:
+        LOG.debug("Adding trace")
         plot_item = self.plot.plot()
         initial_ang_param = self.controls.ang_var_cb.currentData()[0]
         initial_r_func = self.controls.r_var_cb.currentData()[0]

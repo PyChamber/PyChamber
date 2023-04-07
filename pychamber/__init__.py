@@ -1,4 +1,4 @@
-from . import positioner
+from . import plugins, positioner
 from .calibration import Calibration
 from .experiment_result import ExperimentResult
 

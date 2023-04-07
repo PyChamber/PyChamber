@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 import time
 
@@ -6,6 +8,14 @@ from qtpy.QtWidgets import QWidget
 
 from pychamber.positioner import Postioner
 from pychamber.settings import CONF
+
+from .example_positioner_widget import Ui_ExamplePositionerWidget
+
+
+class ExamplePositionerWidget(QWidget, Ui_ExamplePositionerWidget):
+    def __init__(self, positioner: ExamplePositioner, parent: QWidget | None = None) -> None:
+        super().__init__(parent=parent)
+        self.setupUi(self)
 
 
 class ExamplePositioner(Postioner):
@@ -31,8 +41,8 @@ class ExamplePositioner(Postioner):
 
         self.test_connection()
 
-    def create_widget(self, parent: QWidget | None = None) -> QWidget | None:
-        return None
+    def create_widget(self) -> QWidget | None:
+        return ExamplePositionerWidget(self)
 
     @property
     def manufacturer(self) -> str:
@@ -97,4 +107,5 @@ class ExamplePositioner(Postioner):
         self._theta += angle
         CONF["example_positioner_theta"] = self._theta
         time.sleep(abs(angle) * self._msecs_per_deg / 1000)
+        self.jogCompleted.emit()
         self.jogCompleted.emit()

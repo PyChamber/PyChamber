@@ -10,6 +10,7 @@ import pyqtgraph as pg
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QDialog, QTableWidgetItem
 
+from pychamber.app.logger import LOG
 from pychamber.app.ui.cal_view_dlg import Ui_CalViewDialog
 from pychamber.calibration import Calibration
 
@@ -17,6 +18,7 @@ from pychamber.calibration import Calibration
 class CalViewDialog(QDialog, Ui_CalViewDialog):
     def __init__(self, calibration: Calibration, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        LOG.debug("Launching calibration view dialog")
         self.setupUi(self)
 
         self.cal = calibration
@@ -35,10 +37,12 @@ class CalViewDialog(QDialog, Ui_CalViewDialog):
         self.update_notes()
 
     def plot_polarizations(self) -> None:
+        LOG.debug("Plotting polarizations")
         for i, pol in enumerate(self.cal.networks):
             self.cal_plot.plot(pol.f, -1 * pol.s_db.flatten(), pen=self.pens[i], name=pol.name)
 
     def update_table(self) -> None:
+        LOG.debug("Updating table")
         s_dbs = np.array([ntwk.s_db for ntwk in self.cal.networks])
         s_dbs = s_dbs.reshape((len(s_dbs), -1))
         vals = np.vstack((self.cal.frequency.f, s_dbs)).T
@@ -53,5 +57,6 @@ class CalViewDialog(QDialog, Ui_CalViewDialog):
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
 
     def update_notes(self) -> None:
+        LOG.debug("Updating notes")
         self.notes_pte.setPlainText(self.cal.notes)
         self.notes_pte.setReadOnly(True)

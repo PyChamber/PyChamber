@@ -39,8 +39,8 @@ class Diamond_D6050(Postioner):
     _serial_baudrate = 57600
     _serial_timeout = 1
 
-    _phi_steps_per_deg = 800
-    _theta_steps_per_deg = 320
+    _phi_steps_per_deg = 320
+    _theta_steps_per_deg = 800
 
     _x = "X0"
     _y = "Y0"
@@ -80,14 +80,21 @@ class Diamond_D6050(Postioner):
             port=serial_port, baudrate=self._serial_baudrate, timeout=self._serial_timeout
         )
 
+        stored_phi = CONF["diamond_d6050_phi"]
+        if stored_phi is None:
+            CONF["diamond_d6050_phi"] = 0
+        stored_theta = CONF["diamond_d6050_theta"]
+        if stored_theta is None:
+            CONF["diamond_d6050_theta"] = 0
+
         self._phi = float(CONF["diamond_d6050_phi"])
         self._theta = float(CONF["diamond_d6050_theta"])
 
         self.test_connection()
         self.reset()
 
-    def create_widget(self, parent: QWidget | None = None) -> QWidget | None:
-        return Diamond_D6050Widget(self, parent)
+    def create_widget(self) -> QWidget | None:
+        return Diamond_D6050Widget(self)
 
     @property
     def phi(self) -> float:
@@ -144,7 +151,7 @@ class Diamond_D6050(Postioner):
         if math.isclose(angle, 0.0):
             self.jogCompleted.emit()
             return
-        steps = -int(self._phi_steps_per_deg * angle)
+        steps = int(self._phi_steps_per_deg * angle)
         self.move(self._phi_axis, f"{steps:+}")
         self._phi += angle
         CONF["diamond_d6050_phi"] = self._phi
@@ -159,7 +166,7 @@ class Diamond_D6050(Postioner):
         if math.isclose(angle, 0.0):
             self.jogCompleted.emit()
             return
-        steps = int(self._theta_steps_per_deg * angle)
+        steps = -int(self._theta_steps_per_deg * angle)
         self.move(self._theta_axis, f"{steps:+}")
         self._theta += angle
         CONF["diamond_d6050_theta"] = self._theta

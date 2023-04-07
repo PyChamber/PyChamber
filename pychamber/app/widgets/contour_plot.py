@@ -105,8 +105,8 @@ class ContourPlot(pg.PlotWidget):
 
         self.setRange(xRange=(0, len(x)), yRange=(0, len(y)), padding=0.05)
 
-        x_step = round(len(x) / ((np.amax(x) - np.amin(x)) / self.x_tick_spacing))
-        y_step = round(len(y) / ((np.amax(y) - np.amin(y)) / self.y_tick_spacing))
+        x_step = round(len(x) / ((np.nanmax(x) - np.nanmin(x)) / self.x_tick_spacing))
+        y_step = round(len(y) / ((np.nanmax(y) - np.nanmin(y)) / self.y_tick_spacing))
         x_ticks = {k + 0.5: str(v) for k, v in itertools.islice(enumerate(x), 0, None, x_step)}
         y_ticks = {k + 0.5: str(v) for k, v in itertools.islice(enumerate(y), 0, None, y_step)}
 

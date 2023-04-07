@@ -16,12 +16,13 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QApplication, QGroupBox, QHBoxLayout, QLabel,
-    QLineEdit, QMainWindow, QMenu, QMenuBar,
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFrame, QGroupBox,
+    QHBoxLayout, QLabel, QLineEdit, QListWidget,
+    QListWidgetItem, QMainWindow, QMenu, QMenuBar,
     QProgressBar, QPushButton, QSizePolicy, QSpacerItem,
     QSplitter, QStatusBar, QVBoxLayout, QWidget)
 
-from pychamber.app.widgets import (ControlsArea, PlotWidget)
+from pychamber.app.widgets import (ControlsArea, PlotDockWidget)
 from  . import resources_rc
 
 class Ui_MainWindow(object):
@@ -33,8 +34,6 @@ class Ui_MainWindow(object):
         self.save_action.setObjectName(u"save_action")
         self.load_action = QAction(MainWindow)
         self.load_action.setObjectName(u"load_action")
-        self.export_action = QAction(MainWindow)
-        self.export_action.setObjectName(u"export_action")
         self.exit_action = QAction(MainWindow)
         self.exit_action.setObjectName(u"exit_action")
         self.view_logs_action = QAction(MainWindow)
@@ -104,24 +103,30 @@ class Ui_MainWindow(object):
         self.full_scan_btn = QPushButton(self.experiment_buttons)
         self.full_scan_btn.setObjectName(u"full_scan_btn")
         self.full_scan_btn.setEnabled(False)
+        font = QFont()
+        font.setPointSize(12)
+        self.full_scan_btn.setFont(font)
 
         self.verticalLayout_4.addWidget(self.full_scan_btn)
 
-        self.az_scan_btn = QPushButton(self.experiment_buttons)
-        self.az_scan_btn.setObjectName(u"az_scan_btn")
-        self.az_scan_btn.setEnabled(False)
+        self.phi_scan_btn = QPushButton(self.experiment_buttons)
+        self.phi_scan_btn.setObjectName(u"phi_scan_btn")
+        self.phi_scan_btn.setEnabled(False)
+        self.phi_scan_btn.setFont(font)
 
-        self.verticalLayout_4.addWidget(self.az_scan_btn)
+        self.verticalLayout_4.addWidget(self.phi_scan_btn)
 
-        self.el_scan_btn = QPushButton(self.experiment_buttons)
-        self.el_scan_btn.setObjectName(u"el_scan_btn")
-        self.el_scan_btn.setEnabled(False)
+        self.theta_scan_btn = QPushButton(self.experiment_buttons)
+        self.theta_scan_btn.setObjectName(u"theta_scan_btn")
+        self.theta_scan_btn.setEnabled(False)
+        self.theta_scan_btn.setFont(font)
 
-        self.verticalLayout_4.addWidget(self.el_scan_btn)
+        self.verticalLayout_4.addWidget(self.theta_scan_btn)
 
         self.abort_btn = QPushButton(self.experiment_buttons)
         self.abort_btn.setObjectName(u"abort_btn")
         self.abort_btn.setEnabled(False)
+        self.abort_btn.setFont(font)
         self.abort_btn.setAutoFillBackground(False)
         self.abort_btn.setStyleSheet(u"background-color: rgb(237, 51, 59)")
 
@@ -208,15 +213,47 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addWidget(self.controls_area)
 
+        self.results_widget = QWidget(self.left_pane)
+        self.results_widget.setObjectName(u"results_widget")
+        self.results_widget.setMaximumSize(QSize(16777215, 150))
+        self.verticalLayout_8 = QVBoxLayout(self.results_widget)
+        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
+        self.results_gb = QGroupBox(self.results_widget)
+        self.results_gb.setObjectName(u"results_gb")
+        self.results_gb.setStyleSheet(u"QGroupBox {border: 2px groove #54687A;}\n"
+"QGroupBox::title {subcontrol-origin: margin; left: 20px;}")
+        self.verticalLayout_7 = QVBoxLayout(self.results_gb)
+        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
+        self.verticalLayout_7.setContentsMargins(6, 6, 6, 6)
+        self.results = QListWidget(self.results_gb)
+        self.results.setObjectName(u"results")
+        self.results.setStyleSheet(u"border: none;")
+        self.results.setFrameShape(QFrame.NoFrame)
+        self.results.setFrameShadow(QFrame.Plain)
+        self.results.setLineWidth(0)
+        self.results.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.results.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.results.setIconSize(QSize(12, 12))
+        self.results.setSelectionRectVisible(True)
+
+        self.verticalLayout_7.addWidget(self.results)
+
+
+        self.verticalLayout_8.addWidget(self.results_gb)
+
+
+        self.verticalLayout_5.addWidget(self.results_widget)
+
+        self.verticalLayout_5.setStretch(2, 1)
         self.splitter.addWidget(self.left_pane)
-        self.plot_widget = PlotWidget(self.splitter)
-        self.plot_widget.setObjectName(u"plot_widget")
+        self.plot_dock_widget = PlotDockWidget(self.splitter)
+        self.plot_dock_widget.setObjectName(u"plot_dock_widget")
         sizePolicy4 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         sizePolicy4.setHorizontalStretch(1)
         sizePolicy4.setVerticalStretch(0)
-        sizePolicy4.setHeightForWidth(self.plot_widget.sizePolicy().hasHeightForWidth())
-        self.plot_widget.setSizePolicy(sizePolicy4)
-        self.splitter.addWidget(self.plot_widget)
+        sizePolicy4.setHeightForWidth(self.plot_dock_widget.sizePolicy().hasHeightForWidth())
+        self.plot_dock_widget.setSizePolicy(sizePolicy4)
+        self.splitter.addWidget(self.plot_dock_widget)
 
         self.verticalLayout_6.addWidget(self.splitter)
 
@@ -240,7 +277,6 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.save_action)
         self.menuFile.addAction(self.load_action)
-        self.menuFile.addAction(self.export_action)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.exit_action)
         self.menuHelp.addAction(self.view_logs_action)
@@ -254,17 +290,17 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
         self.save_action.setText(QCoreApplication.translate("MainWindow", u"Save", None))
         self.load_action.setText(QCoreApplication.translate("MainWindow", u"Load", None))
-        self.export_action.setText(QCoreApplication.translate("MainWindow", u"Export", None))
         self.exit_action.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.view_logs_action.setText(QCoreApplication.translate("MainWindow", u"View Logs", None))
         self.label.setText("")
         self.full_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Full Scan", None))
-        self.az_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Azimuth", None))
-        self.el_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Elevation", None))
+        self.phi_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Phi", None))
+        self.theta_scan_btn.setText(QCoreApplication.translate("MainWindow", u"Scan Theta", None))
         self.abort_btn.setText(QCoreApplication.translate("MainWindow", u"Abort", None))
         self.total_progress_gb.setTitle(QCoreApplication.translate("MainWindow", u"Total Progress", None))
         self.cut_progress_gb.setTitle(QCoreApplication.translate("MainWindow", u"Cut Progress", None))
         self.time_remaining_gb.setTitle(QCoreApplication.translate("MainWindow", u"Time Remaining", None))
+        self.results_gb.setTitle(QCoreApplication.translate("MainWindow", u"Results", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuTools.setTitle(QCoreApplication.translate("MainWindow", u"Tools", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))

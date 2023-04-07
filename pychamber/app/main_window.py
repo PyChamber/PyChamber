@@ -11,22 +11,14 @@ import pathlib
 
 import numpy as np
 import qdarkstyle
+import qtawesome as qta
 import skrf
-from qtpy.QtCore import QThread, QTimer
+from qtpy.QtCore import Qt, QThread
 from qtpy.QtGui import QCloseEvent
-from qtpy.QtWidgets import (
-    QApplication,
-    QDialog,
-    QFileDialog,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QVBoxLayout,
-)
+from qtpy.QtWidgets import QApplication, QFileDialog, QListWidgetItem, QMainWindow, QMessageBox
 
 from pychamber import ExperimentResult
+from pychamber.app.logger import LOG
 from pychamber.app.objects import ExperimentWorker
 from pychamber.app.ui.mainwindow import Ui_MainWindow
 from pychamber.app.widgets import LogDialog
@@ -37,67 +29,58 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self) -> None:
         super().__init__()
 
+        LOG.debug("Constructing MainWindow")
         self.app = QApplication.instance()
         self.log_dialog = LogDialog()
-        self.results: list[ExperimentResult] = []
         self.active_result: ExperimentResult | None = None
         self.saved = []
-        self.thread = QThread()
+        self._results = []
+        self._thread = QThread()
 
         self.apply_theme(CONF["theme"])
 
+        LOG.debug("Setting up MainWindow UI")
         self.setupUi(self)
+        self.results_widget.hide()
         self.connect_signals()
-        self.post_visible_setup()
-
-        # TESTING
-        test_dlg = QDialog(self)
-        layout = QVBoxLayout(test_dlg)
-        hlayout = QHBoxLayout()
-        phi_label = QLabel("Phi: ")
-        self.current_phi = QLabel("")
-        theta_label = QLabel("Theta: ")
-        self.current_theta = QLabel("")
-        hlayout.addWidget(phi_label)
-        hlayout.addWidget(self.current_phi)
-        hlayout.addWidget(theta_label)
-        hlayout.addWidget(self.current_theta)
-        self.status_label = QLabel("Not Running")
-        test_scan_btn = QPushButton("Run Test Scan")
-        test_scan_btn.pressed.connect(self.run_test_scan)
-        self.stop_test_btn = QPushButton("Stop Scan")
-        layout.addWidget(self.status_label)
-        layout.addLayout(hlayout)
-        layout.addWidget(test_scan_btn)
-        layout.addWidget(self.stop_test_btn)
-        test_dlg.show()
 
     def post_visible_setup(self):
+        LOG.debug("Running post visible tasks")
+
         self.total_progress_gb.hide()
         self.cut_progress_gb.hide()
         self.time_remaining_gb.hide()
 
+        LOG.debug("Updating widgets with persistent settings")
         CONF.update_widgets_from_settings()
 
+        for widget in [self.experiment_controls, self.analyzer_controls, self.positioner_controls]:
+            widget.postvisible_setup()
+            widget.connect_signals()
+
     def connect_signals(self):
+        LOG.debug("Connecting signals")
         self.save_action.triggered.connect(self.on_save_action_triggered)
         self.load_action.triggered.connect(self.on_load_action_triggered)
         self.view_logs_action.triggered.connect(self.on_view_logs_action_triggered)
 
         self.exit_action.triggered.connect(self.close)
 
-        self.controls_area.analyzer_controls.analyzerConnected.connect(self.on_analyzer_connected)
-        self.controls_area.analyzer_controls.analyzerDisonnected.connect(self.on_analyzer_disconnected)
-        self.controls_area.positioner_controls.positionerConnected.connect(self.on_positioner_connected)
-        self.controls_area.positioner_controls.positionerDisonnected.connect(self.on_positioner_disconnected)
+        self.analyzer_controls.analyzerConnected.connect(self.on_analyzer_connected)
+        self.analyzer_controls.analyzerDisonnected.connect(self.on_analyzer_disconnected)
+        self.positioner_controls.positionerConnected.connect(self.on_positioner_connected)
+        self.positioner_controls.positionerDisonnected.connect(self.on_positioner_disconnected)
 
-        self.az_scan_btn.pressed.connect(self.on_az_scan_btn_pressed)
-        self.el_scan_btn.pressed.connect(self.on_el_scan_btn_pressed)
+        self.phi_scan_btn.pressed.connect(self.on_phi_scan_btn_pressed)
+        self.theta_scan_btn.pressed.connect(self.on_theta_scan_btn_pressed)
         self.full_scan_btn.pressed.connect(self.on_full_scan_btn_pressed)
         self.abort_btn.pressed.connect(self.on_abort_btn_pressed)
 
+        self.results.model().rowsInserted.connect(self.on_results_rows_changed)
+        self.results.currentItemChanged.connect(self.on_current_result_changed)
+
     def closeEvent(self, event: QCloseEvent) -> None:
-        if len(self.saved) < len(self.results):
+        if len(self.saved) < self.results.count():
             quit_dlg = QMessageBox.warning(
                 self,
                 "Are you sure?",
@@ -106,14 +89,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QMessageBox.StandardButton.Ok,
             )
             if quit_dlg == QMessageBox.Ok:
-                if self.thread.isRunning():
-                    self.thread.quit()
-                    self.thread.wait()
+                if self._thread.isRunning():
+                    self._thread.quit()
+                    self._thread.wait()
                 return super().closeEvent(event)
             else:
                 event.ignore()
                 return
 
+        LOG.info("Closing PyChamber")
         return super().closeEvent(event)
 
     def on_save_action_triggered(self):
@@ -130,8 +114,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         path = pathlib.Path(fname).with_suffix(".mdif")
+        LOG.debug(f"Saving to {path}")
         self.active_result.save(path)
-        self.saved.append(self.active_result)
+        self.saved.append(self.active_result.uuid)
+        self.update_results_rows()
 
     def on_load_action_triggered(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Load Result", filter="Result File (*.mdif)")
@@ -139,56 +125,125 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         path = pathlib.Path(fname)
-        self.active_result = ExperimentResult.load(path)
-        self.results.append(self.active_result)
-        self.saved.append(self.active_result)
-        self.plot_dock_widget.results = self.active_result
+        result = ExperimentResult.load(path)
+        LOG.info(f"Loaded result with uuid: {result.uuid}")
+        if result.uuid in self.saved:
+            return
+        self.active_result = result
+        self._results.append(result)
+        self.saved.append(result.uuid)
+        self.plot_dock_widget.results = result
+
+        item = QListWidgetItem(self.results)
+        item.setData(Qt.UserRole, result.uuid)
+        item.setText(result.created)
+        self.results.setCurrentItem(item)
+        self.update_results_rows()
 
     def on_view_logs_action_triggered(self):
         self.log_dialog.show()
 
+    def on_results_rows_changed(self):
+        if self.results.count() == 0:
+            LOG.debug("No results. Hiding widget")
+            self.results_widget.hide()
+            return
+
+        self.results_widget.show()
+
+    def on_current_result_changed(self, item: QListWidgetItem):
+        LOG.debug("Changing active result")
+        result = None
+        for res in self._results:
+            if res.uuid == item.data(Qt.UserRole):
+                result = res
+                break
+        self.plot_dock_widget.results = result
+
     def on_analyzer_connected(self):
-        if self.controls_area.positioner_controls.positioner is not None:
+        LOG.info("Analyzer connected")
+        if self.positioner is not None:
             self.set_scan_btns_enabled(True)
 
         self.set_pol_params()
 
     def on_analyzer_disconnected(self):
+        LOG.info("Analyzer disconnected")
         self.set_scan_btns_enabled(False)
 
     def on_positioner_connected(self):
-        if self.controls_area.analyzer_controls.analyzer is not None:
+        LOG.info("Positioner connected")
+        if self.analyzer is not None:
             self.set_scan_btns_enabled(True)
+        self.positioner.jogStarted.connect(lambda: self.set_scan_btns_enabled(False))
+        self.positioner.jogCompleted.connect(lambda: self.set_scan_btns_enabled(True))
 
     def on_positioner_disconnected(self):
+        LOG.info("Positioner disconnected")
         self.set_scan_btns_enabled(False)
 
     def on_abort_btn_pressed(self) -> None:
-        if self.thread.isRunning():
-            self.thread.requestInterruption()
+        LOG.warning("Abort pressed")
+        if self._thread.isRunning():
+            self._thread.requestInterruption()
 
-    def on_az_scan_btn_pressed(self) -> None:
-        start = CONF["az_start"]
-        stop = CONF["az_stop"]
-        step = CONF["az_step"]
-        azs = np.arange(start, stop + step, step)
-        els = np.array([self.positioner.theta])
+    def on_phi_scan_btn_pressed(self) -> None:
+        LOG.info("Scanning phi")
+        start = CONF["phi_start"]
+        stop = CONF["phi_stop"]
+        step = CONF["phi_step"]
+        phis = np.arange(start, stop + step, step)
+        thetas = np.array([self.positioner.theta])
 
         self.total_progress_gb.show()
         self.cut_progress_gb.hide()
         self.time_remaining_gb.show()
 
-        self.total_progress_bar.setMaximum(len(azs))
+        self.total_progress_bar.setMaximum(len(phis))
         self.time_remaining_le.setText("00:00:00")
 
         pols = self.experiment_controls.polarizations
-        self.run_scan(azs, els, pols)
+        self.run_scan(phis, thetas, pols)
 
-    def on_el_scan_btn_pressed(self) -> None:
-        pass
+    def on_theta_scan_btn_pressed(self) -> None:
+        LOG.info("Scanning theta")
+        start = CONF["theta_start"]
+        stop = CONF["theta_stop"]
+        step = CONF["theta_step"]
+        phis = np.array([self.positioner.phi])
+        thetas = np.arange(start, stop + step, step)
+
+        self.total_progress_gb.show()
+        self.cut_progress_gb.hide()
+        self.time_remaining_gb.show()
+
+        self.total_progress_bar.setMaximum(len(thetas))
+        self.time_remaining_le.setText("00:00:00")
+
+        pols = self.experiment_controls.polarizations
+        self.run_scan(phis, thetas, pols)
 
     def on_full_scan_btn_pressed(self) -> None:
-        pass
+        LOG.info("Scanning full 3D")
+        phi_start = CONF["phi_start"]
+        phi_stop = CONF["phi_stop"]
+        phi_step = CONF["phi_step"]
+        theta_start = CONF["theta_start"]
+        theta_stop = CONF["theta_stop"]
+        theta_step = CONF["theta_step"]
+        phis = np.arange(phi_start, phi_stop + phi_step, phi_step)
+        thetas = np.arange(theta_start, theta_stop + theta_step, theta_step)
+
+        self.total_progress_gb.show()
+        self.cut_progress_gb.show()
+        self.time_remaining_gb.show()
+
+        self.total_progress_bar.setMaximum(len(phis) * len(thetas))
+        self.cut_progress_bar.setMaximum(len(phis))
+        self.time_remaining_le.setText("00:00:00")
+
+        pols = self.experiment_controls.polarizations
+        self.run_scan(phis, thetas, pols)
 
     def on_total_progress_updated(self, iters: int) -> None:
         self.total_progress_bar.setValue(iters)
@@ -204,6 +259,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.time_remaining_le.setText(time_str)
 
     def on_experiment_started(self) -> None:
+        LOG.debug("Experiment started. Setting up widgets")
         self.total_progress_bar.setValue(0)
         self.cut_progress_bar.setValue(0)
         self.set_controls_enabled(False)
@@ -211,22 +267,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.abort_btn.setEnabled(True)
 
     def on_experiment_finished(self) -> None:
+        LOG.debug("Experiment finished. Cleaning up")
         self.set_controls_enabled(True)
         self.set_scan_btns_enabled(True)
         self.abort_btn.setEnabled(False)
 
+    def update_results_rows(self):
+        for i in range(self.results.count()):
+            item = self.results.item(i)
+            uuid = item.data(Qt.UserRole)
+            item.setIcon(qta.icon("fa5s.exclamation", color="#ff6961") if uuid not in self.saved else qta.icon())
+
     def set_scan_btns_enabled(self, state: bool) -> None:
         self.full_scan_btn.setEnabled(state)
-        self.az_scan_btn.setEnabled(state)
-        self.el_scan_btn.setEnabled(state)
+        self.phi_scan_btn.setEnabled(state)
+        self.theta_scan_btn.setEnabled(state)
 
     def set_controls_enabled(self, state: bool) -> None:
-        self.experiment_controls.widget.setEnabled(state)
-        self.analyzer_controls.widget.setEnabled(state)
+        self.experiment_controls.setEnabled(state)
+        self.analyzer_controls.setEnabled(state)
         self.positioner_controls.enable_on_jog_completed = state
-        self.positioner_controls.widget.setEnabled(state)
+        self.positioner_controls.set_enabled(state)
 
     def apply_theme(self, theme: str | None) -> None:
+        LOG.debug(f"Applying '{theme}' theme")
         if theme is None:
             theme = "Light"
 
@@ -238,7 +302,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if theme == "Light":
             setConfigOptions(foreground="#54687a", background="#f5fbff")
         else:
-            setConfigOptions(foreground="#c2e3fa", background="#455364")
+            setConfigOptions(foreground="#c0caf5", background="#1a1b26")
 
     @property
     def analyzer(self) -> skrf.vi.VNA | None:
@@ -261,23 +325,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return self.controls_area.positioner_controls.positioner
 
     def set_pol_params(self) -> None:
-        params = self.controls_area.analyzer_controls.available_params
-        self.controls_area.experiment_controls.update_params(params)
+        params = self.analyzer_controls.available_params
+        self.experiment_controls.update_params(params)
 
     def run_scan(self, phis: np.ndarray, thetas: np.ndarray, polarizations: list[tuple[str, int, int]]) -> None:
+        LOG.info("Starting scan worker")
+        LOG.debug(f"polarizations: {polarizations}")
+        LOG.debug(f"thetas [{len(thetas)} pts, start: {thetas[0]}, stop:{thetas[-1]}]")
+        LOG.debug(f"phis [{len(phis)} pts, start: {phis[0]}, stop:{phis[-1]}]")
         freq = self.analyzer_controls.frequency
-        self.active_result = ExperimentResult(thetas, phis, [p[0] for p in polarizations], freq)
-        self.results.append(self.active_result)
-        self.plot_dock_widget.results = self.active_result
+        result = ExperimentResult(thetas, phis, [p[0] for p in polarizations], freq)
+        item = QListWidgetItem(self.results)
+        item.setData(Qt.UserRole, result.uuid)
+        item.setText(result.created)
+        self.results.setCurrentItem(item)
+        self.active_result = result
+        self.update_results_rows()
+        self._results.append(result)
 
         self.worker = ExperimentWorker(self.analyzer, self.positioner, phis, thetas, polarizations)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
+        self.worker.moveToThread(self._thread)
+        self._thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self._thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
 
         self.worker.started.connect(self.on_experiment_started)
-        self.worker.dataAcquired.connect(self.results.append)
+        self.worker.dataAcquired.connect(self.active_result.append)
         self.worker.totalIterCountUpdated.connect(self.on_total_progress_updated)
         self.worker.cutIterCountUpdated.connect(self.on_cut_progress_updated)
         self.worker.timeEstUpdated.connect(self.on_time_est_updated)
@@ -286,41 +359,4 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.finished.connect(self.time_remaining_gb.hide)
         self.worker.finished.connect(self.cut_progress_gb.hide)
 
-        self.thread.start()
-
-    def run_test_scan(self):
-        timer = QTimer(self)
-        timer.setInterval(100)
-        self.stop_test_btn.pressed.connect(timer.stop)
-        self.status_label.setText("Running")
-
-        thetas = np.arange(-180, 15, 15)
-        phis = np.arange(-180, 181, 15)
-        P, T = np.meshgrid(np.deg2rad(phis), np.deg2rad(thetas))
-        ntwk = np.abs(np.sinc(T))
-        index = iter(range(0, len(thetas) * len(phis)))
-        freq = skrf.Frequency(start=1_000_000, stop=3_000_000, npoints=11, unit="Hz")
-
-        self.active_result = ExperimentResult(thetas, phis, ["Horizontal"], freq)
-        self.results.append(self.active_result)
-        self.plot_dock_widget.results = self.active_result
-
-        def append_data():
-            try:
-                i = next(index)
-            except StopIteration:
-                self.status_label.setText("Finished")
-                timer.stop()
-                return
-            t, p = divmod(i, len(phis))
-            self.current_phi.setText(f"{phis[p]:.3g}")
-            self.current_theta.setText(f"{thetas[t]:.3g}")
-            val = skrf.Network()
-            val.frequency = freq.copy()
-            val.params = {"polarization": "Horizontal", "phi": phis[p], "theta": thetas[t]}
-            val.s = np.repeat(ntwk[t, p], 11).reshape((-1, 1, 1))
-
-            self.active_result.append(val)
-
-        timer.timeout.connect(append_data)
-        timer.start()
+        self._thread.start()
