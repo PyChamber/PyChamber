@@ -38,6 +38,7 @@ tox = "^3.25.1"
 pytest-mock = "^3.10.0"
 dummyserial = "^1.0.0"
 ruff = "^0.0.257"
+pyinstaller = "^5.9.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"

@@ -22,7 +22,7 @@ class Ui_LogDialog(object):
     def setupUi(self, LogDialog):
         if not LogDialog.objectName():
             LogDialog.setObjectName(u"LogDialog")
-        LogDialog.resize(400, 300)
+        LogDialog.resize(650, 400)
         self.verticalLayout = QVBoxLayout(LogDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.log_pte = QPlainTextEdit(LogDialog)
