@@ -19,7 +19,10 @@ class ControlsArea(QWidget):
         self.tree.setIndentation(0)
         self.tree.setAnimated(True)
         self.tree.setVerticalScrollMode(QTreeView.ScrollPerPixel)
-        self.tree.setStyleSheet("QTreeWidget {padding: 0px; border: 2px groove #54687A;}")
+        self.tree.setStyleSheet(
+            "QTreeWidget {padding: 0px; border: 2px groove #54687A;} "
+            "QTreeWidget::item { background-color: transparent; }"
+        )
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tree)
