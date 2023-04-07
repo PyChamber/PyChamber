@@ -39,7 +39,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.apply_theme(CONF["theme"])
 
-        LOG.debug("Setting up MainWindow UI")
         self.setupUi(self)
         self.results_widget.hide()
         self.connect_signals()
