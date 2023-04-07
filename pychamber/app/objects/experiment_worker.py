@@ -66,6 +66,7 @@ class ExperimentWorker(QObject):
                         "phi": phi,
                         "theta": theta,
                         "polarization": pol_name,
+                        "calibrated": False
                     }
                     self.dataAcquired.emit(ntwk)
                 stop = time.time()

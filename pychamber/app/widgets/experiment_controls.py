@@ -18,6 +18,7 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         super().__init__(parent)
         LOG.debug("Creating ExperimentControls")
         self.setupUi(self)
+        self._cal = None
 
     def connect_signals(self) -> None:
         LOG.debug("Connecting signals")
@@ -64,6 +65,13 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
             (self.pol2_le.text(), *self.pol2_cb.currentData()),
         ]
 
+    @property
+    def calibration(self) -> Calibration | None:
+        if not self.cal_file_toggle.isChecked():
+            return None
+
+        return self._cal
+
     def update_params(self, params: list[tuple[int, int]]) -> None:
         LOG.debug("Updating parameter comboboxes")
         param_strs = [f"S{a}{b}" for a, b in params]
@@ -93,7 +101,7 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
     def load_cal(self, path: str | Path) -> None:
         LOG.debug("Loading calibration")
         try:
-            self.cal = Calibration.load(path)
+            self._cal = Calibration.load(path)
         except Exception:
             QMessageBox.warning(self, "Invalid Calibration File", f"{path} is not a valid calibration file")
             return
@@ -105,5 +113,5 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
 
     def view_cal(self) -> None:
         LOG.debug("Launching calibration view dialog")
-        self.view_dlg = CalViewDialog(self.cal, self)
+        self.view_dlg = CalViewDialog(self._cal, self)
         self.view_dlg.exec()

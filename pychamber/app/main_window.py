@@ -15,7 +15,8 @@ import qtawesome as qta
 import skrf
 from qtpy.QtCore import Qt, QThread
 from qtpy.QtGui import QCloseEvent, QScreen
-from qtpy.QtWidgets import QApplication, QFileDialog, QListWidgetItem, QMainWindow, QMessageBox
+from qtpy.QtWidgets import (QApplication, QFileDialog, QListWidgetItem,
+                            QMainWindow, QMessageBox)
 
 from pychamber import ExperimentResult
 from pychamber.app.logger import LOG
@@ -277,6 +278,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_scan_btns_enabled(True)
         self.abort_btn.setEnabled(False)
 
+    def on_data_acquired(self, ntwk: skrf.Network) -> None:
+        self.active_result.append(ntwk, calibrated=False)
+
+        calibration = self.experiment_controls.calibration
+        if calibration is not None:
+            loss = calibration.get_polarization(ntwk['polarization'])
+            caled_ntwk = ntwk / loss
+            caled_ntwk.params['calibrated'] = True
+            self.active_result.append(caled_ntwk, calibrated=True)
+
+
     def update_results_rows(self):
         for i in range(self.results.count()):
             item = self.results.item(i)
@@ -338,8 +350,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         LOG.debug(f"polarizations: {polarizations}")
         LOG.debug(f"thetas [{len(thetas)} pts, start: {thetas[0]}, stop:{thetas[-1]}]")
         LOG.debug(f"phis [{len(phis)} pts, start: {phis[0]}, stop:{phis[-1]}]")
+        LOG.debug(f"calibration [{self.experiment_controls.calibration}]")
         freq = self.analyzer_controls.frequency
-        result = ExperimentResult(thetas, phis, [p[0] for p in polarizations], freq)
+        result = ExperimentResult(
+            thetas=thetas, 
+            phis=phis, 
+            polarizations=[p[0] for p in polarizations], 
+            frequency=freq,
+        )
         item = QListWidgetItem(self.results)
         item.setData(Qt.UserRole, result.uuid)
         item.setText(result.created)
@@ -355,7 +373,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.finished.connect(self.worker.deleteLater)
 
         self.worker.started.connect(self.on_experiment_started)
-        self.worker.dataAcquired.connect(self.active_result.append)
+        self.worker.dataAcquired.connect(self.on_data_acquired)
         self.worker.totalIterCountUpdated.connect(self.on_total_progress_updated)
         self.worker.cutIterCountUpdated.connect(self.on_cut_progress_updated)
         self.worker.timeEstUpdated.connect(self.on_time_est_updated)

@@ -42,3 +42,6 @@ class Calibration:
         notes = "\n".join(cal.comments.split("@")[1:-1])
 
         return Calibration(cal, notes)
+
+    def get_polarization(self, polarization: str) -> skrf.Network:
+        return self._data.sel({'polarization': polarization})[0]
