@@ -98,12 +98,12 @@ class CalWizard(QWizard, Ui_CalWizard):
         self.reference_pg.completeChanged.emit()
 
     def measure_polarization(self, polarization: int) -> None:
-        msmnt_param = self.pol1_cb.currentData() if polarization == 1 else self.pol2_cb.currentData()
+        msmnt_param = self.pol1_cb.currentData() if polarization == 0 else self.pol2_cb.currentData()
         LOG.debug(f"Measuring polarization {msmnt_param}")
         ntwk = self.analyzer.ch1.get_sdata(*msmnt_param)
 
         loss = self.calc_loss(ntwk)
-        pol_name = self.pol1_le.text() if polarization == 1 else self.pol2_le.text()
+        pol_name = self.pol1_le.text() if polarization == 0 else self.pol2_le.text()
         loss.params = {"polarization": pol_name}
         loss.name = pol_name
 

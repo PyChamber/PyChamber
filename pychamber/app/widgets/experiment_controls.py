@@ -85,7 +85,7 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.cal_wizard = CalWizard(analyzer, self)
         self.cal_wizard.exec()
 
-        if self.cal_wizard.ref_ntwk is None:
+        if self.cal_wizard.ref_ntwk is None or not hasattr(self.cal_wizard, 'cal_path'):
             return
 
         self.load_cal(self.cal_wizard.cal_path)

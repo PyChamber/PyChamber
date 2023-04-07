@@ -146,11 +146,15 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         freq = self.freq_step_le.text()
         LOG.debug(f"Changing frequency step: {freq}")
         self.analyzer.ch1.freq_step = freq
+        npoints = self.analyzer.ch1.npoints
+        self.freq_n_points_le.setText(str(npoints))
 
     def on_freq_n_points_changed(self) -> None:
         npoints = int(self.freq_n_points_le.text())
         LOG.debug(f"Changing frequency points: {npoints}")
         self.analyzer.ch1.npoints = npoints
+        step = self.analyzer.ch1.freq_step
+        self.freq_step_le.setText(str(step))
 
     def on_if_bw_changed(self) -> None:
         freq = self.if_bw_le.text()
