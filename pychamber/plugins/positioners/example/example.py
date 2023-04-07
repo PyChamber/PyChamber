@@ -108,4 +108,3 @@ class ExamplePositioner(Postioner):
         CONF["example_positioner_theta"] = self._theta
         time.sleep(abs(angle) * self._msecs_per_deg / 1000)
         self.jogCompleted.emit()
-        self.jogCompleted.emit()

@@ -216,10 +216,11 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.set_enabled(True)
 
     def on_jog_started(self) -> None:
-        LOG.debug("Returning to origin")
+        LOG.debug("Jog starting")
         self.set_enabled(False)
 
     def on_jog_completed(self) -> None:
+        LOG.debug("Jog completed")
         phi = self.positioner.phi
         theta = self.positioner.theta
         self.current_phi_lcd_num.display(phi)
@@ -238,6 +239,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.return_to_origin_btn.setEnabled(enable)
 
     def add_models(self):
+        LOG.debug("Adding positioner models")
         for manufacturer, models in positioner.available_models().items():
             self.model_cb.add_parent(manufacturer)
             for model, fn in models.items():
