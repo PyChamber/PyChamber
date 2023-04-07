@@ -24,6 +24,7 @@ def run(args: dict) -> None:
 
     main = MainWindow()
     main.show()
+    main.center()
     main.post_visible_setup()
 
     try:

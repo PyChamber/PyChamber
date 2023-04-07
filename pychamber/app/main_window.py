@@ -14,7 +14,7 @@ import qdarkstyle
 import qtawesome as qta
 import skrf
 from qtpy.QtCore import Qt, QThread
-from qtpy.QtGui import QCloseEvent
+from qtpy.QtGui import QCloseEvent, QScreen
 from qtpy.QtWidgets import QApplication, QFileDialog, QListWidgetItem, QMainWindow, QMessageBox
 
 from pychamber import ExperimentResult
@@ -98,6 +98,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         LOG.info("Closing PyChamber")
         return super().closeEvent(event)
+
+    def center(self):
+        center_pt = QScreen.availableGeometry(QApplication.primaryScreen()).center()
+        frame_rect = self.frameGeometry()
+        frame_rect.moveCenter(center_pt)
+        self.move(frame_rect.topLeft())
 
     def on_save_action_triggered(self):
         if self.active_result is None:

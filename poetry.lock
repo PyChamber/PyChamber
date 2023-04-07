@@ -531,7 +531,7 @@ hook_testing = ["execnet (>=1.5.0)", "psutil", "pytest (>=2.7.3)"]
 
 [[package]]
 name = "pyinstaller-hooks-contrib"
-version = "2023.1"
+version = "2023.2"
 description = "Community maintained hooks for PyInstaller"
 category = "dev"
 optional = false
@@ -860,7 +860,6 @@ scipy = ">=1.7,<2.0"
 docs = ["ipykernel (>=6.15)", "ipython (>=7)", "ipywidgets (>=8.0.2)", "jupyter-client (>=7.3.5)", "nbsphinx (>=0.8.9)", "openpyxl (>=3)", "python-ivi (>=0.14.9)", "sphinx (>=4)", "sphinx-rtd-theme (>=1.0)"]
 netw = ["networkx (>=2.0,<3.0)"]
 plot = ["matplotlib (>=3.5,<4.0)"]
-qtapps = ["pyqt5 (>=5.15,<6.0)", "pyqtgraph (>=0.13,<1.0)", "qtpy (>=2.2,<3.0)"]
 test = ["coverage (>=6.0,<7.0)", "flake8 (>=5.0,<6.0)", "nbval (>=0.9,<1.0)", "pytest (>=7.0,<8.0)", "pytest-cov (>=4.0,<5.0)", "pytest-mock (>=3.10,<4.0)", "tox (>=3.26.0)"]
 visa = ["PyVISA (>=1.12,<2.0)", "pyvisa-py (>=0.6,<1.0)"]
 xlsx = ["openpyxl (>=3.0,<4.0)"]
@@ -869,7 +868,7 @@ xlsx = ["openpyxl (>=3.0,<4.0)"]
 type = "git"
 url = "https://github.com/cafeclimber/scikit-rf.git"
 reference = "vi"
-resolved_reference = "fde93b8c465ebc3a90e3fa5540980a32501d1325"
+resolved_reference = "09d44558dc324964e0e5147ce3cec80e5e156a84"
 
 [[package]]
 name = "scipy"
@@ -1470,8 +1469,8 @@ pyinstaller = [
     {file = "pyinstaller-5.9.0.tar.gz", hash = "sha256:2bde16a8d664e8eba9aa7b84f729f7ab005c1793be4fe1986b3c9cad6c486622"},
 ]
 pyinstaller-hooks-contrib = [
-    {file = "pyinstaller-hooks-contrib-2023.1.tar.gz", hash = "sha256:ab56c192e7cd4472ff6b840cda4fc42bceccc7fb4234f064fc834a3248c0afdd"},
-    {file = "pyinstaller_hooks_contrib-2023.1-py2.py3-none-any.whl", hash = "sha256:d2ea40a7105651aa525bfe5fe309aa264d4d9bb49f839b862243dcf0a56c34cd"},
+    {file = "pyinstaller-hooks-contrib-2023.2.tar.gz", hash = "sha256:7fb856a81fd06a717188a3175caa77e902035cc067b00b583c6409c62497b23f"},
+    {file = "pyinstaller_hooks_contrib-2023.2-py2.py3-none-any.whl", hash = "sha256:e02c5f0ee3d4f5814588c2128caf5036c058ba764aaf24d957bb5311ad8690ad"},
 ]
 pymdown-extensions = [
     {file = "pymdown_extensions-9.10-py3-none-any.whl", hash = "sha256:31eaa76ce6f96aabfcea98787c2fff2c5c0611b20a53a94213970cfbf05f02b8"},
@@ -1558,6 +1557,13 @@ PyYAML = [
     {file = "PyYAML-6.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:f84fbc98b019fef2ee9a1cb3ce93e3187a6df0b2538a651bfb890254ba9f90b5"},
     {file = "PyYAML-6.0-cp310-cp310-win32.whl", hash = "sha256:2cd5df3de48857ed0544b34e2d40e9fac445930039f3cfe4bcc592a1f836d513"},
     {file = "PyYAML-6.0-cp310-cp310-win_amd64.whl", hash = "sha256:daf496c58a8c52083df09b80c860005194014c3698698d1a57cbcfa182142a3a"},
+    {file = "PyYAML-6.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:d4b0ba9512519522b118090257be113b9468d804b19d63c71dbcf4a48fa32358"},
+    {file = "PyYAML-6.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:81957921f441d50af23654aa6c5e5eaf9b06aba7f0a19c18a538dc7ef291c5a1"},
+    {file = "PyYAML-6.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:afa17f5bc4d1b10afd4466fd3a44dc0e245382deca5b3c353d8b757f9e3ecb8d"},
+    {file = "PyYAML-6.0-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:dbad0e9d368bb989f4515da330b88a057617d16b6a8245084f1b05400f24609f"},
+    {file = "PyYAML-6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:432557aa2c09802be39460360ddffd48156e30721f5e8d917f01d31694216782"},
+    {file = "PyYAML-6.0-cp311-cp311-win32.whl", hash = "sha256:bfaef573a63ba8923503d27530362590ff4f576c626d86a9fed95822a8255fd7"},
+    {file = "PyYAML-6.0-cp311-cp311-win_amd64.whl", hash = "sha256:01b45c0191e6d66c470b6cf1b9531a771a83c1c4208272ead47a3ae4f2f603bf"},
     {file = "PyYAML-6.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:897b80890765f037df3403d22bab41627ca8811ae55e9a722fd0392850ec4d86"},
     {file = "PyYAML-6.0-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:50602afada6d6cbfad699b0c7bb50d5ccffa7e46a3d738092afddc1f9758427f"},
     {file = "PyYAML-6.0-cp36-cp36m-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:48c346915c114f5fdb3ead70312bd042a953a8ce5c7106d5bfb1a5254e47da92"},
