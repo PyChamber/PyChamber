@@ -41,7 +41,7 @@ exe = EXE(
     splash.binaries,
     [],
     name='PyChamber',
-    icon='pychamber/app/ui/images/logo.png',
+    icon='pychamber/app/ui/images/logo.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
