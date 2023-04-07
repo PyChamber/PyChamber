@@ -26,12 +26,9 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 splash = Splash(
-    'pychamber/app/ui/images/logo.png',
+    'pychamber/app/ui/images/splash.png',
     binaries=a.binaries,
     datas=a.datas,
-    text_pos=(10, 465),
-    text_size=12,
-    text_color='white'
 )
 
 exe = EXE(
