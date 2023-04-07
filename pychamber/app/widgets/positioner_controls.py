@@ -33,8 +33,6 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
 
         LOG.debug("Setting up UI")
         self.setupUi(self)
-        self.postvisible_setup()
-        self.connect_signals()
 
     # This is gross...but idk what else to do to get the collapsible widgets to
     # work with dynamic content...will try to fix later

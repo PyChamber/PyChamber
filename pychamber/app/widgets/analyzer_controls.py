@@ -10,11 +10,12 @@ import itertools
 from operator import setitem
 
 import pyvisa
-from qtpy.QtCore import Signal
+from qtpy.QtCore import QThreadPool, Signal
 from qtpy.QtWidgets import QMessageBox, QWidget
 from skrf.vi import vna
 
 from pychamber.app.logger import LOG
+from pychamber.app.task_runner import TaskRunner
 from pychamber.app.ui.analyzer_widget import Ui_AnalyzerWidget
 from pychamber.settings import CONF
 
@@ -44,8 +45,6 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
 
         LOG.debug("Setting up UI")
         self.setupUi(self)
-        self.postvisible_setup()
-        self.connect_signals()
 
     def connect_signals(self) -> None:
         LOG.debug("Connecting signals")
@@ -77,7 +76,21 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
 
         LOG.debug("Populating model combobox")
         self.add_models()
-        self.address_cb.addItems(self.available_addresses)
+
+        # This function calls sleep making start-up SLOW
+        # So we move it into a thread to allow the GUI to be shown
+        # as early as possible
+        def get_addrs():
+            backend = CONF["visalib"]
+            LOG.debug(f"VISA backend: {backend}")
+            rm = pyvisa.ResourceManager(backend)
+            available = rm.list_resources()
+            rm.close()
+            return list(available)
+
+        addr_updater = TaskRunner(get_addrs)
+        addr_updater.signals.gotResult.connect(self.address_cb.addItems)
+        QThreadPool.globalInstance().start(addr_updater)
 
     def on_connect_btn_clicked(self) -> None:
         LOG.info("Attempting to connect to analyzer")

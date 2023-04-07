@@ -19,9 +19,6 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         LOG.debug("Creating ExperimentControls")
         self.setupUi(self)
 
-        self.postvisible_setup()
-        self.connect_signals()
-
     def connect_signals(self) -> None:
         LOG.debug("Connecting signals")
         self.phi_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_start"))

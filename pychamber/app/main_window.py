@@ -46,12 +46,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def post_visible_setup(self):
         LOG.debug("Running post visible tasks")
+
         self.total_progress_gb.hide()
         self.cut_progress_gb.hide()
         self.time_remaining_gb.hide()
 
         LOG.debug("Updating widgets with persistent settings")
         CONF.update_widgets_from_settings()
+
+        for widget in [self.experiment_controls, self.analyzer_controls, self.positioner_controls]:
+            widget.postvisible_setup()
+            widget.connect_signals()
 
     def connect_signals(self):
         LOG.debug("Connecting signals")
@@ -92,7 +97,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 event.ignore()
                 return
 
-        LOG.debug("Closing PyChamber")
+        LOG.info("Closing PyChamber")
         return super().closeEvent(event)
 
     def on_save_action_triggered(self):
