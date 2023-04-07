@@ -302,7 +302,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if theme == "Light":
             setConfigOptions(foreground="#54687a", background="#f5fbff")
         else:
-            setConfigOptions(foreground="#c2e3fa", background="#455364")
+            setConfigOptions(foreground="#c0caf5", background="#1a1b26")
 
     @property
     def analyzer(self) -> skrf.vi.VNA | None:

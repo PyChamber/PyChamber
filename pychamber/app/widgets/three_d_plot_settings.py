@@ -17,6 +17,7 @@ from skrf import mathFunctions
 from pychamber import math_fns
 from pychamber.app.logger import LOG
 from pychamber.app.task_runner import TaskRunner
+from pychamber.settings import CONF
 
 from ..ui.three_d_plot_settings import Ui_ThreeDPlotSettings
 from .plot_widget import PlotWidget
@@ -33,23 +34,15 @@ class ThreeDPlotSettings(QWidget, Ui_ThreeDPlotSettings):
         super().__init__(parent)
         self.setupUi(self)
 
-        self.connect_signals()
         self.postvisible_setup()
 
-    def connect_signals(self):
-        self.spherical_checkbox.toggled.connect(self.on_spherical_checkbox_toggled)
-
     def postvisible_setup(self):
-        self.on_spherical_checkbox_toggled(False)
         list_of_maps = pg.colormap.listMaps()
         list_of_maps = sorted(list_of_maps, key=lambda x: x.swapcase())
         self.cmap_cb.clear()
         self.cmap_cb.addItems(list_of_maps)
         for title, var_info in self.r_params:
             self.r_var_cb.addItem(title, userData=var_info)
-
-    def on_spherical_checkbox_toggled(self, state: bool) -> None:
-        pass
 
     @property
     def cmap(self):
@@ -88,17 +81,8 @@ class ThreeDPlotWidget(PlotWidget):
         self.theta_grid = None
         self.phi_grid = None
 
-        # TODO
-        # self.sph_grid.setColors(
-        #     theta_line_color="#60798bff",
-        #     theta_tick_color="#60798bff",
-        #     phi_line_color="#60798bff",
-        #     phi_tick_color="#60798bff",
-        #     yz_rad_color="#60798bff",
-        #     xy_rad_color="#60798bff",
-        # )
-
         self.connect_signals()
+        self.set_colors()
         self.on_new_data()
 
     def connect_signals(self):
@@ -116,8 +100,17 @@ class ThreeDPlotWidget(PlotWidget):
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
 
-    def postvisible_setup(self):
-        pass
+    def set_colors(self):
+        if CONF["theme"] == "Light":
+            self.sph_grid.setColors(
+                phi_color="#8FBCBBFF",
+                theta_color="#B48EADFF",
+            )
+        else:
+            self.sph_grid.setColors(
+                phi_color="#73DACAFF",
+                theta_color="#BB9AF7FF",
+            )
 
     @property
     def data(self) -> ExperimentResult | None:

@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     pass
 
+import pyqtgraph.functions as fn
 import qtawesome as qta
+from pyqtgraph import getConfigOption
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import QFrame, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
@@ -28,6 +30,8 @@ class PlotWidget(QWidget):
 
     def setupUi(self) -> None:
         self.controls.title_le.setText(self.title)
+        current_bg_color = fn.mkColor(getConfigOption("background"))
+        self.controls.bg_color_btn.setColor(current_bg_color)
 
         self.ctrls_drawer = QFrame()
         ctrls_layout = QVBoxLayout(self.ctrls_drawer)

@@ -12,12 +12,8 @@ class GLSphericalGridItem(GLGraphicsItem.GLGraphicsItem):
     def __init__(
         self,
         radius: float,
-        theta_line_color="#60798bff",
-        theta_tick_color="#60798bff",
-        phi_line_color="#60798bff",
-        phi_tick_color="#60798bff",
-        yz_rad_color="#60798bff",
-        xy_rad_color="#60798bff",
+        phi_color="#353535FF",
+        theta_color="#353535FF",
         **kwargs,
     ) -> None:
         super().__init__()
@@ -28,13 +24,8 @@ class GLSphericalGridItem(GLGraphicsItem.GLGraphicsItem):
         self.font = QtGui.QFont("Helvetica", 14)
 
         self.radius = radius
-        self._theta_line_color = fn.mkColor(theta_line_color)
-        self._theta_tick_color = fn.mkColor(theta_tick_color)
-        self._yz_rad_color = fn.mkColor(yz_rad_color)
-
-        self._phi_line_color = fn.mkColor(phi_line_color)
-        self._phi_tick_color = fn.mkColor(phi_tick_color)
-        self._xy_rad_color = fn.mkColor(xy_rad_color)
+        self._phi_color = fn.mkColor(phi_color)
+        self._theta_color = fn.mkColor(theta_color)
 
         self._n_sides = 36
         self._text_center = self.radius + (self.radius / 7)
@@ -45,30 +36,19 @@ class GLSphericalGridItem(GLGraphicsItem.GLGraphicsItem):
 
     def setColors(
         self,
-        theta_line_color=None,
-        theta_tick_color=None,
-        phi_line_color=None,
-        phi_tick_color=None,
-        yz_rad_color=None,
-        xy_rad_color=None,
+        phi_color=(96, 121, 139, 255),
+        theta_color=(96, 121, 139, 255),
     ):
-        if theta_line_color is not None:
-            self._theta_line_color = fn.mkColor(theta_line_color)
-        if theta_tick_color is not None:
-            self._theta_tick_color = fn.mkColor(theta_tick_color)
-        if phi_line_color is not None:
-            self._phi_line_color = fn.mkColor(phi_line_color)
-        if phi_tick_color is not None:
-            self._phi_tick_color = fn.mkColor(phi_tick_color)
-        if yz_rad_color is not None:
-            self._yz_rad_color = fn.mkColor(yz_rad_color)
-        if xy_rad_color is not None:
-            self._xy_rad_color = fn.mkColor(xy_rad_color)
-
+        self._phi_color = fn.mkColor(phi_color)
+        self._theta_color = fn.mkColor(theta_color)
         self.update()
 
     def paint(self):
         self.setupGLState()
+        GL.glEnable(GL.GL_LINE_SMOOTH)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        GL.glHint(GL.GL_LINE_SMOOTH_HINT, GL.GL_NICEST)
 
         painter = QtGui.QPainter(self.view())
         self.drawGrid()
@@ -85,7 +65,7 @@ class GLSphericalGridItem(GLGraphicsItem.GLGraphicsItem):
         painter.setFont(self.font)
         painter.setRenderHints(QtGui.QPainter.RenderHint.Antialiasing | QtGui.QPainter.RenderHint.TextAntialiasing)
 
-        painter.setPen(self._theta_tick_color)
+        painter.setPen(self._theta_color)
         for angle, label in zip(self.line_angles, self.theta_texts, strict=True):
             y = self._text_center * np.sin(angle)
             z = self._text_center * np.cos(angle)
@@ -94,7 +74,7 @@ class GLSphericalGridItem(GLGraphicsItem.GLGraphicsItem):
             text_pos.setY(viewport[3] - text_pos.y())
             painter.drawText(text_pos, label)
 
-        painter.setPen(self._phi_tick_color)
+        painter.setPen(self._phi_color)
         for angle, label in zip(self.line_angles, self.phi_texts, strict=True):
             x = self._text_center * np.cos(angle)
             y = self._text_center * np.sin(angle)
@@ -117,27 +97,26 @@ class GLSphericalGridItem(GLGraphicsItem.GLGraphicsItem):
         yends = (radius + radius / 10) * np.sin(self.line_angles)
         zends = (radius + radius / 10) * np.cos(self.line_angles)
 
+        GL.glLineWidth(3)
         GL.glBegin(GL.GL_LINE_LOOP)
-        GL.glColor4f(*self._xy_rad_color.getRgbF())
+        GL.glColor4f(*self._phi_color.getRgbF())
         for x, y in zip(xs, ys, strict=True):
             GL.glVertex3f(x, y, 0)
         GL.glEnd()
 
-        GL.glBegin(GL.GL_LINE_LOOP)
-        GL.glColor4f(*self._yz_rad_color.getRgbF())
-        for y, z in zip(ys, zs, strict=True):
-            GL.glVertex3f(0, y, z)
-        GL.glEnd()
-
         GL.glBegin(GL.GL_LINES)
-        GL.glColor4f(*self._phi_line_color.getRgbF())
         for i in range(len(xstarts)):
             GL.glVertex3f(xstarts[i], ystarts[i], 0)
             GL.glVertex3f(xends[i], yends[i], 0)
         GL.glEnd()
 
+        GL.glBegin(GL.GL_LINE_LOOP)
+        GL.glColor4f(*self._theta_color.getRgbF())
+        for y, z in zip(ys, zs, strict=True):
+            GL.glVertex3f(0, y, z)
+        GL.glEnd()
+
         GL.glBegin(GL.GL_LINES)
-        GL.glColor4f(*self._theta_line_color.getRgbF())
         for i in range(len(xstarts)):
             GL.glVertex3f(0, ystarts[i], zstarts[i])
             GL.glVertex3f(0, yends[i], zends[i])
