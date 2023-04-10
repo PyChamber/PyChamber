@@ -157,6 +157,11 @@ class ExperimentResult(QObject):
     def created(self) -> str:
         return self._created.strftime("%d %b %Y - %H:%M")
 
+    @property
+    def has_calibrated_data(self) -> bool:
+        calibrated = self._ntwk_set.params_values['calibrated']
+        return True in calibrated
+
     def get_theta_cut(self, polarization: str, frequency: float, phi: float, calibrated: bool=False):
         f_idx, _ = self.find_nearest(self.f, frequency)
         phi_idx, _ = self.find_nearest(self._phis, phi)
@@ -192,7 +197,7 @@ class ExperimentResult(QObject):
 
         return self._s_data[polarization][f_idx]
 
-    def append(self, ntwk: skrf.Network, calibrated: bool = False) -> None:
+    def append(self, ntwk: skrf.Network) -> None:
         name = self._ntwk_set.name
 
         new_ns_list = [*self._ntwk_set, ntwk]
@@ -200,35 +205,48 @@ class ExperimentResult(QObject):
         pol = ntwk.params["polarization"]
         phi_idx = np.where(self._phis == ntwk.params["phi"])[0]
         theta_idx = np.where(self._thetas == ntwk.params["theta"])[0]
+        calibrated = ntwk.params['calibrated']
 
+        self.rw_lock.lockForWrite()
         if calibrated:
-            self.rw_lock.lockForWrite()
             self._caled_s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
-            self._ntwk_set = new_ns
-            self.rw_lock.unlock()
         else:
-            self.rw_lock.lockForWrite()
             self._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
-            self._ntwk_set = new_ns
-            self.rw_lock.unlock()
+        self._ntwk_set = new_ns
+        self.rw_lock.unlock()
 
         self.dataAppended.emit()
 
-    # TODO: Should instead return a new ExperimentResult
     def apply_calibration(self, cal: Calibration) -> None:
-        raise NotImplementedError()
         for pol in self.polarizations:
             if pol not in self.polarizations:
                 raise ValueError(f"Cannot apply this calibration. It does not contain data for polarization: {pol}.")
 
-        calibrated_result_ntwks = []
-        for cal_ntwk in list(cal._data):
-            try:
-                uncalibrated = self._ntwk_set.sel({"polarization": cal_ntwk.name})
-            except KeyError:
-                continue
+        from typing import cast
+        calibrated_ntwks = []
+        for pol in self.polarizations:
+            uncalibrated = self._ntwk_set.sel({"polarization": pol})
+            cal_ntwk = cast(skrf.Network, cal.get_polarization(pol))
+            calibrated = uncalibrated / cal_ntwk.interpolate(self.frequency, kind='nearest')
+            # Fix when skrf#887 merged
+            for ntwk in calibrated:
+                caled_ntwk = ntwk.copy()
+                caled_ntwk.params = ntwk.params.copy()
+                caled_ntwk.params['calibrated'] = True
+                calibrated_ntwks.append(caled_ntwk)
+            
+        name = self._ntwk_set.name
+        new_ns_list = [*self._ntwk_set.ntwk_set, *calibrated_ntwks]
+        new_ns = skrf.NetworkSet(new_ns_list, name=name)
 
-            calibrated = uncalibrated / cal_ntwk
-            calibrated_result_ntwks += calibrated.ntwk_set
+        self.rw_lock.lockForWrite()
 
-        pass
+        self._ntwk_set = new_ns
+        for ntwk in calibrated_ntwks:
+            pol = ntwk.params["polarization"]
+            phi_idx = np.where(self._phis == ntwk.params["phi"])[0]
+            theta_idx = np.where(self._thetas == ntwk.params["theta"])[0]
+
+            self._caled_s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+
+        self.rw_lock.unlock()
