@@ -71,6 +71,9 @@ class ExperimentResult(QObject):
         if not ns.has_params():
             raise InvalidFileError(f"{path} is an invalid pychamber results file")
 
+        for ntwk in ns:
+            ntwk.params['calibrated'] = (ntwk.params['calibrated'] == 'True')
+
         try:
             thetas = np.array(list(set(ns.params_values["theta"])))
             phis = np.array(list(set(ns.params_values["phi"])))
@@ -86,12 +89,13 @@ class ExperimentResult(QObject):
             theta_idx = np.where(ret._thetas == ntwk.params["theta"])[0]
             ret._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
         ret._ntwk_set = ns
-        var_re = re.compile(r"\$(\w+): ([\w\s\-:]+)\$")
-        for var in var_re.finditer(ns.comments):
-            if var[1] == "created":
-                ret._created = datetime.strptime(var[2], "%d %b %Y - %H:%M")
-            elif var[1] == "uuid":
-                ret._uuid = uuid.UUID(var[2])
+        comments = [c.strip() for c in ns.comments.split('@')[:-1]]
+        for comment in comments:
+            var, val, *_ = comment.split('=')
+            if var == "created":
+                ret._created = datetime.strptime(val, "%d %b %Y - %H:%M")
+            elif var == "uuid":
+                ret._uuid = uuid.UUID(val)
 
         return ret
 
@@ -101,7 +105,7 @@ class ExperimentResult(QObject):
             if ntwk.name is None:
                 ntwk.name = ""
 
-        self._ntwk_set.write_mdif(path, comments=[f"$created: {self.created}$", f"$uuid: {self.uuid}$"])
+        self._ntwk_set.write_mdif(path, comments=[f"created={self.created}@", f"uuid={self.uuid}@"])
 
     def get_unique_param_vals(self, param: str) -> list[Any]:
         if len(self._ntwk_set) == 0:
