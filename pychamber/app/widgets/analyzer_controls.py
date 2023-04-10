@@ -46,6 +46,14 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         LOG.debug("Setting up UI")
         self.setupUi(self)
 
+        LOG.debug("Registering widgets with settings")
+        widget_map = {
+            # TODO: Make settings handle CategoryComboBox maybe?
+            "analyzer_address": (self.address_cb, "", str),
+            "visalib": (None, "@py", str),
+        }
+        CONF.register_widgets(widget_map)
+
     def connect_signals(self) -> None:
         LOG.debug("Connecting signals")
         self.connect_btn.clicked.connect(self.on_connect_btn_clicked)
@@ -63,14 +71,6 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         self.n_avgs_sb.valueChanged.connect(lambda n: self.on_n_avgs_changed(n))
 
     def postvisible_setup(self) -> None:
-        LOG.debug("Registering widgets with settings")
-        widget_map = {
-            # TODO: Make settings handle CategoryComboBox maybe?
-            "analyzer_address": (self.address_cb, "", str),
-            "visalib": (None, "@py", str),
-        }
-        CONF.register_widgets(widget_map)
-
         self.disconnect_btn.hide()
         self.freq_gb.setEnabled(False)
 
@@ -115,10 +115,11 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         self.model_cb.setEnabled(False)
         self.address_cb.setEnabled(False)
         self.freq_gb.setEnabled(True)
-        for widget in self.freq_gb.children():
+        to_block = [*self.freq_gb.children(), self.if_bw_le, self.avg_toggle, self.n_avgs_sb]
+        for widget in to_block:
             widget.blockSignals(True)
         self.init_widgets()
-        for widget in self.freq_gb.children():
+        for widget in to_block:
             widget.blockSignals(False)
         self.analyzerConnected.emit()
 

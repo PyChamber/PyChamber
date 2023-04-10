@@ -34,6 +34,16 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         LOG.debug("Setting up UI")
         self.setupUi(self)
 
+        LOG.debug("Registering widgets with settings")
+        widget_map = {
+            "jog_phi_step": (self.phi_step_dsb, 0, float),
+            "jog_phi_to": (self.phi_jog_to_dsb, 0, float),
+            "jog_theta_step": (self.theta_step_dsb, 0, float),
+            "jog_theta_to": (self.theta_jog_to_dsb, 0, float),
+        }
+        CONF.register_widgets(widget_map)
+
+
     # This is gross...but idk what else to do to get the collapsible widgets to
     # work with dynamic content...will try to fix later
     def sizeHint(self):
@@ -65,15 +75,6 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         self.return_to_origin_btn.pressed.connect(self.on_return_to_origin_pressed)
 
     def postvisible_setup(self) -> None:
-        LOG.debug("Registering widgets with settings")
-        widget_map = {
-            "jog_phi_step": (self.phi_step_dsb, 0, float),
-            "jog_phi_to": (self.phi_jog_to_dsb, 0, float),
-            "jog_theta_step": (self.theta_step_dsb, 0, float),
-            "jog_theta_to": (self.theta_jog_to_dsb, 0, float),
-        }
-        CONF.register_widgets(widget_map)
-
         minus_icon = qta.icon("fa5s.minus")
         plus_icon = qta.icon("fa5s.plus")
         check_icon = qta.icon("fa5s.check")

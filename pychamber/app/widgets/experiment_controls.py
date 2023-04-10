@@ -23,25 +23,6 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.cal_pol1_widget.hide()
         self.cal_pol2_widget.hide()
 
-    def connect_signals(self) -> None:
-        LOG.debug("Connecting signals")
-        self.phi_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_start"))
-        self.phi_stop_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_stop"))
-        self.phi_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_step"))
-        self.theta_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_start"))
-        self.theta_stop_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_stop"))
-        self.theta_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_step"))
-        self.pol1_le.textChanged.connect(functools.partial(setitem, CONF, "pol_1_label"))
-        self.pol2_le.textChanged.connect(functools.partial(setitem, CONF, "pol_2_label"))
-        self.pol1_cb.currentTextChanged.connect(lambda text: self.pol1_cb.setEnabled(text != 'OFF'))
-        self.pol2_cb.currentTextChanged.connect(lambda text: self.pol2_cb.setEnabled(text != 'OFF'))
-        self.cal_file_le.textChanged.connect(functools.partial(setitem, CONF, "cal_file"))
-        self.cal_file_toggle.toggled.connect(functools.partial(setitem, CONF, "cal_on"))
-        self.cal_file_browse_btn.pressed.connect(self.on_cal_browse_btn_pressed)
-        self.cal_wizard_btn.pressed.connect(self.run_cal_wizard)
-        self.view_cal_btn.pressed.connect(self.view_cal)
-
-    def postvisible_setup(self) -> None:
         widget_map = {
             "phi_start": (self.phi_start_dsb, 0, float),
             "phi_stop": (self.phi_stop_dsb, 90, float),
@@ -55,6 +36,36 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
             "cal_on": (self.cal_file_toggle, False, bool),
         }
         CONF.register_widgets(widget_map)
+
+    def connect_signals(self) -> None:
+        LOG.debug("Connecting signals")
+        self.phi_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_start"))
+        self.phi_stop_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_stop"))
+        self.phi_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_step"))
+        self.theta_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_start"))
+        self.theta_stop_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_stop"))
+        self.theta_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_step"))
+        self.pol1_le.textChanged.connect(functools.partial(setitem, CONF, "pol_1_label"))
+        self.pol2_le.textChanged.connect(functools.partial(setitem, CONF, "pol_2_label"))
+        self.cal_file_le.textChanged.connect(functools.partial(setitem, CONF, "cal_file"))
+        self.cal_file_toggle.toggled.connect(functools.partial(setitem, CONF, "cal_on"))
+        self.cal_file_browse_btn.pressed.connect(self.on_cal_browse_btn_pressed)
+        self.cal_wizard_btn.pressed.connect(self.run_cal_wizard)
+        self.view_cal_btn.pressed.connect(self.view_cal)
+
+    def postvisible_setup(self) -> None:
+        path = CONF['cal_file']
+        if path != "":
+            try:
+                self._cal = Calibration.load(path)
+            except Exception:
+                self.cal_file_le.clear()
+                return
+
+            self.cal_file_le.setText(str(path))
+            self.cal_file_toggle.setEnabled(True)
+            self.cal_file_toggle.setChecked(CONF['cal_on'])
+            self.view_cal_btn.setEnabled(True)
 
     def on_cal_browse_btn_pressed(self) -> None:
         fname, _ = QFileDialog.getOpenFileName(self, "Open Calibration File", filter="Calibration File (*.pycal)")

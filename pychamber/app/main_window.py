@@ -51,12 +51,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.cut_progress_gb.hide()
         self.time_remaining_gb.hide()
 
-        LOG.debug("Updating widgets with persistent settings")
-        CONF.update_widgets_from_settings()
-
         for widget in [self.experiment_controls, self.analyzer_controls, self.positioner_controls]:
+            LOG.debug(f"Initializing {widget.objectName()}")
             widget.postvisible_setup()
             widget.connect_signals()
+
+        LOG.debug("Updating widgets with persistent settings")
+        CONF.update_widgets_from_settings()
 
     def connect_signals(self):
         LOG.debug("Connecting signals")
@@ -90,6 +91,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
             if quit_dlg == QMessageBox.Ok:
                 if self._thread.isRunning():
+                    self._thread.requestInterruption()
                     self._thread.quit()
                     self._thread.wait()
                 return super().closeEvent(event)
@@ -191,6 +193,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_abort_btn_pressed(self) -> None:
         LOG.warning("Abort pressed")
         if self._thread.isRunning():
+            LOG.warning("Requesting thread interuption")
             self._thread.requestInterruption()
 
     def on_phi_scan_btn_pressed(self) -> None:
@@ -279,15 +282,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.abort_btn.setEnabled(False)
 
     def on_data_acquired(self, ntwk: skrf.Network) -> None:
-        self.active_result.append(ntwk, calibrated=False)
-
         calibration = self.experiment_controls.calibration
-        if calibration is not None:
-            loss = calibration.get_polarization(ntwk['polarization'])
-            caled_ntwk = ntwk / loss
-            caled_ntwk.params['calibrated'] = True
-            self.active_result.append(caled_ntwk, calibrated=True)
-
+        self.active_result.append(ntwk, calibration=calibration)
 
     def update_results_rows(self):
         for i in range(self.results.count()):
@@ -365,6 +361,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.active_result = result
         self.update_results_rows()
         self._results.append(result)
+        self.plot_dock_widget.results = self.active_result
 
         self.worker = ExperimentWorker(self.analyzer, self.positioner, phis, thetas, polarizations)
         self.worker.moveToThread(self._thread)

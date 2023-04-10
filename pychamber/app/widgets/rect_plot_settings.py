@@ -112,6 +112,8 @@ class RectTraceSettings(QWidget, Ui_RectTraceSettings):
 
     def on_new_data(self):
         LOG.debug("Got new data")
+        if self.data is None:
+            return
         if len(self.data) == 0:
             return
 

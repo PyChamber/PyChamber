@@ -6,9 +6,9 @@ if TYPE_CHECKING:
     from typing import Any
 
 import pathlib
-import re
 import uuid
 from datetime import datetime
+from typing import cast
 
 import numpy as np
 import skrf
@@ -206,38 +206,48 @@ class ExperimentResult(QObject):
 
         return self._s_data[polarization][f_idx]
 
-    def append(self, ntwk: skrf.Network) -> None:
+    def append(self, ntwk: skrf.Network, calibration: Calibration | None = None) -> None:
         name = self._ntwk_set.name
-
-        new_ns_list = [*self._ntwk_set, ntwk]
-        new_ns = skrf.NetworkSet(new_ns_list, name=name)
         pol = ntwk.params["polarization"]
         phi_idx = np.where(self._phis == ntwk.params["phi"])[0]
         theta_idx = np.where(self._thetas == ntwk.params["theta"])[0]
-        calibrated = ntwk.params['calibrated']
+        new_ns_list = [*self._ntwk_set, ntwk]
+
+        caled_ntwk: skrf.Network | None = None
+
+        if calibration is not None:
+            cal = cast(skrf.Network, calibration.get_polarization(pol))
+            calibrated = ntwk / cal.interpolate(self.frequency, kind='nearest')
+            caled_ntwk = calibrated.copy()
+            caled_ntwk.params = calibrated.params.copy()
+            caled_ntwk.params['calibrated'] = True
+
+        if caled_ntwk is not None:
+            new_ns_list.append(caled_ntwk)
+        new_ns = skrf.NetworkSet(new_ns_list, name=name)
 
         self.rw_lock.lockForWrite()
-        if calibrated:
-            self._caled_s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
-        else:
-            self._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+
         self._ntwk_set = new_ns
+        if caled_ntwk is not None:
+            self._caled_s_data[pol][:, phi_idx, theta_idx] = caled_ntwk.s.reshape((-1, 1))
+        self._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+
         self.rw_lock.unlock()
 
         self.dataAppended.emit()
 
-    def apply_calibration(self, cal: Calibration) -> None:
+    def apply_calibration(self, calibration: Calibration) -> None:
         for pol in self.polarizations:
             if pol not in self.polarizations:
                 raise ValueError(f"Cannot apply this calibration. It does not contain data for polarization: {pol}.")
 
-        from typing import cast
         calibrated_ntwks = []
         for pol in self.polarizations:
             uncalibrated = self._ntwk_set.sel({"polarization": pol})
-            cal_ntwk = cast(skrf.Network, cal.get_polarization(pol))
+            cal_ntwk = cast(skrf.Network, calibration.get_polarization(pol))
             calibrated = uncalibrated / cal_ntwk.interpolate(self.frequency, kind='nearest')
-            # Fix when skrf#887 merged
+            # Fix when skrf #887 merged
             for ntwk in calibrated:
                 caled_ntwk = ntwk.copy()
                 caled_ntwk.params = ntwk.params.copy()
