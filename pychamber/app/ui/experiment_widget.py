@@ -25,9 +25,9 @@ class Ui_ExperimentWidget(object):
     def setupUi(self, ExperimentWidget):
         if not ExperimentWidget.objectName():
             ExperimentWidget.setObjectName(u"ExperimentWidget")
-        ExperimentWidget.resize(311, 483)
-        self.verticalLayout = QVBoxLayout(ExperimentWidget)
-        self.verticalLayout.setObjectName(u"verticalLayout")
+        ExperimentWidget.resize(260, 477)
+        self.verticalLayout_5 = QVBoxLayout(ExperimentWidget)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.extents_gb = QGroupBox(ExperimentWidget)
         self.extents_gb.setObjectName(u"extents_gb")
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -127,7 +127,7 @@ class Ui_ExperimentWidget(object):
         self.gridLayout.setColumnStretch(1, 1)
         self.gridLayout.setColumnStretch(2, 1)
 
-        self.verticalLayout.addWidget(self.extents_gb)
+        self.verticalLayout_5.addWidget(self.extents_gb)
 
         self.polarizations_gb = QGroupBox(ExperimentWidget)
         self.polarizations_gb.setObjectName(u"polarizations_gb")
@@ -174,12 +174,12 @@ class Ui_ExperimentWidget(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
 
-        self.verticalLayout.addWidget(self.polarizations_gb)
+        self.verticalLayout_5.addWidget(self.polarizations_gb)
 
         self.cal_gb = QGroupBox(ExperimentWidget)
         self.cal_gb.setObjectName(u"cal_gb")
-        self.verticalLayout_3 = QVBoxLayout(self.cal_gb)
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.verticalLayout = QVBoxLayout(self.cal_gb)
+        self.verticalLayout.setObjectName(u"verticalLayout")
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.cal_file_label = QLabel(self.cal_gb)
@@ -213,7 +213,7 @@ class Ui_ExperimentWidget(object):
         self.horizontalLayout_3.addWidget(self.cal_file_toggle)
 
 
-        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
@@ -229,10 +229,74 @@ class Ui_ExperimentWidget(object):
         self.horizontalLayout_4.addWidget(self.view_cal_btn)
 
 
-        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
+        self.verticalLayout.addLayout(self.horizontalLayout_4)
+
+        self.cal_pol1_widget = QWidget(self.cal_gb)
+        self.cal_pol1_widget.setObjectName(u"cal_pol1_widget")
+        self.verticalLayout_3 = QVBoxLayout(self.cal_pol1_widget)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.label_4 = QLabel(self.cal_pol1_widget)
+        self.label_4.setObjectName(u"label_4")
+
+        self.horizontalLayout_6.addWidget(self.label_4)
+
+        self.cal_pol1_label = QLabel(self.cal_pol1_widget)
+        self.cal_pol1_label.setObjectName(u"cal_pol1_label")
+
+        self.horizontalLayout_6.addWidget(self.cal_pol1_label)
+
+        self.cal_pol2_label_3 = QLabel(self.cal_pol1_widget)
+        self.cal_pol2_label_3.setObjectName(u"cal_pol2_label_3")
+
+        self.horizontalLayout_6.addWidget(self.cal_pol2_label_3)
+
+        self.cal_pol1_cb = QComboBox(self.cal_pol1_widget)
+        self.cal_pol1_cb.setObjectName(u"cal_pol1_cb")
+
+        self.horizontalLayout_6.addWidget(self.cal_pol1_cb)
 
 
-        self.verticalLayout.addWidget(self.cal_gb)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_6)
+
+
+        self.verticalLayout.addWidget(self.cal_pol1_widget)
+
+        self.cal_pol2_widget = QWidget(self.cal_gb)
+        self.cal_pol2_widget.setObjectName(u"cal_pol2_widget")
+        self.verticalLayout_4 = QVBoxLayout(self.cal_pol2_widget)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.horizontalLayout_7 = QHBoxLayout()
+        self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
+        self.label_5 = QLabel(self.cal_pol2_widget)
+        self.label_5.setObjectName(u"label_5")
+
+        self.horizontalLayout_7.addWidget(self.label_5)
+
+        self.cal_pol2_label = QLabel(self.cal_pol2_widget)
+        self.cal_pol2_label.setObjectName(u"cal_pol2_label")
+
+        self.horizontalLayout_7.addWidget(self.cal_pol2_label)
+
+        self.cal_pol2_label_4 = QLabel(self.cal_pol2_widget)
+        self.cal_pol2_label_4.setObjectName(u"cal_pol2_label_4")
+
+        self.horizontalLayout_7.addWidget(self.cal_pol2_label_4)
+
+        self.cal_pol2_cb = QComboBox(self.cal_pol2_widget)
+        self.cal_pol2_cb.setObjectName(u"cal_pol2_cb")
+
+        self.horizontalLayout_7.addWidget(self.cal_pol2_cb)
+
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_7)
+
+
+        self.verticalLayout.addWidget(self.cal_pol2_widget)
+
+
+        self.verticalLayout_5.addWidget(self.cal_gb)
 
 
         self.retranslateUi(ExperimentWidget)
@@ -262,5 +326,11 @@ class Ui_ExperimentWidget(object):
         self.cal_file_toggle.setText("")
         self.cal_wizard_btn.setText(QCoreApplication.translate("ExperimentWidget", u"Calibration Wizard", None))
         self.view_cal_btn.setText(QCoreApplication.translate("ExperimentWidget", u"View", None))
+        self.label_4.setText(QCoreApplication.translate("ExperimentWidget", u"Apply", None))
+        self.cal_pol1_label.setText(QCoreApplication.translate("ExperimentWidget", u"Pol 1", None))
+        self.cal_pol2_label_3.setText(QCoreApplication.translate("ExperimentWidget", u"to", None))
+        self.label_5.setText(QCoreApplication.translate("ExperimentWidget", u"Apply", None))
+        self.cal_pol2_label.setText(QCoreApplication.translate("ExperimentWidget", u"Pol 2", None))
+        self.cal_pol2_label_4.setText(QCoreApplication.translate("ExperimentWidget", u"to", None))
     # retranslateUi
 

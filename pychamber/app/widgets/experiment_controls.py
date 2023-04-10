@@ -20,6 +20,9 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.setupUi(self)
         self._cal = None
 
+        self.cal_pol1_widget.hide()
+        self.cal_pol2_widget.hide()
+
     def connect_signals(self) -> None:
         LOG.debug("Connecting signals")
         self.phi_start_dsb.valueChanged.connect(functools.partial(setitem, CONF, "phi_start"))
@@ -30,6 +33,8 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.theta_step_dsb.valueChanged.connect(functools.partial(setitem, CONF, "theta_step"))
         self.pol1_le.textChanged.connect(functools.partial(setitem, CONF, "pol_1_label"))
         self.pol2_le.textChanged.connect(functools.partial(setitem, CONF, "pol_2_label"))
+        self.pol1_cb.currentTextChanged.connect(lambda text: self.pol1_cb.setEnabled(text != 'OFF'))
+        self.pol2_cb.currentTextChanged.connect(lambda text: self.pol2_cb.setEnabled(text != 'OFF'))
         self.cal_file_le.textChanged.connect(functools.partial(setitem, CONF, "cal_file"))
         self.cal_file_toggle.toggled.connect(functools.partial(setitem, CONF, "cal_on"))
         self.cal_file_browse_btn.pressed.connect(self.on_cal_browse_btn_pressed)
@@ -60,10 +65,13 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
 
     @property
     def polarizations(self) -> list[tuple[str, int, int]]:
-        return [
-            (self.pol1_le.text(), *self.pol1_cb.currentData()),
-            (self.pol2_le.text(), *self.pol2_cb.currentData()),
-        ]
+        pols = []
+        if self.pol1_cb.currentData() is not None:
+            pols.append((self.pol1_le.text(), *self.pol1_cb.currentData()))
+        if self.pol2_cb.currentData() is not None:
+            pols.append((self.pol2_le.text(), *self.pol2_cb.currentData()))
+
+        return pols
 
     @property
     def calibration(self) -> Calibration | None:
@@ -77,6 +85,9 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         param_strs = [f"S{a}{b}" for a, b in params]
         self.pol1_cb.clear()
         self.pol2_cb.clear()
+
+        self.pol1_cb.addItem('OFF', userData=None)
+        self.pol2_cb.addItem('OFF', userData=None)
 
         for param_str, param in zip(param_strs, params, strict=True):
             self.pol1_cb.addItem(param_str, userData=param)
@@ -110,6 +121,14 @@ class ExperimentControls(QWidget, Ui_ExperimentWidget):
         self.cal_file_toggle.setEnabled(True)
         self.cal_file_toggle.setChecked(True)
         self.view_cal_btn.setEnabled(True)
+
+        # TODO: Keep this hidden for now, but eventually figure out a way to map
+        # specific polarizations from the cal file to differently named polarizations
+        # self.cal_pol1_widget.show()
+        # self.cal_pol1_label.setText(self._cal.polarizations[0])
+        # if len(self._cal.polarizations) == 2:
+        #     self.cal_pol2_widget.show()
+        #     self.cal_pol2_label.setText(self._cal.polarizations[1])
 
     def view_cal(self) -> None:
         LOG.debug("Launching calibration view dialog")
