@@ -3,10 +3,12 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+import qtawesome as qta
 import serial
 from qtpy.QtWidgets import QWidget
 
-from pychamber.positioner import PositionerConnectionError, PositionerLimitException, Postioner
+from pychamber.positioner import (PositionerConnectionError,
+                                  PositionerLimitException, Postioner)
 from pychamber.settings import CONF
 
 from .d6050_widget import Ui_D6050Widget
@@ -30,6 +32,17 @@ class Diamond_D6050Widget(QWidget, Ui_D6050Widget):
     def __init__(self, positioner: Diamond_D6050, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setupUi(self)
+
+        self.positioner = positioner
+
+        self.z_minus_btn.setIcon(qta.icon("fa5s.minus"))
+        self.z_plus_btn.setIcon(qta.icon("fa5s.plus"))
+
+        # self.connect_signals()
+
+    # def connect_signals(self):
+    #     self.z_minus_btn.pressed.connect(self.on_z_minus_pressed)
+    #     self.z_plus_btn.pressed.connect(self.on_z_plus_pressed)
 
 
 class Diamond_D6050(Postioner):
@@ -94,7 +107,9 @@ class Diamond_D6050(Postioner):
         self.reset()
 
     def create_widget(self) -> QWidget | None:
-        return Diamond_D6050Widget(self)
+        # TODO: Figure out the Z-axis settings
+        # return Diamond_D6050Widget(self)
+        return None
 
     @property
     def phi(self) -> float:
@@ -170,6 +185,16 @@ class Diamond_D6050(Postioner):
         self.move(self._theta_axis, f"{steps:+}")
         self._theta += angle
         CONF["diamond_d6050_theta"] = self._theta
+        self.jogCompleted.emit()
+
+    def move_z_relative(self, dist: float) -> none:
+        self.jogStarted.emit()
+        if math.isclose(dist, 0.0):
+            self.jogCompleted.emit()
+            return
+        steps = -int(self._z_steps_per_mm * dist)
+        self.move(self._z_axis, f"{steps:+}")
+        self._theta += angle
         self.jogCompleted.emit()
 
     def write(self, cmd: str) -> BoardResponse | None:
