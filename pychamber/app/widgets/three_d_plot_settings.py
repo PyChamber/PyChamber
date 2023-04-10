@@ -97,6 +97,7 @@ class ThreeDPlotWidget(PlotWidget):
         self.controls.cmap_cb.currentTextChanged.connect(
             lambda _: self.legend_item.setData(gradient=self.controls.cmap)
         )
+        self.controls.calibrated_checkbox.toggled.connect(lambda _: self.on_new_data())
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
 
@@ -167,12 +168,18 @@ class ThreeDPlotWidget(PlotWidget):
         self.faces = faces
 
     @staticmethod
-    def get_data(data: ExperimentResult, r_func: Callable, pol: str, f: float):
+    def get_data(
+        data: ExperimentResult,
+        r_func: Callable,
+        pol: str,
+        f: float,
+        calibrated: bool
+    ):
         if f is None or pol == "":
             return None
 
         data.rw_lock.lockForRead()
-        vals = data.get_3d_data(pol, f)
+        vals = data.get_3d_data(pol, f, calibrated=calibrated)
         data.rw_lock.unlock()
 
         r_data = r_func(vals)
@@ -200,6 +207,10 @@ class ThreeDPlotWidget(PlotWidget):
         if freq is None:
             self.controls.freq_le.setText(self.data.f[0])
             freq = self.controls.freq_le.value()
+        calibrated = self.controls.calibrated_checkbox.isChecked()
+        self.controls.calibrated_checkbox.setVisible(self.data.has_calibrated_data)
+        if not self.data.has_calibrated_data:
+            calibrated = False
 
         data_grabber = TaskRunner(
             self.get_data,
@@ -207,6 +218,7 @@ class ThreeDPlotWidget(PlotWidget):
             r_func=r_func,
             pol=pol,
             f=freq,
+            calibrated=calibrated
         )
         data_grabber.signals.gotResult.connect(self.on_get_data_result)
         data_grabber.signals.error.connect(lambda e: print(f"{e[0]} {e[1]} {e[2]}"))

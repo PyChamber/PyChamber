@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'contour_plot_settings.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.3
+## Created by: Qt User Interface Compiler version 6.4.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -17,7 +17,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
     QFormLayout, QLabel, QLineEdit, QSizePolicy,
-    QVBoxLayout, QWidget)
+    QWidget)
 
 from ..widgets.frequency_lineedit import FrequencyLineEdit
 from pyqtgraph import ColorButton
@@ -27,9 +27,7 @@ class Ui_ContourPlotSettings(object):
         if not ContourPlotSettings.objectName():
             ContourPlotSettings.setObjectName(u"ContourPlotSettings")
         ContourPlotSettings.resize(450, 518)
-        self.verticalLayout = QVBoxLayout(ContourPlotSettings)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.formLayout = QFormLayout()
+        self.formLayout = QFormLayout(ContourPlotSettings)
         self.formLayout.setObjectName(u"formLayout")
         self.label = QLabel(ContourPlotSettings)
         self.label.setObjectName(u"label")
@@ -120,29 +118,36 @@ class Ui_ContourPlotSettings(object):
 
         self.formLayout.setWidget(7, QFormLayout.FieldRole, self.max_sb)
 
+        self.label_11 = QLabel(ContourPlotSettings)
+        self.label_11.setObjectName(u"label_11")
+
+        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.label_11)
+
+        self.calibrated_checkbox = QCheckBox(ContourPlotSettings)
+        self.calibrated_checkbox.setObjectName(u"calibrated_checkbox")
+
+        self.formLayout.setWidget(8, QFormLayout.FieldRole, self.calibrated_checkbox)
+
         self.label_8 = QLabel(ContourPlotSettings)
         self.label_8.setObjectName(u"label_8")
 
-        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.label_8)
+        self.formLayout.setWidget(9, QFormLayout.LabelRole, self.label_8)
 
         self.autoscale_checkbox = QCheckBox(ContourPlotSettings)
         self.autoscale_checkbox.setObjectName(u"autoscale_checkbox")
 
-        self.formLayout.setWidget(8, QFormLayout.FieldRole, self.autoscale_checkbox)
+        self.formLayout.setWidget(9, QFormLayout.FieldRole, self.autoscale_checkbox)
 
         self.label_10 = QLabel(ContourPlotSettings)
         self.label_10.setObjectName(u"label_10")
 
-        self.formLayout.setWidget(9, QFormLayout.LabelRole, self.label_10)
+        self.formLayout.setWidget(10, QFormLayout.LabelRole, self.label_10)
 
         self.isolines_checkbox = QCheckBox(ContourPlotSettings)
         self.isolines_checkbox.setObjectName(u"isolines_checkbox")
         self.isolines_checkbox.setChecked(False)
 
-        self.formLayout.setWidget(9, QFormLayout.FieldRole, self.isolines_checkbox)
-
-
-        self.verticalLayout.addLayout(self.formLayout)
+        self.formLayout.setWidget(10, QFormLayout.FieldRole, self.isolines_checkbox)
 
 
         self.retranslateUi(ContourPlotSettings)
@@ -161,6 +166,8 @@ class Ui_ContourPlotSettings(object):
         self.cmap_label.setText(QCoreApplication.translate("ContourPlotSettings", u"Colormap", None))
         self.label_5.setText(QCoreApplication.translate("ContourPlotSettings", u"Z Minimum", None))
         self.label_6.setText(QCoreApplication.translate("ContourPlotSettings", u"Z Maximum", None))
+        self.label_11.setText(QCoreApplication.translate("ContourPlotSettings", u"Calibrated", None))
+        self.calibrated_checkbox.setText("")
         self.label_8.setText(QCoreApplication.translate("ContourPlotSettings", u"Autoscale", None))
         self.autoscale_checkbox.setText("")
         self.label_10.setText(QCoreApplication.translate("ContourPlotSettings", u"Isolines", None))

@@ -71,9 +71,6 @@ class ExperimentResult(QObject):
         if not ns.has_params():
             raise InvalidFileError(f"{path} is an invalid pychamber results file")
 
-        for ntwk in ns:
-            ntwk.params['calibrated'] = (ntwk.params['calibrated'] == 'True')
-
         try:
             thetas = np.array(list(set(ns.params_values["theta"])))
             phis = np.array(list(set(ns.params_values["phi"])))
@@ -82,13 +79,21 @@ class ExperimentResult(QObject):
         except (TypeError, KeyError) as e:
             raise InvalidFileError(f"{path} is an invalid pychamber results file") from e
 
+        for ntwk in ns:
+            ntwk.params['calibrated'] = (ntwk.params['calibrated'] == 'True')
+
         ret = cls(thetas=thetas, phis=phis, polarizations=pols, frequency=frequency)
+
         for ntwk in ns:
             pol = ntwk.params["polarization"]
             phi_idx = np.where(ret._phis == ntwk.params["phi"])[0]
             theta_idx = np.where(ret._thetas == ntwk.params["theta"])[0]
-            ret._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+            if ntwk.params['calibrated']:
+                ret._caled_s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
+            else:
+                ret._s_data[pol][:, phi_idx, theta_idx] = ntwk.s.reshape((-1, 1))
         ret._ntwk_set = ns
+
         comments = [c.strip() for c in ns.comments.split('@')[:-1]]
         for comment in comments:
             var, val, *_ = comment.split('=')

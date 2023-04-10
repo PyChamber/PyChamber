@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'polar_trace_settings.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.3
+## Created by: Qt User Interface Compiler version 6.4.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QGroupBox,
-    QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-    QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
+    QGroupBox, QHBoxLayout, QLabel, QPushButton,
+    QSizePolicy, QVBoxLayout, QWidget)
 
 from ..widgets.frequency_lineedit import FrequencyLineEdit
 from ..widgets.list_spinbox import ListSpinBox
@@ -32,8 +32,8 @@ class Ui_PolarTraceSettings(object):
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.groupBox = QGroupBox(PolarTraceSettings)
         self.groupBox.setObjectName(u"groupBox")
-        self.verticalLayout_10 = QVBoxLayout(self.groupBox)
-        self.verticalLayout_10.setObjectName(u"verticalLayout_10")
+        self.verticalLayout_7 = QVBoxLayout(self.groupBox)
+        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.verticalLayout_5 = QVBoxLayout()
@@ -68,8 +68,36 @@ class Ui_PolarTraceSettings(object):
 
         self.horizontalLayout.addLayout(self.verticalLayout_2)
 
+        self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setSpacing(2)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(-1, -1, -1, 0)
+        self.label_4 = QLabel(self.groupBox)
+        self.label_4.setObjectName(u"label_4")
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
+        self.label_4.setSizePolicy(sizePolicy)
+        self.label_4.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_10.addLayout(self.horizontalLayout)
+        self.verticalLayout.addWidget(self.label_4)
+
+        self.calibrated_checkbox = QCheckBox(self.groupBox)
+        self.calibrated_checkbox.setObjectName(u"calibrated_checkbox")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.calibrated_checkbox.sizePolicy().hasHeightForWidth())
+        self.calibrated_checkbox.setSizePolicy(sizePolicy1)
+
+        self.verticalLayout.addWidget(self.calibrated_checkbox, 0, Qt.AlignHCenter)
+
+
+        self.horizontalLayout.addLayout(self.verticalLayout)
+
+
+        self.verticalLayout_7.addLayout(self.horizontalLayout)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -146,7 +174,7 @@ class Ui_PolarTraceSettings(object):
         self.horizontalLayout_2.addLayout(self.verticalLayout_4)
 
 
-        self.verticalLayout_10.addLayout(self.horizontalLayout_2)
+        self.verticalLayout_7.addLayout(self.horizontalLayout_2)
 
 
         self.horizontalLayout_3.addWidget(self.groupBox)
@@ -171,6 +199,8 @@ class Ui_PolarTraceSettings(object):
         PolarTraceSettings.setWindowTitle(QCoreApplication.translate("PolarTraceSettings", u"Form", None))
         self.frequencyLabel.setText(QCoreApplication.translate("PolarTraceSettings", u"Frequency", None))
         self.label_6.setText(QCoreApplication.translate("PolarTraceSettings", u"Polarization", None))
+        self.label_4.setText(QCoreApplication.translate("PolarTraceSettings", u"Calibrated", None))
+        self.calibrated_checkbox.setText("")
         self.label.setText(QCoreApplication.translate("PolarTraceSettings", u"Phi", None))
         self.label_9.setText(QCoreApplication.translate("PolarTraceSettings", u"Theta", None))
         self.label_2.setText(QCoreApplication.translate("PolarTraceSettings", u"Color", None))

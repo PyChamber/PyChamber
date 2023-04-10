@@ -144,6 +144,16 @@ class Ui_ThreeDPlotSettings(object):
 
         self.formLayout.setWidget(5, QFormLayout.FieldRole, self.max_sb)
 
+        self.label_8 = QLabel(ThreeDPlotSettings)
+        self.label_8.setObjectName(u"label_8")
+
+        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label_8)
+
+        self.calibrated_checkbox = QCheckBox(ThreeDPlotSettings)
+        self.calibrated_checkbox.setObjectName(u"calibrated_checkbox")
+
+        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.calibrated_checkbox)
+
 
         self.verticalLayout.addLayout(self.formLayout)
 
@@ -169,5 +179,7 @@ class Ui_ThreeDPlotSettings(object):
         self.cmap_label.setText(QCoreApplication.translate("ThreeDPlotSettings", u"Colormap", None))
         self.min_label.setText(QCoreApplication.translate("ThreeDPlotSettings", u"R Minimum", None))
         self.max_label.setText(QCoreApplication.translate("ThreeDPlotSettings", u"R Maximum", None))
+        self.label_8.setText(QCoreApplication.translate("ThreeDPlotSettings", u"Calibrated", None))
+        self.calibrated_checkbox.setText("")
     # retranslateUi
 

@@ -16,6 +16,7 @@ from qtpy.QtCore import QThreadPool, Signal
 from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
+from pychamber import math_fns
 from pychamber.app.logger import LOG
 from pychamber.app.task_runner import TaskRunner
 
@@ -59,6 +60,7 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
         self.pol_cb.activated.connect(self.on_new_data)
         self.theta_lsb.valueChanged.connect(self.on_new_data)
         self.phi_lsb.valueChanged.connect(self.on_new_data)
+        self.calibrated_checkbox.toggled.connect(lambda _: self.on_new_data())
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
 
@@ -72,7 +74,14 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
 
     @staticmethod
     def get_data(
-        data: ExperimentResult, ang_param: str, r_func: Callable, pol: str, f: float, theta: float, phi: float
+        data: ExperimentResult,
+        ang_param: str,
+        r_func: Callable,
+        pol: str,
+        f: float,
+        theta: float,
+        phi: float,
+        calibrated: bool
     ):
         if f is None or pol == "":
             return None
@@ -80,10 +89,10 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
         data.rw_lock.lockForRead()
         if ang_param == "thetas":
             ang_data = data.thetas
-            vals = data.get_theta_cut(pol, f, phi)
+            vals = data.get_theta_cut(pol, f, phi, calibrated=calibrated)
         elif ang_param == "phis":
             ang_data = data.phis
-            vals = data.get_phi_cut(pol, f, theta)
+            vals = data.get_phi_cut(pol, f, theta, calibrated=calibrated)
         data.rw_lock.unlock()
 
         r_data = r_func(vals)
@@ -123,9 +132,22 @@ class PolarTraceSettings(QWidget, Ui_PolarTraceSettings):
             freq = self.freq_le.value()
         phi = float(self.phi_lsb.getValue())
         theta = float(self.theta_lsb.getValue())
+        calibrated = self.calibrated_checkbox.isChecked()
+        LOG.debug(f"retriving {'un' if not calibrated else ''}calibrated data")
+        self.calibrated_checkbox.setVisible(self.data.has_calibrated_data)
+        if not self.data.has_calibrated_data:
+            calibrated = False
 
         data_grabber = TaskRunner(
-            self.get_data, data=self.data, ang_param=ang_param, r_func=r_func, pol=pol, f=freq, phi=phi, theta=theta
+            self.get_data,
+            data=self.data,
+            ang_param=ang_param,
+            r_func=r_func,
+            pol=pol,
+            f=freq,
+            phi=phi,
+            theta=theta,
+            calibrated=calibrated
         )
         data_grabber.signals.gotResult.connect(self.on_get_data_result)
         QThreadPool.globalInstance().start(data_grabber)
@@ -161,7 +183,7 @@ class PolarPlotSettings(QWidget, Ui_PolarPlotSettings):
     ]
     r_params = [
         ("Magnitude [linear]", (mathFunctions.complex_2_magnitude, "")),
-        ("Magnitude [dB]", (lambda data: mathFunctions.complex_2_db(np.where(data == 0, 1e-20, data)), "dB")),
+        ("Magnitude [dB]", (math_fns.clean_complex_to_db, "dB")),
     ]
 
     def __init__(self, parent: QWidget | None = None) -> None:

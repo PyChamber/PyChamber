@@ -55,6 +55,7 @@ class RectTraceSettings(QWidget, Ui_RectTraceSettings):
         self.phi_lsb.valueChanged.connect(self.on_new_data)
         self.theta_lsb.valueChanged.connect(self.on_new_data)
         self.pol_cb.activated.connect(self.on_new_data)
+        self.calibrated_checkbox.toggled.connect(lambda _: self.on_new_data())
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
 
@@ -73,20 +74,29 @@ class RectTraceSettings(QWidget, Ui_RectTraceSettings):
         self.theta_widget.setVisible(param == "phis")
 
     @staticmethod
-    def get_data(data: ExperimentResult, x_param: str, y_func: Callable, pol: str, f: float, phi, theta):
+    def get_data(
+        data: ExperimentResult,
+        x_param: str,
+        y_func: Callable,
+        pol: str,
+        f: float,
+        phi: float,
+        theta: float,
+        calibrated: bool
+    ):
         if f is None or pol == "":
             return None
 
         data.rw_lock.lockForRead()
         if x_param == "f":
             x_data = data.f
-            vals = data.get_over_freq_vals(pol, theta, phi)
+            vals = data.get_over_freq_vals(pol, theta, phi, calibrated=calibrated)
         elif x_param == "thetas":
             x_data = data.thetas
-            vals = data.get_theta_cut(pol, f, phi)
+            vals = data.get_theta_cut(pol, f, phi, calibrated=calibrated)
         elif x_param == "phis":
             x_data = data.phis
-            vals = data.get_phi_cut(pol, f, theta)
+            vals = data.get_phi_cut(pol, f, theta, calibrated=calibrated)
         data.rw_lock.unlock()
 
         y_data = y_func(vals)
@@ -122,12 +132,23 @@ class RectTraceSettings(QWidget, Ui_RectTraceSettings):
             freq = self.freq_le.value()
         phi = float(self.phi_lsb.getValue())
         theta = float(self.theta_lsb.getValue())
+        calibrated = self.calibrated_checkbox.isChecked()
+        self.calibrated_checkbox.setVisible(self.data.has_calibrated_data)
+        if not self.data.has_calibrated_data:
+            calibrated = False
 
         data_grabber = TaskRunner(
-            self.get_data, data=self.data, x_param=x_param, y_func=y_func, pol=pol, f=freq, phi=phi, theta=theta
+            self.get_data,
+            data=self.data,
+            x_param=x_param,
+            y_func=y_func,
+            pol=pol,
+            f=freq,
+            phi=phi,
+            theta=theta,
+            calibrated=calibrated
         )
         data_grabber.signals.gotResult.connect(self.on_get_data_result)
-
         QThreadPool.globalInstance().start(data_grabber)
 
     @property

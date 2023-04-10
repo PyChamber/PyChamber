@@ -13,6 +13,7 @@ from qtpy.QtCore import QThreadPool
 from qtpy.QtWidgets import QWidget
 from skrf import mathFunctions
 
+from pychamber import math_fns
 from pychamber.app.logger import LOG
 from pychamber.app.task_runner import TaskRunner
 
@@ -24,7 +25,7 @@ from .plot_widget import PlotWidget
 class ContourPlotSettings(QWidget, Ui_ContourPlotSettings):
     z_params = [
         ("Magnitude [linear]", mathFunctions.complex_2_magnitude),
-        ("Magnitude [dB]", lambda data: mathFunctions.complex_2_db(np.where(data == 0, 1e-20, data))),
+        ("Magnitude [dB]", math_fns.clean_complex_to_db),
     ]
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -84,6 +85,7 @@ class ContourPlotWidget(PlotWidget):
         self.controls.bg_color_btn.sigColorChanged.connect(lambda btn: self.on_bg_color_changed(btn.color()))
         self.controls.z_var_cb.currentIndexChanged.connect(lambda _: self.on_new_data())
         self.controls.cmap_cb.currentTextChanged.connect(self.plot.setCmap)
+        self.controls.calibrated_checkbox.toggled.connect(lambda _: self.on_new_data())
         if self.data is not None:
             self.data.dataAppended.connect(self.on_new_data)
 
@@ -110,14 +112,20 @@ class ContourPlotWidget(PlotWidget):
         self.plot.setBackground(color)
 
     @staticmethod
-    def get_data(data: ExperimentResult, z_func: Callable, pol: str, f: float):
+    def get_data(
+        data: ExperimentResult,
+        z_func: Callable,
+        pol: str,
+        f: float,
+        calibrated: bool
+    ):
         if f is None or pol == "":
             return None
 
         data.rw_lock.lockForRead()
         x_data = data.phis
         y_data = data.thetas
-        vals = data.get_3d_data(pol, f)
+        vals = data.get_3d_data(pol, f, calibrated=calibrated)
         data.rw_lock.unlock()
 
         z_data = z_func(vals)
@@ -142,6 +150,10 @@ class ContourPlotWidget(PlotWidget):
         if freq is None:
             self.controls.freq_le.setText(self.data.f[0])
             freq = self.controls.freq_le.value()
+        calibrated = self.controls.calibrated_checkbox.isChecked()
+        self.controls.calibrated_checkbox.setVisible(self.data.has_calibrated_data)
+        if not self.data.has_calibrated_data:
+            calibrated = False
 
         data_grabber = TaskRunner(
             self.get_data,
@@ -149,6 +161,7 @@ class ContourPlotWidget(PlotWidget):
             z_func=z_func,
             pol=pol,
             f=freq,
+            calibrated=calibrated
         )
         data_grabber.signals.gotResult.connect(self.on_get_data_result)
         QThreadPool.globalInstance().start(data_grabber)
