@@ -24,10 +24,10 @@ class ExamplePositioner(Positioner):
 
     _msecs_per_deg = 25
 
-    def __init__(self, port: str, parent: QObject | None = None) -> None:
+    def __init__(self, address: str, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
-        self._port = port
+        self._port = address
 
         stored_phi = CONF["example_positioner_phi"]
         if stored_phi is None:

@@ -25,4 +25,4 @@ def unregister(manufacturer: str, model: str) -> None:
 
 
 def connect(manufacturer: str, model: str, address: str, **kwargs: dict[str, any]) -> Positioner:
-    _MODELS[manufacturer][model](address=address, **kwargs)
+    return _MODELS[manufacturer][model](address=address, **kwargs)

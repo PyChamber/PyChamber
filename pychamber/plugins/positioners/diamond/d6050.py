@@ -87,10 +87,10 @@ class Diamond_D6050(Positioner):
     _step_delay = 0.1
     _delay_mode = 1
 
-    def __init__(self, serial_port: str, parent: QWidget | None = None) -> None:
+    def __init__(self, address: str, parent: QWidget | None = None) -> None:
         super().__init__(parent=parent)
         self.serial_connection = serial.Serial(
-            port=serial_port, baudrate=self._serial_baudrate, timeout=self._serial_timeout
+            port=address, baudrate=self._serial_baudrate, timeout=self._serial_timeout
         )
 
         stored_phi = CONF["diamond_d6050_phi"]
