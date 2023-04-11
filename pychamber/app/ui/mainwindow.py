@@ -30,6 +30,9 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1160, 886)
+        icon = QIcon()
+        icon.addFile(u":/images/logo.png", QSize(), QIcon.Normal, QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         self.save_action = QAction(MainWindow)
         self.save_action.setObjectName(u"save_action")
         self.load_action = QAction(MainWindow)
@@ -287,7 +290,7 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"PyChamber", None))
         self.save_action.setText(QCoreApplication.translate("MainWindow", u"Save", None))
         self.load_action.setText(QCoreApplication.translate("MainWindow", u"Load", None))
         self.exit_action.setText(QCoreApplication.translate("MainWindow", u"Exit", None))

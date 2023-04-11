@@ -17,6 +17,10 @@ Penn State using the anechoic chamber there, and so currently only supports that
 equipment. However, care has been taken to make PyChamber easily extensible with
 a plugin architecture.
 
+<p align="center">
+    <img src="docs/imgs/interface.png" alt="An example image of the interface"/>
+</p>
+
 Beyond the GUI, PyChamber provides a simple library that enables the scripting
 of anechoic chamber measurements. This means if you were measure e.g. a phased
 array, you could iterate over all array weightings of interest and take
