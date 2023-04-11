@@ -12,7 +12,7 @@ import time
 
 import numpy as np
 import skrf
-from qtpy.QtCore import QEventLoop, QObject, QTimer, Signal, QThread
+from qtpy.QtCore import QEventLoop, QObject, QThread, QTimer, Signal
 
 
 class ExperimentWorker(QObject):
@@ -46,21 +46,21 @@ class ExperimentWorker(QObject):
         iter_times = np.array([])
         total_iters = len(self.phis) * len(self.thetas)
         total_completed = 0
-        for phi in self.phis:
+        for theta in self.thetas:
             if QThread.currentThread().isInterruptionRequested():
                 self._running = False
             self.wait_for(
-                functools.partial(self.positioner.move_phi_absolute, phi), self.positioner.jogCompleted, timeout=None
+                functools.partial(self.positioner.move_theta_absolute, theta), self.positioner.jogCompleted, timeout=None
             )
 
             cut_completed = 0
-            for theta in self.thetas:
+            for phi in self.phis:
                 if QThread.currentThread().isInterruptionRequested():
                     self._running = False
                 start = time.time()
 
                 self.wait_for(
-                    functools.partial(self.positioner.move_theta_absolute, theta),
+                    functools.partial(self.positioner.move_phi_absolute, phi),
                     self.positioner.jogCompleted,
                     timeout=None,
                 )
