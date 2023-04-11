@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 9.0.2, 2023-04-06T23:26:54. -->
+<!-- Written by QtCreator 9.0.2, 2023-04-10T15:54:55. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -143,12 +143,10 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/gaylybailey/Documents/Programming/pychamber_fork/PyChamber/pychamber/app/ui/mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/gaylybailey/Documents/Programming/pychamber_fork/PyChamber/pychamber/app/ui/mainwindow.py</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/gaylybailey/Documents/Programming/pychamber_fork/PyChamber/pychamber/app/ui/mainwindow.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/home/gaylybailey/Documents/Programming/pychamber_fork/PyChamber/pychamber/app/ui</value>
    </valuemap>
    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
   </valuemap>

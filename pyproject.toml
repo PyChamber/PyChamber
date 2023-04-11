@@ -28,6 +28,7 @@ scikit-rf = { git = "https://github.com/cafeclimber/scikit-rf.git", branch = "vi
 QtPy = "^2.3.1"
 QDarkStyle = "^3.1"
 PyOpenGL = "^3.1.6"
+rich = "^13.3.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
