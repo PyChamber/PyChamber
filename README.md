@@ -62,7 +62,9 @@ for weight in weights:
 an `ExperimentResult`. While running, it will display status and progress as
 exampled below.
 
-![pychamber_run_example](docs/imgs/pychamber.gif)
+<p align="center">
+    <img src="docs/imgs/pychamber.gif" alt="Terminal with example run"/>
+</p>
 
 ## Installing
 
