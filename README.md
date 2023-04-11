@@ -6,12 +6,14 @@
 [![Commit activity](https://img.shields.io/github/commit-activity/m/pychamber/pychamber)](https://img.shields.io/github/commit-activity/m/pychamber/pychamber)
 [![License](https://img.shields.io/github/license/pychamber/pychamber)](https://img.shields.io/github/license/pychamber/pychamber)
 
-![logo](docs/imgs/logo_dark_text.png)
+<p align="center"><img width="500" src="docs/imgs/logo_dark_text.png"/></p>
 
 Run anechoic chamber experiments from Python!
 
 PyChamber is a Python program written with
-[scikit-rf](https://github.com/scikit-rf/scikit-rf) and Qt to provide a modern
+[scikit-rf](https://github.com/scikit-rf/scikit-rf),
+[pyqtgraph](https://github.com/pyqtgraph/pyqtgraph), and 
+[Qt](https://doc.qt.io/qtforpython/) to provide a modern
 and easy to use means of collecting anechoic chamber data. This was developed at
 Penn State using the anechoic chamber there, and so currently only supports that
 equipment. However, care has been taken to make PyChamber easily extensible with
