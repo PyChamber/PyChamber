@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pychamber.app.widgets import AnalyzerControls, ExperimentControls, PositionerControls
-    from pychamber.positioner import Postioner
+    from pychamber.positioner import Positioner
 
 import os
 import pathlib
@@ -334,7 +334,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return self.controls_area.experiment_controls
 
     @property
-    def positioner(self) -> Postioner | None:
+    def positioner(self) -> Positioner | None:
         return self.controls_area.positioner_controls.positioner
 
     def set_pol_params(self) -> None:

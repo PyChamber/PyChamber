@@ -10,7 +10,7 @@ class PositionerConnectionError(RuntimeError):
     pass
 
 
-class Postioner(QObject):
+class Positioner(QObject):
     jogStarted = Signal()
     jogCompleted = Signal()
     jogAborted = Signal()

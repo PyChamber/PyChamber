@@ -6,7 +6,7 @@ import time
 from qtpy.QtCore import QObject
 from qtpy.QtWidgets import QWidget
 
-from pychamber.positioner import Postioner
+from pychamber.positioner import Positioner
 from pychamber.settings import CONF
 
 from .example_positioner_widget import Ui_ExamplePositionerWidget
@@ -18,7 +18,7 @@ class ExamplePositionerWidget(QWidget, Ui_ExamplePositionerWidget):
         self.setupUi(self)
 
 
-class ExamplePositioner(Postioner):
+class ExamplePositioner(Positioner):
     _manufacturer = "Example"
     _model = "Example"
 

@@ -28,7 +28,7 @@ class PositionerControls(QWidget, Ui_PositionerWidget):
         super().__init__(parent)
 
         self.jog_thread = QThread(None)
-        self.positioner: positioner.Postioner | None = None
+        self.positioner: positioner.Positioner | None = None
         self.enable_on_jog_completed = True
 
         LOG.debug("Setting up UI")

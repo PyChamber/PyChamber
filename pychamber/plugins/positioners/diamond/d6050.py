@@ -7,8 +7,8 @@ import qtawesome as qta
 import serial
 from qtpy.QtWidgets import QWidget
 
-from pychamber.positioner import (PositionerConnectionError,
-                                  PositionerLimitException, Postioner)
+from pychamber.positioner import (Positioner, PositionerConnectionError,
+                                  PositionerLimitException)
 from pychamber.settings import CONF
 
 from .d6050_widget import Ui_D6050Widget
@@ -45,7 +45,7 @@ class Diamond_D6050Widget(QWidget, Ui_D6050Widget):
     #     self.z_plus_btn.pressed.connect(self.on_z_plus_pressed)
 
 
-class Diamond_D6050(Postioner):
+class Diamond_D6050(Positioner):
     _manufacturer = "Diamond Engineering"
     _model = "D6050"
 
