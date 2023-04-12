@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 import skrf
 
@@ -8,16 +6,32 @@ from .positioner import Positioner
 
 
 class Experiment:
+    """An abstraction class that simplifies running experiments from scripts.
+
+    The Experiment class is effectively a wrapper around a function that
+    performs a single measurement. This class should only be used during
+    scripting. In the GUI, it's related class, ExperimentWorker is used, which
+    does various thread / Qt related things.
+    """
     def __init__(
         self,
-        # analyzer: skrf.vi.vna.VNA,
+        analyzer: skrf.vi.vna.VNA,
         positioner: Positioner,
         thetas: np.ndarray,
         phis: np.ndarray,
         polarizations: list[tuple[str, int, int]],
         frequency: skrf.Frequency
     ) -> None:
-        # self._analyzer = analyzer
+        """
+        Args:
+            analyzer: Network Analyzer
+            positioner: Positioner instance
+            thetas: Array of theta locations (in degrees)
+            phis: Array of phi locations (in degrees)
+            polarizations:
+                List of (name, a, b), where a, b are port numbers representing which S parameters correspond to the polarization.
+        """
+        self._analyzer = analyzer
         self._positioner = positioner
         self._thetas = thetas
         self._phis = phis
@@ -32,6 +46,14 @@ class Experiment:
         )
 
     def run(self) -> ExperimentResult:
+        """Run the experiment.
+
+        Runs the experiment as defined. This command will display status
+        information using the rich library.
+
+        Returns:
+            ExperimentResult: Measured data from the experiment
+        """
         from rich import progress
         from rich.console import Console, Group
         from rich.live import Live
@@ -64,16 +86,15 @@ class Experiment:
                     self._positioner.move_phi_absolute(phi)
                     for pol_name, a, b in self._polarizations:
                         status.update(f"Capturing {pol_name} polarization")
-                        time.sleep(0.2)
-                        # ntwk = self._analyzer.ch1.get_sdata(a, b)
-                        # ntwk.params = {
-                        #     "phi": phi,
-                        #     "theta": theta,
-                        #     "polarization": pol_name,
-                        #     "calibrated": False
-                        # }
+                        ntwk = self._analyzer.ch1.get_sdata(a, b)
+                        ntwk.params = {
+                            "phi": phi,
+                            "theta": theta,
+                            "polarization": pol_name,
+                            "calibrated": False
+                        }
 
-                        # self._result.append(ntwk)
+                        self._result.append(ntwk)
                     pro.update(cut, advance=1)
                     pro.update(total, advance=1)
                 pro.reset(cut)

@@ -20,7 +20,11 @@ class PluginNameCollisionError(RuntimeError):
 
 
 class PluginInterface:
-    """Interface for plugins to adhere to."""
+    """Interface for plugins to adhere to.
+
+    When creating a new plugin, you must provide the `initialize` method, which is
+    called to setup the plugin.
+    """
 
     @staticmethod
     def initialize() -> None:
@@ -29,7 +33,10 @@ class PluginInterface:
 
 
 class PluginManager:
-    """Manage plugins"""
+    """Manage plugins. You should not need to interact with this.
+
+    A plugin manager is created to load plugins anytime you import pychamber.
+    """
 
     def __init__(self) -> None:
         self.plugins = set()
@@ -43,9 +50,11 @@ class PluginManager:
         return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
 
     def get_local_plugins(self) -> set[str]:
+        """Gets plugins provided by PyChamber."""
         return {name for _, name, _ in self.iter_namespace(pychamber.plugins)}
 
     def get_user_plugins(self) -> set[str]:
+        """Gets plugins provided by the user."""
         return set()
 
     def import_plugin(self, name: str) -> PluginInterface:
@@ -53,7 +62,10 @@ class PluginManager:
         return cast(PluginInterface, importlib.import_module(name))
 
     def load_plugins(self) -> None:
-        """Initialize the registered plugins"""
+        """Initialize all registered plugins.
+
+        This is where each plugin's `initialize` method is called.
+        """
 
         LOG.debug("Initializing plugins")
         for plugin_name in self.plugins:

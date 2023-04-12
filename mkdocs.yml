@@ -1,4 +1,4 @@
-site_name: pychamber
+site_name: PyChamber
 repo_url: https://github.com/pychamber/pychamber
 site_url: https://pychamber.github.io/pychamber
 site_description: Run anechoic chamber experiments from Python!
@@ -8,36 +8,66 @@ repo_name: pychamber/pychamber
 
 nav:
   - Home: index.md
-  - Modules: modules.md
+  - Using PyChamber: application.md
+  - Scripting: scripting.md
+  - Code Reference: reference/
 plugins:
   - search
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
   - mkdocstrings:
+      default_handler: python
       handlers:
         python:
-            setup_commands:
-                - import sys
-                - sys.path.append('../')
+          import:
+            - https://docs.python.org/3/objects.inv
+            - https://scikit-rf.readthedocs.io/en/latest/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+          options:
+            docstring_options:
+            ignore_init_summary: true
+            docstring_section_style: list
+            docstring_style: google
+            members_order: alphabetical
+            merge_init_into_class: true
+            separate_signature: true
+            show_category_heading: no
+            show_submodules: no
+            show_source: false
+
 theme:
   name: material
-  feature:
-    tabs: true
+  logo: imgs/logo.png
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
+    - toc.integrate
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: white
-      accent: deep orange
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: black
-      accent: deep orange
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+
+extra_css:
+  - "stylesheets/extra.css"
+
+extra_javascript:
+  - js/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 extra:
   social:
@@ -51,3 +81,5 @@ markdown_extensions:
       permalink: true
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.highlight
+  - pymdownx.superfences
