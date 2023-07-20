@@ -7,4 +7,5 @@ from .frequency_validator import FrequencyValidator
 from .log_dialog import LogDialog
 from .plot_dock_widget import PlotDockWidget
 from .positioner_controls import PositionerControls
+from .settings_dialog import SettingsDialog
 from .toggle import Toggle

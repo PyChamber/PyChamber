@@ -10,6 +10,7 @@ nav:
   - Home: index.md
   - Using PyChamber: application.md
   - Scripting: scripting.md
+  - Plugins: plugin.md
   - Code Reference: reference/
 plugins:
   - search

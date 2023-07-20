@@ -422,6 +422,8 @@ QGroupBox::title {subcontrol-origin: margin; left: 20px;}</string>
     <addaction name="save_action"/>
     <addaction name="load_action"/>
     <addaction name="separator"/>
+    <addaction name="settings_action"/>
+    <addaction name="separator"/>
     <addaction name="exit_action"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -458,6 +460,11 @@ QGroupBox::title {subcontrol-origin: margin; left: 20px;}</string>
   <action name="view_logs_action">
    <property name="text">
     <string>View Logs</string>
+   </property>
+  </action>
+  <action name="settings_action">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>

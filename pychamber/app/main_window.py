@@ -15,14 +15,13 @@ import qtawesome as qta
 import skrf
 from qtpy.QtCore import Qt, QThread
 from qtpy.QtGui import QCloseEvent, QScreen
-from qtpy.QtWidgets import (QApplication, QFileDialog, QListWidgetItem,
-                            QMainWindow, QMessageBox)
+from qtpy.QtWidgets import QApplication, QFileDialog, QListWidgetItem, QMainWindow, QMessageBox
 
 from pychamber import ExperimentResult
 from pychamber.app.logger import LOG
 from pychamber.app.objects import ExperimentWorker
 from pychamber.app.ui.mainwindow import Ui_MainWindow
-from pychamber.app.widgets import LogDialog
+from pychamber.app.widgets import LogDialog, SettingsDialog
 from pychamber.settings import CONF
 
 
@@ -33,6 +32,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         LOG.debug("Constructing MainWindow")
         self.app = QApplication.instance()
         self.log_dialog = LogDialog()
+        self.settings_dialog = SettingsDialog()
         self.active_result: ExperimentResult | None = None
         self.saved = []
         self._results = []
@@ -43,6 +43,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.results_widget.hide()
         self.connect_signals()
+
+        widget_map = {
+            "visalib": (self.settings_dialog.backend_cb, "@py", str),
+            "theme": (self.settings_dialog.theme_cb, "Light", str),
+        }
+        CONF.register_widgets(widget_map)
 
     def post_visible_setup(self):
         LOG.debug("Running post visible tasks")
@@ -64,6 +70,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.save_action.triggered.connect(self.on_save_action_triggered)
         self.load_action.triggered.connect(self.on_load_action_triggered)
         self.view_logs_action.triggered.connect(self.on_view_logs_action_triggered)
+        self.settings_action.triggered.connect(self.on_settings_action_triggered)
 
         self.exit_action.triggered.connect(self.close)
 
@@ -79,6 +86,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.results.model().rowsInserted.connect(self.on_results_rows_changed)
         self.results.currentItemChanged.connect(self.on_current_result_changed)
+
+        self.settings_dialog.theme_changed.connect(self.apply_theme)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if len(self.saved) < self.results.count():
@@ -150,6 +159,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def on_view_logs_action_triggered(self):
         self.log_dialog.show()
+
+    def on_settings_action_triggered(self):
+        self.settings_dialog.show()
 
     def on_results_rows_changed(self):
         if self.results.count() == 0:
@@ -314,8 +326,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if theme == "Light":
             setConfigOptions(foreground="#54687a", background="#f5fbff")
-        else:
+        elif theme == "Dark":
             setConfigOptions(foreground="#c0caf5", background="#1a1b26")
+        else:
+            raise RuntimeError(f"Unrecognized theme: {theme}")
+
+        CONF["theme"] = theme
 
     @property
     def analyzer(self) -> skrf.vi.VNA | None:
@@ -349,9 +365,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         LOG.debug(f"calibration [{self.experiment_controls.calibration}]")
         freq = self.analyzer_controls.frequency
         result = ExperimentResult(
-            thetas=thetas, 
-            phis=phis, 
-            polarizations=[p[0] for p in polarizations], 
+            thetas=thetas,
+            phis=phis,
+            polarizations=[p[0] for p in polarizations],
             frequency=freq,
         )
         item = QListWidgetItem(self.results)

@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from skrf.vi.vna import VNA
+
 import numpy as np
 import skrf
 
@@ -13,14 +20,15 @@ class Experiment:
     scripting. In the GUI, it's related class, ExperimentWorker is used, which
     does various thread / Qt related things.
     """
+
     def __init__(
         self,
-        analyzer: skrf.vi.vna.VNA,
+        analyzer: VNA,
         positioner: Positioner,
         thetas: np.ndarray,
         phis: np.ndarray,
         polarizations: list[tuple[str, int, int]],
-        frequency: skrf.Frequency
+        frequency: skrf.Frequency,
     ) -> None:
         """
         Args:
@@ -38,12 +46,7 @@ class Experiment:
         self._polarizations = polarizations
         self._frequency = frequency
 
-        self._result = ExperimentResult(
-            self._thetas,
-            self._phis,
-            [pol[0] for pol in polarizations],
-            self._frequency
-        )
+        self._result = ExperimentResult(self._thetas, self._phis, [pol[0] for pol in polarizations], self._frequency)
 
     def run(self) -> ExperimentResult:
         """Run the experiment.
@@ -87,12 +90,7 @@ class Experiment:
                     for pol_name, a, b in self._polarizations:
                         status.update(f"Capturing {pol_name} polarization")
                         ntwk = self._analyzer.ch1.get_sdata(a, b)
-                        ntwk.params = {
-                            "phi": phi,
-                            "theta": theta,
-                            "polarization": pol_name,
-                            "calibrated": False
-                        }
+                        ntwk.params = {"phi": phi, "theta": theta, "polarization": pol_name, "calibrated": False}
 
                         self._result.append(ntwk)
                     pro.update(cut, advance=1)

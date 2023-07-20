@@ -50,7 +50,6 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
         widget_map = {
             # TODO: Make settings handle CategoryComboBox maybe?
             "analyzer_address": (self.address_cb, "", str),
-            "visalib": (None, "@py", str),
         }
         CONF.register_widgets(widget_map)
 
