@@ -100,7 +100,9 @@ class CalWizard(QWizard, Ui_CalWizard):
     def measure_polarization(self, polarization: int) -> None:
         msmnt_param = self.pol1_cb.currentData() if polarization == 0 else self.pol2_cb.currentData()
         LOG.debug(f"Measuring polarization {msmnt_param}")
-        ntwk = self.analyzer.ch1.get_sdata(*msmnt_param)
+        self.analyzer.create_measurement("PYCHAMBER_TMP", f"S{msmnt_param[0]}{msmnt_param[1]}")
+        ntwk = self.analyzer.get_measurement("PYCHAMBER_TMP")
+        self.analyzer.delete_measurement("PYCHAMBER_TMP")
 
         loss = self.calc_loss(ntwk)
         pol_name = self.pol1_le.text() if polarization == 0 else self.pol2_le.text()
