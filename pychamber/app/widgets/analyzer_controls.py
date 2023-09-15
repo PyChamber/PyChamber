@@ -108,6 +108,7 @@ class AnalyzerControls(QWidget, Ui_AnalyzerWidget):
             LOG.error(f"Failed to connect to analyzer: {e}")
             QMessageBox.critical(self, "Connection Error", "Failed to connect to analyzer")
             return
+        self.analyzer._resource.timeout = 30_000  # 30 Seconds
 
         self.connect_btn.hide()
         self.disconnect_btn.show()

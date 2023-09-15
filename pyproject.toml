@@ -23,7 +23,7 @@ psutil = "^5.9.4"
 zeroconf = "^0.47.3"
 qtwidgets = "^1.1"
 PySide6 = "6.4.2"
-scikit-rf = { git = "https://github.com/cafeclimber/scikit-rf.git", branch = "vi", extras = ["visa"]}
+scikit-rf = { version="^0.29", extras = ["visa"]}
 QtPy = "^2.3.1"
 QDarkStyle = "^3.1"
 PyOpenGL = "^3.1.6"
